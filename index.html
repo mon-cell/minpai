@@ -1,0 +1,1600 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>牌譜入力 – コミュニティ牌譜プロジェクト</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#f0ede8;--sf:#fff;--sf2:#f1efe8;
+  --bd:rgba(0,0,0,.12);--bd2:rgba(0,0,0,.22);
+  --tx:#1a1a18;--tx2:#5f5e5a;--tx3:#888780;
+  --b-bg:#e6f1fb;--b:#185fa5;--b-t:#0c447c;
+  --a-bg:#faeeda;--a:#ba7517;--a-t:#633806;
+  --g-bg:#eaf3de;--g:#3b6d11;
+  --r-bg:#fcebeb;--r:#a32d2d;
+  --tl-bg:#e1f5ee;--tl:#0f6e56;
+  --gold:#c8920a;--gold-bg:#fdf3dc;
+  --ra:8px;--ral:12px
+}
+@media(prefers-color-scheme:dark){:root{
+  --bg:#1a1a18;--sf:#252523;--sf2:#2e2e2c;
+  --bd:rgba(255,255,255,.1);--bd2:rgba(255,255,255,.2);
+  --tx:#f0ede8;--tx2:#b4b2a9;--tx3:#888780;
+  --b-bg:#0c3d6b;--b:#85b7eb;--b-t:#b5d4f4;
+  --a-bg:#4a2800;--a:#ef9f27;--a-t:#fac775;
+  --g-bg:#1e3d0a;--g:#97c459;
+  --r-bg:#5a1414;--r:#f09595;
+  --tl-bg:#053630;--tl:#5dcaa5;
+  --gold:#e8b84b;--gold-bg:#2a2000;
+}}
+body{background:var(--bg);color:var(--tx);font-family:-apple-system,BlinkMacSystemFont,'Hiragino Sans','Yu Gothic UI',sans-serif;font-size:15px;line-height:1.6;min-height:100vh}
+.wrap{max-width:820px;margin:0 auto;padding:12px 12px 60px}
+
+/* ── カード ── */
+.card{background:var(--sf);border:.5px solid var(--bd);border-radius:var(--ral);padding:14px 16px;margin-bottom:10px}
+.slabel{font-size:11px;color:var(--tx3);letter-spacing:.06em;text-transform:uppercase;margin-bottom:8px;font-weight:600}
+
+/* ── ボタン ── */
+button{background:var(--sf);border:.5px solid var(--bd2);border-radius:var(--ra);padding:7px 14px;font-size:14px;color:var(--tx);cursor:pointer;transition:background .1s,transform .08s;-webkit-tap-highlight-color:transparent;font-family:inherit}
+button:hover{background:var(--sf2)}button:active{transform:scale(.95)}
+button:disabled{opacity:.4;cursor:default;transform:none}
+button.pri{background:var(--b);border-color:var(--b);color:#e6f1fb}button.pri:hover{opacity:.88}
+button.grn{background:var(--g);border-color:var(--g);color:#eaf3de}button.grn:hover{opacity:.88}
+button.gold{background:var(--gold);border-color:var(--gold);color:#fff;font-weight:600}
+button.sml{font-size:12px;padding:4px 10px}
+button.ghost{background:transparent;border-color:var(--bd);color:var(--tx3)}
+
+/* ── フォーム ── */
+input[type=text]{background:var(--sf);border:.5px solid var(--bd2);border-radius:var(--ra);padding:7px 10px;font-size:14px;color:var(--tx);outline:none;width:100%;font-family:inherit}
+input[type=text]:focus{box-shadow:0 0 0 2px var(--b)}
+textarea{width:100%;background:var(--sf);border:.5px solid var(--bd2);border-radius:var(--ra);padding:7px 10px;font-size:13px;color:var(--tx);resize:none;font-family:inherit;outline:none}
+textarea:focus{box-shadow:0 0 0 2px var(--b)}
+select{background:var(--sf);border:.5px solid var(--bd2);border-radius:var(--ra);padding:7px 10px;font-size:14px;color:var(--tx);outline:none;width:100%;font-family:inherit;-webkit-appearance:none}
+
+/* ── ナビ ── */
+.top-nav{background:var(--sf);border-bottom:.5px solid var(--bd);position:sticky;top:0;z-index:100;padding:0 12px}
+.top-nav-inner{max-width:820px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;height:48px}
+.nav-title{font-size:15px;font-weight:600;display:flex;align-items:center;gap:6px}
+.nav-tabs{display:flex;gap:2px}
+.nav-tab{font-size:12px;padding:5px 10px;border-radius:6px;border:none;background:transparent;color:var(--tx3);cursor:pointer}
+.nav-tab.on{background:var(--b-bg);color:var(--b-t);font-weight:600}
+
+/* ── セクションナビ（サイドバー風） ── */
+.sec-nav{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:12px}
+.sec-btn{font-size:12px;padding:5px 10px;border-radius:20px;border:.5px solid var(--bd2);background:var(--sf);color:var(--tx2);cursor:pointer;transition:all .15s;white-space:nowrap}
+.sec-btn.on{background:var(--b);border-color:var(--b);color:#e6f1fb}
+.sec-btn.done{border-color:var(--g);color:var(--g);background:var(--g-bg)}
+
+/* ── 完成度バー ── */
+.prog-wrap{height:6px;background:var(--bd);border-radius:3px;margin-bottom:12px;overflow:hidden}
+.prog-fill{height:100%;background:linear-gradient(90deg,var(--b),var(--tl));border-radius:3px;transition:width .5s ease}
+
+/* ── 牌キーボード ── */
+.kbd-wrap{margin-top:8px;background:var(--sf2);border-radius:var(--ra);padding:10px}
+.kbd-tabs{display:flex;gap:5px;margin-bottom:8px;flex-wrap:wrap}
+.kbd-tab{font-size:12px;padding:4px 10px;border-radius:20px;border:.5px solid var(--bd2);background:var(--sf);color:var(--tx2);cursor:pointer}
+.kbd-tab.on{background:var(--b);border-color:var(--b);color:#e6f1fb}
+.kbd-row{display:flex;gap:3px;flex-wrap:wrap}
+.tile-btn{font-size:22px;line-height:1;padding:4px 5px;min-width:38px;border-radius:6px;border:.5px solid var(--bd2);background:var(--sf);cursor:pointer;-webkit-tap-highlight-color:transparent;transition:background .08s,transform .08s}
+.tile-btn:active{transform:scale(.88);background:var(--b-bg)}
+.util-row{display:flex;gap:4px;margin-top:6px;padding-top:6px;border-top:.5px solid var(--bd)}
+.util-btn{font-size:13px;padding:5px 12px;border-radius:6px;border:.5px solid var(--bd2);background:var(--sf);cursor:pointer}
+.util-btn.del{color:var(--r)}
+
+/* ── 手牌プレビュー ── */
+.hand-prev{font-size:22px;min-height:28px;margin:6px 0;letter-spacing:1px;line-height:1.4;word-break:break-all;overflow-x:auto;white-space:nowrap;padding:4px 0}
+.hand-prev .r5{position:relative;display:inline-block;line-height:1}
+.hand-prev .r5::after{content:"●";position:absolute;top:-1px;right:-2px;font-size:.4em;color:#e53935;text-shadow:0 0 2px #fff}
+
+/* ── グリッド入力（ツモ/捨て） ── */
+.grid-wrap{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.grid-label{font-size:11px;color:var(--tx3);font-weight:600;margin-bottom:6px;display:flex;justify-content:space-between;align-items:center}
+.tile-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:3px}
+.grid-slot{aspect-ratio:3/4;border:.5px dashed var(--bd2);border-radius:4px;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all .12s;font-size:18px;background:var(--sf);position:relative}
+.grid-slot:hover{border-color:var(--b);background:var(--b-bg)}
+.grid-slot.active{border:2px solid var(--b);background:var(--b-bg);box-shadow:0 0 0 2px rgba(24,95,165,.2)}
+.grid-slot.filled{border-style:solid;border-color:var(--bd)}
+.grid-slot .slot-num{font-size:9px;color:var(--bd2)}
+.active-dot{position:absolute;top:-5px;left:50%;transform:translateX(-50%);width:5px;height:5px;border-radius:50%;background:var(--b)}
+
+/* リアルタイム捨て牌 */
+.rt-panel{background:var(--sf2);border-radius:var(--ra);padding:10px 12px;margin-bottom:10px;border:.5px solid var(--bd)}
+.rt-row{display:flex;align-items:center;gap:6px;margin-bottom:3px;font-size:13px}
+.rt-seat{font-size:10px;color:var(--tx3);width:28px;flex-shrink:0;font-weight:600}
+.rt-tiles{letter-spacing:.5px;flex:1;overflow-x:auto;white-space:nowrap;min-height:20px}
+.rt-empty{color:var(--bd2);font-size:10px}
+
+/* ── 選手カード ── */
+.player-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.player-card{border:.5px solid var(--bd);border-radius:var(--ra);padding:10px 12px;cursor:pointer;transition:all .15s;background:var(--sf)}
+.player-card:hover{border-color:var(--b)}
+.player-card.on{border-color:var(--b);background:var(--b-bg);border-width:1.5px}
+.player-card .seat-lbl{font-size:10px;color:var(--tx3);margin-bottom:2px}
+.player-card .p-name{font-size:15px;font-weight:500}
+.player-card .p-badges{display:flex;gap:4px;margin-top:4px;flex-wrap:wrap}
+.badge{font-size:10px;padding:1px 6px;border-radius:10px;font-weight:600}
+.badge.pro{background:var(--a-bg);color:var(--a-t)}
+.badge.player{background:var(--g-bg);color:var(--g)}
+
+/* ── ランキング ── */
+.rank-row{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:var(--ra);border:.5px solid var(--bd);margin-bottom:6px;background:var(--sf)}
+.rank-row.me{border-color:var(--b);background:var(--b-bg)}
+.rank-num{width:28px;text-align:center;font-weight:700;font-size:16px;flex-shrink:0}
+.rank-name{flex:1;font-size:14px}
+.rank-pts{font-size:16px;font-weight:700;color:var(--gold)}
+
+/* ── アカウント ── */
+.pt-big{font-size:36px;font-weight:700;color:var(--gold);line-height:1}
+.pt-bar-wrap{height:8px;background:var(--bd);border-radius:4px;overflow:hidden;margin:6px 0}
+.pt-bar{height:100%;background:linear-gradient(90deg,var(--gold),var(--a));border-radius:4px;transition:width 1s}
+.shop-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.shop-item{border:.5px solid var(--bd);border-radius:var(--ra);padding:10px 12px;display:flex;align-items:center;gap:10px;background:var(--sf)}
+.shop-item-icon{font-size:26px}
+.shop-item-name{font-size:13px;font-weight:500}
+.shop-item-pts{font-size:12px;color:var(--gold);font-weight:700}
+.pt-table{width:100%;border-collapse:collapse;font-size:13px}
+.pt-table tr{border-bottom:.5px solid var(--bd)}
+.pt-table td{padding:7px 6px}
+.pt-table .td-pts{text-align:right;font-weight:700;white-space:nowrap}
+.pt-table .hi{color:var(--gold)}
+.pt-table .mid{color:var(--g)}
+
+/* ── レポート ── */
+@media print{
+  *{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}
+  body>*:not(#print-frame){display:none!important}
+  #print-frame{display:block!important;position:static!important;inset:auto!important;width:100%!important;background:#fff!important;z-index:auto!important;padding:0!important;overflow:visible!important}
+}
+
+/* ── モーダル ── */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:200;align-items:center;justify-content:center;padding:16px}
+.modal-overlay.open{display:flex}
+.modal-box{background:var(--sf);border-radius:var(--ral);padding:20px;width:100%;max-width:480px;max-height:90vh;overflow-y:auto;box-shadow:0 8px 32px rgba(0,0,0,.2)}
+.modal-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.modal-title{font-size:16px;font-weight:600}
+.modal-close{background:none;border:none;font-size:22px;cursor:pointer;color:var(--tx3);padding:0}
+
+/* ── フローティング送信ボタン ── */
+.fab-wrap{
+  position:fixed;bottom:16px;right:16px;z-index:150;
+  display:flex;flex-direction:column;align-items:flex-end;gap:8px;
+}
+.fab-submit{
+  display:flex;align-items:center;gap:8px;
+  padding:13px 20px;border-radius:28px;
+  background:linear-gradient(135deg,var(--gold),var(--a));
+  border:none;color:#fff;font-size:15px;font-weight:700;
+  font-family:inherit;cursor:pointer;
+  box-shadow:0 4px 16px rgba(0,0,0,.25);
+  transition:transform .12s,box-shadow .12s;
+}
+.fab-submit:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(0,0,0,.3);}
+.fab-submit:active{transform:scale(.95);}
+.fab-report{
+  padding:9px 16px;border-radius:20px;
+  background:var(--sf);border:.5px solid var(--bd2);
+  color:var(--tx2);font-size:13px;font-family:inherit;cursor:pointer;
+  box-shadow:0 2px 8px rgba(0,0,0,.15);
+}
+/* フローティングボタン分の余白 */
+.wrap{padding-bottom:90px;}
+
+.st.ok{display:block;background:var(--g-bg);color:var(--g)}
+.st.warn{display:block;background:var(--a-bg);color:var(--a-t)}
+</style>
+</head>
+<body>
+
+<!-- ── フローティング送信ボタン（常時表示） ── -->
+<div class="fab-wrap" id="fab-wrap">
+  <button class="fab-report" onclick="openReport()">📋 レポート</button>
+  <button class="fab-submit" onclick="submitAll()">🀄 送信する</button>
+</div>
+
+
+<nav class="top-nav">
+  <div class="top-nav-inner">
+    <div class="nav-title">🀄 牌譜入力</div>
+    <div class="nav-tabs">
+      <button class="nav-tab on" onclick="setView('input')">入力</button>
+      <button class="nav-tab" onclick="setView('ranking')">ランク</button>
+      <button class="nav-tab" onclick="setView('account')">アカウント</button>
+    </div>
+  </div>
+</nav>
+
+<div class="wrap">
+  <!-- CSVロード状態 -->
+  <div id="master-status" class="st" style="display:none;margin-bottom:10px"></div>
+
+  <!-- ════════════════════════════════════════ -->
+  <!-- VIEW: 入力                              -->
+  <!-- ════════════════════════════════════════ -->
+  <div id="view-input">
+
+    <!-- 完成度バー -->
+    <div class="prog-wrap"><div class="prog-fill" id="prog-fill" style="width:0%"></div></div>
+
+    <!-- セクションナビ -->
+    <div class="sec-nav" id="sec-nav"></div>
+
+    <!-- セクションコンテンツ -->
+    <div id="sec-content"></div>
+
+  </div>
+
+  <!-- ════════════════════════════════════════ -->
+  <!-- VIEW: ランキング                        -->
+  <!-- ════════════════════════════════════════ -->
+  <div id="view-ranking" style="display:none">
+    <h2 style="font-size:18px;font-weight:500;margin-bottom:4px">ランキング</h2>
+    <p style="font-size:13px;color:var(--tx3);margin-bottom:14px">正確な入力で上位を目指そう。毎月上位者にプレゼントあり。</p>
+
+    <div class="card" style="display:flex;align-items:center;gap:12px;padding:12px 16px;margin-bottom:14px">
+      <span style="font-size:28px">🎁</span>
+      <div>
+        <div style="font-size:13px;font-weight:600;margin-bottom:2px">今月の報酬</div>
+        <div style="font-size:12px;color:var(--tx2)">🥇 1位: Amazonギフト券 ¥5,000　🥈 2位: ¥3,000　🥉 3位: ¥1,000</div>
+      </div>
+    </div>
+
+    <div id="ranking-list"></div>
+  </div>
+
+  <!-- ════════════════════════════════════════ -->
+  <!-- VIEW: アカウント                        -->
+  <!-- ════════════════════════════════════════ -->
+  <div id="view-account" style="display:none">
+    <h2 style="font-size:18px;font-weight:500;margin-bottom:14px">マイページ</h2>
+
+    <!-- ポイント表示 -->
+    <div class="card" style="margin-bottom:12px">
+      <div style="display:flex;align-items:center;gap:14px;margin-bottom:14px">
+        <div style="width:52px;height:52px;border-radius:50%;background:var(--gold-bg);border:1.5px solid var(--gold);display:flex;align-items:center;justify-content:center;font-size:26px;flex-shrink:0">🀄</div>
+        <div>
+          <div style="font-size:17px;font-weight:600" id="acct-name">あなた</div>
+          <div style="font-size:12px;color:var(--tx3)" id="acct-handle">@user_1234　全体12位</div>
+        </div>
+      </div>
+      <div style="background:var(--sf2);border-radius:var(--ra);padding:12px 14px;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between">
+        <div>
+          <div style="font-size:11px;color:var(--tx3);margin-bottom:2px">保有ポイント</div>
+          <div class="pt-big">1,240<span style="font-size:14px;margin-left:3px;color:var(--tx3)">pt</span></div>
+        </div>
+        <button class="gold sml" onclick="openShop()">🛒 使う</button>
+      </div>
+      <div style="font-size:11px;color:var(--tx3);display:flex;justify-content:space-between;margin-bottom:3px">
+        <span>次の報酬まで</span><span>1,240 / 2,000 pt</span>
+      </div>
+      <div class="pt-bar-wrap"><div class="pt-bar" style="width:62%"></div></div>
+    </div>
+
+    <!-- 統計 -->
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px">
+      <div class="card" style="text-align:center;padding:10px">
+        <div style="font-size:22px;font-weight:700">8<span style="font-size:12px">局</span></div>
+        <div style="font-size:11px;color:var(--tx3)">入力対局数</div>
+      </div>
+      <div class="card" style="text-align:center;padding:10px">
+        <div style="font-size:22px;font-weight:700">89.5<span style="font-size:12px">%</span></div>
+        <div style="font-size:11px;color:var(--tx3)">正解率</div>
+      </div>
+      <div class="card" style="text-align:center;padding:10px">
+        <div style="font-size:22px;font-weight:700;color:var(--gold)">+260<span style="font-size:12px">pt</span></div>
+        <div style="font-size:11px;color:var(--tx3)">今月獲得</div>
+      </div>
+    </div>
+
+    <!-- ポイント獲得一覧 -->
+    <div class="card" style="margin-bottom:12px">
+      <div class="slabel">⭐ ポイント獲得一覧（目安）</div>
+      <table class="pt-table">
+        <tbody id="pt-table-body"></tbody>
+      </table>
+    </div>
+
+    <!-- 入力履歴 -->
+    <div class="card">
+      <div class="slabel">入力履歴</div>
+      <div id="history-list"></div>
+    </div>
+  </div>
+
+</div><!-- /wrap -->
+
+<!-- ── ポイントショップ モーダル ── -->
+<div class="modal-overlay" id="shop-modal" onclick="if(event.target===this)closeShop()">
+  <div class="modal-box">
+    <div class="modal-hdr">
+      <div class="modal-title">🛒 ポイントショップ</div>
+      <button class="modal-close" onclick="closeShop()">✕</button>
+    </div>
+    <div style="background:var(--sf2);border-radius:var(--ra);padding:8px 12px;margin-bottom:12px;font-size:13px">
+      保有ポイント: <strong style="color:var(--gold)">1,240 pt</strong>
+    </div>
+    <!-- tabs -->
+    <div style="display:flex;gap:0;margin-bottom:14px;border-bottom:.5px solid var(--bd)">
+      <button class="nav-tab on" id="shop-tab-pt" onclick="setShopTab('pt')" style="font-size:13px;padding:6px 16px">ポイントで交換</button>
+      <button class="nav-tab" id="shop-tab-cash" onclick="setShopTab('cash')" style="font-size:13px;padding:6px 16px">課金で購入</button>
+    </div>
+    <div id="shop-pt-content"></div>
+    <div id="shop-cash-content" style="display:none"></div>
+  </div>
+</div>
+
+<!-- ── レポートモーダル ── -->
+<div class="modal-overlay" id="report-modal" onclick="if(event.target===this)closeReport()">
+  <div class="modal-box" style="max-width:600px">
+    <div class="modal-hdr">
+      <div class="modal-title">📋 牌譜レポート</div>
+      <button class="modal-close" onclick="closeReport()">✕</button>
+    </div>
+    <!-- tabs -->
+    <div style="display:flex;gap:0;margin-bottom:14px;border-bottom:.5px solid var(--bd)">
+      <button class="nav-tab on" id="rep-tab-info" onclick="setRepTab('info')" style="font-size:13px;padding:6px 14px">📊 対局情報</button>
+      <button class="nav-tab" id="rep-tab-comment" onclick="setRepTab('comment')" style="font-size:13px;padding:6px 14px">💬 コメント</button>
+    </div>
+    <div id="rep-info-content"></div>
+    <div id="rep-comment-content" style="display:none"></div>
+    <div style="border-top:.5px solid var(--bd);padding-top:12px;margin-top:4px;display:flex;justify-content:flex-end">
+      <button class="pri" onclick="downloadReport()">🖨 印刷 / PDFに保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── 送信完了モーダル ── -->
+<div class="modal-overlay" id="done-modal" onclick="if(event.target===this)closeDone()">
+  <div class="modal-box" style="text-align:center;padding:36px 24px">
+    <div style="font-size:52px;margin-bottom:12px">✅</div>
+    <div style="font-size:18px;font-weight:600;margin-bottom:6px">入力完了！</div>
+    <div style="font-size:13px;color:var(--tx2);margin-bottom:6px">検証後、正解であればポイントが付与されます。</div>
+    <div style="font-size:20px;font-weight:700;color:var(--gold);margin-bottom:20px">最大 +150 pt 獲得予定</div>
+    <button class="pri" onclick="closeDone()">閉じる</button>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════
+// 定数
+// ═══════════════════════════════════════════════
+const TE={
+  "東":"🀀","南":"🀁","西":"🀂","北":"🀃","中":"🀄︎","発":"🀅","白":"🀆",
+  "1m":"🀇","2m":"🀈","3m":"🀉","4m":"🀊","5m":"🀋","6m":"🀌","7m":"🀍","8m":"🀎","9m":"🀏","r5m":"🀋",
+  "1p":"🀙","2p":"🀚","3p":"🀛","4p":"🀜","5p":"🀝","6p":"🀞","7p":"🀟","8p":"🀠","9p":"🀡","r5p":"🀝",
+  "1s":"🀐","2s":"🀑","3s":"🀒","4s":"🀓","5s":"🀔","6s":"🀕","7s":"🀖","8s":"🀗","9s":"🀘","r5s":"🀔",
+  "?":"🂠"
+};
+function te(t){
+  if(!t)return"";
+  if(t==="r5m"||t==="r5p"||t==="r5s")
+    return`<span class="r5">${TE[t]}</span>`;
+  return TE[t]||t;
+}
+
+const KBD_TABS=[
+  {id:"man",label:"萬",tiles:["1m","2m","3m","4m","5m","r5m","6m","7m","8m","9m"]},
+  {id:"pin",label:"筒",tiles:["1p","2p","3p","4p","5p","r5p","6p","7p","8p","9p"]},
+  {id:"sou",label:"索",tiles:["1s","2s","3s","4s","5s","r5s","6s","7s","8s","9s"]},
+  {id:"ji", label:"字",tiles:["東","南","西","北","白","発","中"]}
+];
+const WJ={east:"東",south:"南",west:"西",north:"北"};
+const WE=["east","south","west","north"];
+
+const SECTIONS=[
+  {key:"game",   label:"対局情報",   icon:"🀄"},
+  {key:"player", label:"プレイヤー", icon:"👤"},
+  {key:"haipai", label:"初期配牌",   icon:"🃏"},
+  {key:"turns",  label:"ツモ・捨て", icon:"♻️"},
+  {key:"final",  label:"最終手牌",   icon:"🖐"},
+  {key:"meld",   label:"副露",       icon:"🔗"},
+  {key:"wait",   label:"待ち",       icon:"⏳"},
+  {key:"agari",  label:"アガリ",     icon:"🏆"},
+  {key:"score",  label:"点数",       icon:"💴"},
+];
+
+const POINT_TABLE=[
+  {task:"プレイヤー・位置情報（東家:AAA など）",                                pts:2,   cls:""},
+  {task:"配牌入力",                                                              pts:3,   cls:""},
+  {task:"ツモ・捨て牌入力（1巡につき）",                                        pts:1,   cls:""},
+  {task:"副露（巡目 + ポン捨て / チー捨て / 嶺上開花捨てまで）",               pts:3,   cls:""},
+  {task:"最終形 + 待ち",                                                         pts:3,   cls:""},
+  {task:"アガり方（誰が・どこから・ロンまたはツモ・点数）",                     pts:3,   cls:""},
+  {task:"コメントを投稿する",                                                    pts:1,   cls:""},
+  {task:"1局まるごと入力が正解（照合一致ボーナス）",                            pts:20,  cls:"hi"},
+  {task:"対局者本人として入力",                                                  pts:30,  cls:"hi"},
+  {task:"プロアカウントで入力",                                                  pts:10,  cls:"mid"},
+  {task:"初回ボーナス",                                                          pts:10,  cls:"hi"},
+  {task:"連続7日間入力",                                                         pts:7,   cls:"mid"},
+  {task:"月間100局入力達成",                                                     pts:50,  cls:"hi"},
+];
+
+const RANKINGS=[
+  {rank:1, name:"雷神ケンイチ",  pts:8420,badge:"🏆",games:34,acc:97.2,me:false},
+  {rank:2, name:"桜花散る",      pts:7150,badge:"🥈",games:29,acc:95.8,me:false},
+  {rank:3, name:"東風荘の鬼",    pts:6830,badge:"🥉",games:31,acc:94.1,me:false},
+  {rank:4, name:"麻雀修行中",    pts:5240,badge:"",  games:22,acc:91.3,me:false},
+  {rank:5, name:"天和待ち",      pts:4980,badge:"",  games:19,acc:93.7,me:false},
+  {rank:12,name:"あなた",        pts:1240,badge:"",  games:8, acc:89.5,me:true},
+];
+
+const HISTORY=[
+  {date:"04/28",game:"東1局",pts:150,status:"正解"},
+  {date:"04/27",game:"東3局",pts:80, status:"正解"},
+  {date:"04/27",game:"東2局",pts:30, status:"確認中"},
+];
+
+const SAMPLE_GAME={
+  title:"第14回天鳳名人戦",round:"東1局",date:"2025-04-28",
+  bakaze:"東",honba:0,
+  winner:"east",loser:null,winType:"tsumo",score:3900,
+  dora:["5m","2p"],uraDora:["1s"],
+};
+const SAMPLE_PLAYERS={
+  east:{name:"雷神ケンイチ",isPro:false,isPlayer:false,scoreStart:25000,scoreEnd:28900,
+    haipai:["1m","2m","3m","4m","5m","6m","7m","8m","9m","1p","2p","3s","3s"],
+    draws:["3m","4m","6m","2s","7p","9p","8m"],
+    discards:["9s","8s","7s","6s","5p","4p","3p","2p","1p","9m","8m","7m","6m","5m"],
+    final:["1m","2m","3m","4m","5m","6m","7m","8m","6m","3s","3s"],
+    wait:["6m","9m"],riichiIdx:6,melds:[]},
+  south:{name:"桜花散る",isPro:true,isPlayer:false,scoreStart:25000,scoreEnd:24000,
+    haipai:["2p","3p","4p","5p","6p","7p","1s","2s","3s","4z","4z","5z","5z"],
+    draws:["8p","9p","1m","3m"],discards:["4z","5z","1m","3m","9p","8p"],
+    final:["2p","3p","4p","5p","6p","7p","1s","2s","3s"],wait:[],melds:[]},
+  west:{name:"東風荘の鬼",isPro:false,isPlayer:true,scoreStart:25000,scoreEnd:23000,
+    haipai:["1z","2z","3z","4z","9m","9p","9s","1m","5m","3p","7s","2s","6m"],
+    draws:["5z","6z","7z"],discards:["9m","9p","9s","1m","3p","7s","2s","6m","5z","6z","7z"],
+    final:["1z","2z","3z","4z"],wait:[],
+    melds:[{type:"pon",tiles:["1z","1z","1z"],discard:"5m"}]},
+  north:{name:"麻雀修行中",isPro:false,isPlayer:false,scoreStart:25000,scoreEnd:24100,
+    haipai:["3m","6m","9m","2p","5p","8p","1s","4s","7s","1z","2z","3z","4z"],
+    draws:["5m","8m","2m"],discards:["1z","2z","3z","4z","5m"],
+    final:["3m","6m","9m","2p","5p","8p","1s","4s","7s"],wait:[],melds:[]},
+};
+const SAMPLE_COMMENTS=[
+  {user:"雷神ケンイチ",handle:"@raijin",isPro:false,isPlayer:false,
+   text:"東1局の東家配牌、萬子のメンツが綺麗に揃っていて有利でしたね。",time:"14:32",pts:5},
+  {user:"桜花散る",handle:"@sakura_pro",isPro:true,isPlayer:false,
+   text:"5巡目のリーチ判断は教科書通り。ダマにする理由はない。",time:"15:01",pts:80},
+  {user:"東風荘の鬼",handle:"@tofuso",isPro:false,isPlayer:true,
+   text:"あのツモは気持ちよかったです。配信を見てくれた皆さんに感謝！",time:"15:22",pts:200},
+];
+
+// ═══════════════════════════════════════════════
+// 団体・大会・選手マスタ
+// ═══════════════════════════════════════════════
+// ═══════════════════════════════════════════════
+// CSVマスタ（起動時に外部ファイルから読み込む）
+// ※ 同じフォルダに orgs.csv / tournaments.csv / players.csv を置く
+// ═══════════════════════════════════════════════
+
+var ORGS=[];
+var TOURNAMENTS={};
+var PLAYERS_MASTER={};
+var MASTER_LOADED=false;
+
+// ── CSV パーサー（ダブルクォート対応）──
+function parseCSV(text){
+  var lines=text.trim().split(/\r?\n/);
+  if(lines.length<2)return[];
+  var headers=lines[0].split(",").map(function(h){return h.trim();});
+  return lines.slice(1).map(function(line){
+    var cols=[]; var cur=""; var inQ=false;
+    for(var i=0;i<line.length;i++){
+      var c=line[i];
+      if(c==='"'){inQ=!inQ;}
+      else if(c===","&&!inQ){cols.push(cur.trim());cur="";}
+      else cur+=c;
+    }
+    cols.push(cur.trim());
+    var obj={};
+    headers.forEach(function(h,i){obj[h]=cols[i]!==undefined?cols[i]:"";});
+    return obj;
+  });
+}
+
+// ── CSV → 内部データ構造に変換 ──
+function applyOrgsCSV(rows){
+  ORGS=rows
+    .sort(function(a,b){return(+a.sort_order)-(+b.sort_order);})
+    .map(function(r){return{id:r.id,label:r.label};});
+}
+function applyTournamentsCSV(rows){
+  TOURNAMENTS={};
+  rows.sort(function(a,b){return(+a.sort_order)-(+b.sort_order);})
+    .forEach(function(r){
+      if(!TOURNAMENTS[r.org_id])TOURNAMENTS[r.org_id]=[];
+      TOURNAMENTS[r.org_id].push({id:r.id,label:r.label});
+    });
+}
+function applyPlayersCSV(rows){
+  PLAYERS_MASTER={};
+  rows.sort(function(a,b){return(+a.sort_order)-(+b.sort_order);})
+    .forEach(function(r){
+      if(!PLAYERS_MASTER[r.org_id])PLAYERS_MASTER[r.org_id]=[];
+      PLAYERS_MASTER[r.org_id].push({
+        id:r.id, name:r.name, ruby:r.ruby,
+        isPro:r.is_pro==="1"||r.is_pro==="true",
+      });
+    });
+}
+
+// ── CSVファイル読み込み（fetch）──
+function loadCSV(filename){
+  var base=(function(){
+    try{
+      var sc=document.querySelector('script[src]');
+      if(sc)return sc.src.replace(/[^/]*$/,"");
+    }catch(e){}
+    return"./";
+  })();
+  return fetch(base+filename)
+    .then(function(r){
+      if(!r.ok)throw new Error(filename+" not found ("+r.status+")");
+      return r.text();
+    });
+}
+
+function showLoadStatus(msg,isError){
+  var el=document.getElementById("master-status");
+  if(!el)return;
+  el.textContent=msg;
+  el.style.display=msg?"block":"none";
+  el.className="st "+(isError?"warn":"ok");
+}
+
+function loadAllCSV(){
+  showLoadStatus("マスタデータを読み込み中...",false);
+  Promise.all([
+    loadCSV("orgs.csv"),
+    loadCSV("tournaments.csv"),
+    loadCSV("players.csv"),
+  ]).then(function(texts){
+    applyOrgsCSV(parseCSV(texts[0]));
+    applyTournamentsCSV(parseCSV(texts[1]));
+    applyPlayersCSV(parseCSV(texts[2]));
+    MASTER_LOADED=true;
+    showLoadStatus("",false);
+    initApp();
+  }).catch(function(err){
+    console.warn("CSV fetch failed, using fallback:",err.message);
+    loadFallback();
+    MASTER_LOADED=true;
+    showLoadStatus("⚠ CSVファイルが見つかりません。サンプルデータで起動しています。",true);
+    initApp();
+  });
+}
+
+// ── フォールバック（CSVが読めない場合）──
+function loadFallback(){
+  applyOrgsCSV([
+    {id:"saikoui",label:"最高位",sort_order:1},
+    {id:"kyokai", label:"協会",  sort_order:2},
+    {id:"renmei", label:"連盟",  sort_order:3},
+    {id:"rmu",    label:"RMU",   sort_order:4},
+    {id:"mu",     label:"μ",    sort_order:5},
+    {id:"other",  label:"その他",sort_order:99},
+  ]);
+  applyTournamentsCSV([
+    {id:"rmu1",org_id:"rmu",label:"A大会",sort_order:1},
+    {id:"rmu2",org_id:"rmu",label:"B大会",sort_order:2},
+    {id:"rmu3",org_id:"rmu",label:"C大会",sort_order:3},
+    {id:"o1",  org_id:"other",label:"フリー対局",sort_order:1},
+  ]);
+  applyPlayersCSV([
+    {id:"rmu_p1",org_id:"rmu",name:"雷神ケンイチ",ruby:"らいじんけんいち",is_pro:"1",sort_order:1},
+    {id:"rmu_p2",org_id:"rmu",name:"桜花散る",    ruby:"おうかちる",      is_pro:"1",sort_order:2},
+    {id:"rmu_p3",org_id:"rmu",name:"東風荘の鬼",  ruby:"とうふうそうのおに",is_pro:"1",sort_order:3},
+    {id:"rmu_p4",org_id:"rmu",name:"麻雀修行中",  ruby:"まーじゃんしゅぎょうちゅう",is_pro:"1",sort_order:4},
+  ]);
+}
+
+// ─── マッチングキー生成（date+org+tournament+選手IDセット）───
+function makeMatchKey(date,org,tournament,playerIds){
+  var sorted=[...playerIds].sort().join(",");
+  return [date,org,tournament,sorted].join("|");
+}
+
+// ═══════════════════════════════════════════════
+// 状態
+// ═══════════════════════════════════════════════
+var state={
+  view:"input",
+  section:"game",
+  seat:null,
+  // ── 対局情報ステップ ──
+  gameFlow:{
+    step:0,        // 0:日付 1:団体 2:大会 3:選手 4:確認
+    date:"",
+    org:null,      // orgのid
+    tournament:null, // tournamentのid
+    players:[],    // 選択済み選手id配列（最大4）
+    playerOrgTab:null, // 選手選択画面の表示団体
+    matched:false, // マッチング済みフラグ
+    matchKey:null,
+  },
+  gameInfo:{title:"",round:"",date:""},
+  haipai:[],
+  draws:new Array(18).fill(null),
+  discards:new Array(18).fill(null),
+  finalHand:[],
+  waitTiles:[],
+  agari:{type:"",yaku:"",score:""},
+  melds:[],
+  activeSlot:null, // {grid:"draw"|"discard", idx:number}
+  kbdTab:"man",
+  // 他視点のサンプル捨て牌（リアルタイム表示用）
+  otherDiscards:{
+    south:["9p","8p","7p","6p","3z"],
+    west:["1m","9m","2z","3z"],
+    north:[],
+  }
+};
+
+// ═══════════════════════════════════════════════
+// ビュー切替
+// ═══════════════════════════════════════════════
+function setView(v){
+  state.view=v;
+  ["input","ranking","account"].forEach(function(id){
+    document.getElementById("view-"+id).style.display=id===v?"block":"none";
+  });
+  document.querySelectorAll(".nav-tab").forEach(function(b,i){
+    b.classList.toggle("on",["input","ranking","account"][i]===v);
+  });
+  if(v==="ranking")renderRanking();
+  if(v==="account")renderAccount();
+}
+
+// ═══════════════════════════════════════════════
+// セクション
+// ═══════════════════════════════════════════════
+function sectionDone(key){
+  if(key==="game")return state.gameFlow.matched;
+  if(key==="player")return!!state.seat;
+  if(key==="haipai")return state.haipai.length>=13;
+  if(key==="turns")return state.draws.some(Boolean)||state.discards.some(Boolean);
+  if(key==="final")return state.finalHand.length>0;
+  if(key==="wait")return state.waitTiles.length>0;
+  if(key==="agari")return!!state.agari.type;
+  if(key==="score")return!!state.agari.score;
+  return false;
+}
+function completion(){
+  var done=SECTIONS.filter(function(s){return sectionDone(s.key);}).length;
+  return Math.round(done/SECTIONS.length*100);
+}
+function renderNav(){
+  var nav=document.getElementById("sec-nav");
+  nav.innerHTML=SECTIONS.map(function(s){
+    var cls="sec-btn"+(state.section===s.key?" on":sectionDone(s.key)?" done":"");
+    return`<button class="${cls}" onclick="setSection('${s.key}')">${s.icon} ${s.label}</button>`;
+  }).join("");
+  document.getElementById("prog-fill").style.width=completion()+"%";
+}
+function setSection(key){
+  state.section=key;
+  renderNav();
+  renderSection();
+}
+
+// ═══════════════════════════════════════════════
+// 牌キーボード
+// ═══════════════════════════════════════════════
+// ── テキスト→牌コード パーサー ──
+// 元アプリ準拠: "123m456p789s1234z" 形式、r5m/r5p/r5s対応
+function parseTileText(raw){
+  var out=[];
+  var nums=[];
+  // 赤5を先にマーク: "r5m" / "05m" / "0m" → r5m
+  raw=raw.replace(/[rR]5([mMpPsS])/g,function(_,s){return"r5"+s.toLowerCase();});
+  raw=raw.replace(/0([mMpPsS])/g,function(_,s){return"r5"+s.toLowerCase();});
+  // 字牌テキスト変換
+  var jiMap={"東":"1z","南":"2z","西":"3z","北":"4z","白":"5z","発":"6z","中":"7z",
+             "はく":"5z","はつ":"6z","ちゅん":"7z"};
+  Object.keys(jiMap).forEach(function(k){
+    raw=raw.split(k).join(jiMap[k]);
+  });
+  raw=raw.toLowerCase();
+  for(var i=0;i<raw.length;i++){
+    var ch=raw[i];
+    if(ch==="r"&&i+2<raw.length&&raw[i+1]==="5"&&"mps".includes(raw[i+2])){
+      out.push("r5"+raw[i+2]); i+=2;
+    } else if("123456789".includes(ch)){
+      nums.push(ch);
+    } else if("mpsz".includes(ch)){
+      nums.forEach(function(n){out.push(n+ch);});
+      nums=[];
+    }
+  }
+  return out.filter(function(t){return TE[t]||false;});
+}
+
+function kbdHTML(onSelectFn, extraClass){
+  var tabs=KBD_TABS.map(function(t){
+    return`<button class="kbd-tab${state.kbdTab===t.id?" on":""}" onclick="setKbdTab('${t.id}')">${t.label}</button>`;
+  }).join("");
+  var tabTxt=state.kbdTab==="text"?"on":"";
+  var allTabs=tabs+`<button class="kbd-tab${state.kbdTab==="text"?" on":""}" onclick="setKbdTab('text')">テキスト</button>`;
+  var body="";
+  if(state.kbdTab==="text"){
+    body=`<div style="margin-top:4px">
+      <div style="font-size:11px;color:var(--tx3);margin-bottom:5px">
+        例: <code style="background:var(--sf);padding:1px 5px;border-radius:4px;font-size:11px">123m456p789s東西</code>
+        &nbsp;赤5: <code style="background:var(--sf);padding:1px 5px;border-radius:4px;font-size:11px">r5m</code> または <code style="background:var(--sf);padding:1px 5px;border-radius:4px;font-size:11px">0m</code>
+      </div>
+      <div style="display:flex;gap:6px">
+        <input type="text" id="tile-text-input" placeholder="例: 123m456p789s1z2z"
+          style="flex:1;font-size:14px;padding:7px 10px;font-family:monospace"
+          oninput="previewTileText(this.value,'${onSelectFn}')"
+          onkeydown="if(event.key==='Enter'){applyTileText('${onSelectFn}');event.preventDefault();}">
+        <button class="pri sml" onclick="applyTileText('${onSelectFn}')">確定</button>
+      </div>
+      <div id="tile-text-preview" style="font-size:20px;min-height:28px;margin-top:6px;letter-spacing:1px;padding:4px 0"></div>
+    </div>`;
+  } else {
+    var cur=KBD_TABS.find(function(t){return t.id===state.kbdTab;});
+    var tiles=cur.tiles.map(function(t){
+      var e=te(t);
+      return`<button class="tile-btn" onclick="${onSelectFn}('${t}')">${e}</button>`;
+    }).join("");
+    body=`<div class="kbd-row">${tiles}</div>`;
+  }
+  return`<div class="kbd-wrap ${extraClass||''}">
+    <div class="kbd-tabs">${allTabs}</div>
+    ${body}
+    <div class="util-row">
+      <button class="util-btn del" onclick="kbdDelete()">← 削除</button>
+      <button class="util-btn" onclick="kbdClear()">全消去</button>
+    </div>
+  </div>`;
+}
+function setKbdTab(id){state.kbdTab=id;renderSection();}
+
+// テキスト入力プレビュー
+function previewTileText(raw,fn){
+  var tiles=parseTileText(raw);
+  var el=document.getElementById("tile-text-preview");
+  if(!el)return;
+  el.innerHTML=tiles.map(te).join("")+(tiles.length?` <span style="font-size:11px;color:var(--tx3)">${tiles.length}枚</span>`:"");
+}
+// テキスト入力確定（既存タイルを置き換え）
+function applyTileText(fn){
+  var inp=document.getElementById("tile-text-input");
+  if(!inp)return;
+  var tiles=parseTileText(inp.value);
+  if(!tiles.length)return;
+  // 呼び出し元の関数名でどのバッファか判定
+  if(fn==="haipaiPick"){state.haipai=tiles.slice(0,13);}
+  else if(fn==="finalPick"){state.finalHand=tiles.slice(0,14);}
+  else if(fn==="waitPick"){state.waitTiles=tiles.filter(function(t,i,a){return a.indexOf(t)===i;});}
+  else if(fn==="gridTilePick"){
+    // ツモ・捨て牌: 全枚をドローバッファに流し込む
+    tiles.forEach(function(t,i){if(i<18)state.draws[i]=t;});
+  }
+  renderNav();
+  renderSection();
+}
+
+// ═══════════════════════════════════════════════
+// 手牌プレビュー
+// ═══════════════════════════════════════════════
+function handPreview(tiles){
+  if(!tiles.length)return`<span style="color:var(--tx3);font-size:13px">牌を選んでください</span>`;
+  return tiles.map(te).join("")+`<span style="font-size:12px;color:var(--tx3);margin-left:4px">${tiles.length}枚</span>`;
+}
+
+// ═══════════════════════════════════════════════
+// グリッド（ツモ/捨て 18マス）
+// ═══════════════════════════════════════════════
+function renderGrid(){
+  // リアルタイム捨て牌
+  var myDiscards=state.discards.filter(Boolean);
+  var rtRows=["南家","西家","北家"].map(function(seat,i){
+    var w=["south","west","north"][i];
+    var tiles=(state.otherDiscards[w]||[]);
+    var tilesHtml=tiles.length?tiles.map(te).join(""):`<span class="rt-empty">未入力</span>`;
+    return`<div class="rt-row"><span class="rt-seat">${seat}</span><div class="rt-tiles">${tilesHtml}</div></div>`;
+  });
+  // 自分のも追加
+  var mySeat=state.seat||"東家";
+  var myHtml=myDiscards.length?myDiscards.map(te).join(""):`<span class="rt-empty">入力中...</span>`;
+
+  var rt=`<div class="rt-panel">
+    <div class="slabel" style="margin-bottom:6px">リアルタイム捨て牌（他視点から集まった情報）</div>
+    <div class="rt-row"><span class="rt-seat">${mySeat}</span><div class="rt-tiles">${myHtml}</div></div>
+    ${rtRows.join("")}
+  </div>`;
+
+  function gridSlots(type, arr){
+    return Array.from({length:18},function(_,i){
+      var isActive=state.activeSlot&&state.activeSlot.grid===type&&state.activeSlot.idx===i;
+      var tile=arr[i];
+      var cls="grid-slot"+(tile?" filled":"")+(isActive?" active":"");
+      var content=tile?te(tile):`<span class="slot-num">${i+1}</span>`;
+      var dot=isActive?`<div class="active-dot"></div>`:"";
+      return`<div class="${cls}" onclick="slotClick('${type}',${i})">${dot}${content}</div>`;
+    }).join("");
+  }
+
+  var drawCount=state.draws.filter(Boolean).length;
+  var discCount=state.discards.filter(Boolean).length;
+
+  return`${rt}
+  <div class="grid-wrap">
+    <div>
+      <div class="grid-label">
+        <span>ツモ牌</span><span style="color:var(--tx3)">${drawCount}/18</span>
+      </div>
+      <div class="tile-grid">${gridSlots("draw",state.draws)}</div>
+    </div>
+    <div>
+      <div class="grid-label">
+        <span>捨て牌</span><span style="color:var(--tx3)">${discCount}/18</span>
+      </div>
+      <div class="tile-grid">${gridSlots("discard",state.discards)}</div>
+    </div>
+  </div>
+  ${state.activeSlot?kbdHTML("gridTilePick"):""}`;
+}
+
+function slotClick(grid,idx){
+  if(state.activeSlot&&state.activeSlot.grid===grid&&state.activeSlot.idx===idx){
+    state.activeSlot=null;
+  } else {
+    state.activeSlot={grid,idx};
+  }
+  renderSection();
+}
+function gridTilePick(t){
+  if(!state.activeSlot)return;
+  var g=state.activeSlot.grid, i=state.activeSlot.idx;
+  if(g==="draw")state.draws[i]=t;
+  else state.discards[i]=t;
+  // 次の空きスロットへ自動移動
+  var arr=g==="draw"?state.draws:state.discards;
+  var next=null;
+  for(var j=i+1;j<18;j++){if(!arr[j]){next=j;break;}}
+  state.activeSlot=next!==null?{grid:g,idx:next}:null;
+  renderSection();
+}
+function kbdDelete(){
+  if(state.section==="haipai"){state.haipai.pop();}
+  else if(state.section==="final"){state.finalHand.pop();}
+  else if(state.section==="wait"){state.waitTiles.pop();}
+  renderSection();
+}
+function kbdClear(){
+  if(state.section==="haipai"){state.haipai=[];}
+  else if(state.section==="final"){state.finalHand=[];}
+  else if(state.section==="wait"){state.waitTiles=[];}
+  renderSection();
+}
+function haipaiPick(t){
+  if(state.haipai.length<13){state.haipai.push(t);renderSection();}
+}
+function finalPick(t){
+  if(state.finalHand.length<14){state.finalHand.push(t);renderSection();}
+}
+function waitPick(t){
+  if(!state.waitTiles.includes(t)){state.waitTiles.push(t);renderSection();}
+}
+
+// ═══════════════════════════════════════════════
+// セクションレンダリング
+// ═══════════════════════════════════════════════
+function renderSection(){
+  var el=document.getElementById("sec-content");
+  var h="";
+  var s=state.section;
+
+  if(s==="game"){
+    h=renderGameFlow();
+  }
+
+  else if(s==="player"){
+    var cards=WE.map(function(w){
+      var on=state.seat===w;
+      return`<div class="player-card ${on?"on":""}" onclick="state.seat='${w}';renderNav();renderSection()">
+        <div class="seat-lbl">${WJ[w]}家</div>
+        <div class="p-name">${SAMPLE_PLAYERS[w].name}</div>
+        <div class="p-badges">
+          ${SAMPLE_PLAYERS[w].isPro?`<span class="badge pro">PRO 🎖️</span>`:""}
+          ${SAMPLE_PLAYERS[w].isPlayer?`<span class="badge player">本人 👑</span>`:""}
+        </div>
+      </div>`;
+    }).join("");
+    h=`<div class="card">
+      <div class="slabel">👤 視聴していた座席を選択</div>
+      <div class="player-grid">${cards}</div>
+      ${state.seat?`<div class="st ok">✓ ${WJ[state.seat]}家として入力します</div>`:""}
+    </div>`;
+  }
+
+  else if(s==="haipai"){
+    h=`<div class="card">
+      <div class="slabel">🃏 初期配牌 <span style="color:var(--tx3);font-weight:400">(13枚)</span></div>
+      <div class="hand-prev">${handPreview(state.haipai)}</div>
+      ${kbdHTML("haipaiPick")}
+    </div>`;
+  }
+
+  else if(s==="turns"){
+    h=`<div class="card">
+      <div class="slabel">♻️ ツモ牌・捨て牌</div>
+      <p style="font-size:12px;color:var(--tx3);margin-bottom:10px">マスをタップ → 牌を選択 → 自動で次のマスへ移動　<span style="opacity:.7">/ テキスト一括入力も可</span></p>
+      ${renderGrid()}
+      <div style="margin-top:12px;border-top:.5px solid var(--bd);padding-top:10px">
+        <div style="font-size:11px;color:var(--tx3);margin-bottom:5px">テキスト一括入力（ツモまたは捨て）</div>
+        <div style="display:flex;gap:6px;margin-bottom:4px">
+          <input type="text" id="turns-text-draw" placeholder="ツモ: 3m4m6m2s7p..."
+            style="flex:1;font-size:13px;font-family:monospace"
+            onkeydown="if(event.key==='Enter'){applyTurnsText();event.preventDefault();}">
+        </div>
+        <div style="display:flex;gap:6px">
+          <input type="text" id="turns-text-disc" placeholder="捨て: 9s8s7s6s5p..."
+            style="flex:1;font-size:13px;font-family:monospace"
+            onkeydown="if(event.key==='Enter'){applyTurnsText();event.preventDefault();}">
+          <button class="pri sml" onclick="applyTurnsText()">確定</button>
+        </div>
+      </div>
+    </div>`;
+  }
+
+  else if(s==="final"){
+    h=`<div class="card">
+      <div class="slabel">🖐 最終手牌</div>
+      <div class="hand-prev">${handPreview(state.finalHand)}</div>
+      ${kbdHTML("finalPick")}
+    </div>`;
+  }
+
+  else if(s==="meld"){
+    h=`<div class="card">
+      <div class="slabel">🔗 副露</div>
+      <p style="font-size:13px;color:var(--tx3)">副露入力機能は次バージョンで追加予定です。<br>チー・ポン・カンの種別、鳴いた牌、方向を入力できます。</p>
+    </div>`;
+  }
+
+  else if(s==="wait"){
+    h=`<div class="card">
+      <div class="slabel">⏳ 待ち牌 <span style="color:var(--tx3);font-weight:400">(複数可)</span></div>
+      <div class="hand-prev">${state.waitTiles.length?state.waitTiles.map(te).join(""):`<span style="font-size:13px;color:var(--tx3)">待ち牌を選んでください</span>`}</div>
+      ${kbdHTML("waitPick")}
+    </div>`;
+  }
+
+  else if(s==="agari"){
+    var types=["ツモ","ロン","流局"];
+    var btns=types.map(function(t){
+      return`<button class="${state.agari.type===t?"pri":""}" style="flex:1;padding:10px" onclick="state.agari.type='${t}';renderNav();renderSection()">${t}</button>`;
+    }).join("");
+    h=`<div class="card">
+      <div class="slabel">🏆 アガリ方</div>
+      <div style="display:flex;gap:6px;margin-bottom:12px">${btns}</div>
+      <label style="font-size:12px;color:var(--tx3);display:block;margin-bottom:4px">役</label>
+      <input type="text" value="${state.agari.yaku}" oninput="state.agari.yaku=this.value" placeholder="例：リーチ・一発・平和">
+    </div>`;
+  }
+
+  else if(s==="score"){
+    h=`<div class="card">
+      <div class="slabel">💴 点数</div>
+      <label style="font-size:12px;color:var(--tx3);display:block;margin-bottom:4px">点数（+/-）</label>
+      <input type="text" value="${state.agari.score}" oninput="state.agari.score=this.value;renderNav()" placeholder="例：+3900 / -2000"
+        style="font-size:24px;font-weight:700;color:${state.agari.score.startsWith('+')?'var(--g)':state.agari.score.startsWith('-')?'var(--r)':'var(--tx)'}">
+    </div>`;
+  }
+
+  el.innerHTML=h;
+}
+
+// ═══════════════════════════════════════════════
+// 送信
+// ═══════════════════════════════════════════════
+// ═══════════════════════════════════════════════
+// 対局情報フロー（4ステップ）
+// ═══════════════════════════════════════════════
+function renderGameFlow(){
+  var gf=state.gameFlow;
+  var step=gf.step;
+
+  // ── ステップインジケーター ──
+  var stepLabels=["対局日","団体","大会","選手","確認"];
+  var dots=stepLabels.map(function(l,i){
+    var done=i<step||(i===step&&step===4);
+    var active=i===step&&step<4;
+    var dot=done
+      ?`<div style="width:22px;height:22px;border-radius:50%;background:var(--g);display:flex;align-items:center;justify-content:center;font-size:11px;color:#fff;font-weight:700">✓</div>`
+      :active
+      ?`<div style="width:22px;height:22px;border-radius:50%;background:var(--b);display:flex;align-items:center;justify-content:center;font-size:11px;color:#fff;font-weight:700">${i+1}</div>`
+      :`<div style="width:22px;height:22px;border-radius:50%;background:var(--bd2);display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--tx3)">${i+1}</div>`;
+    return`<div style="display:flex;flex-direction:column;align-items:center;gap:3px;flex:1">
+      ${dot}
+      <div style="font-size:9px;color:${active?"var(--b)":done?"var(--g)":"var(--tx3)"};white-space:nowrap;font-weight:${active?"700":"400"}">${l}</div>
+    </div>`;
+  }).join(`<div style="flex:1;height:1px;background:var(--bd);margin-bottom:14px;align-self:center;margin-top:-14px"></div>`);
+
+  var indicator=`<div style="display:flex;align-items:flex-start;margin-bottom:18px">${dots}</div>`;
+
+  // ── 戻るボタン ──
+  var backBtn=step>0&&step<4
+    ?`<button class="ghost sml" style="margin-bottom:12px" onclick="gfBack()">← 戻る</button><br>`
+    :"";
+
+  var body="";
+
+  // ── STEP 0: 対局日 ──
+  if(step===0){
+    var today=new Date().toISOString().slice(0,10);
+    body=`<div>
+      <div class="slabel">対局日を選択</div>
+      <input type="date" id="gf-date" value="${gf.date||today}"
+        style="background:var(--sf);border:.5px solid var(--bd2);border-radius:var(--ra);padding:10px 12px;font-size:16px;color:var(--tx);width:100%;outline:none;font-family:inherit;margin-bottom:14px"
+        oninput="state.gameFlow.date=this.value">
+      <button class="pri" style="width:100%;padding:11px" onclick="gfNext()">次へ：団体を選ぶ →</button>
+    </div>`;
+    // 今日の日付をデフォルト
+    if(!gf.date) state.gameFlow.date=today;
+  }
+
+  // ── STEP 1: 団体選択 ──
+  else if(step===1){
+    var orgBtns=ORGS.map(function(o){
+      var on=gf.org===o.id;
+      return`<button onclick="gfSelectOrg('${o.id}')"
+        style="padding:14px 10px;border-radius:var(--ra);font-size:15px;font-family:inherit;
+          background:${on?"var(--b)":"var(--sf)"};
+          border:${on?"1.5px solid var(--b)":".5px solid var(--bd2)"};
+          color:${on?"#e6f1fb":"var(--tx)"};
+          cursor:pointer;transition:all .15s;font-weight:${on?"700":"400"}">
+        ${o.label}
+      </button>`;
+    }).join("");
+    body=`<div>
+      <div class="slabel">団体を選択</div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px">${orgBtns}</div>
+      ${gf.org?`<button class="pri" style="width:100%;padding:11px" onclick="gfNext()">次へ：大会を選ぶ →</button>`:""}
+    </div>`;
+  }
+
+  // ── STEP 2: 大会選択 ──
+  else if(step===2){
+    var org=ORGS.find(function(o){return o.id===gf.org;});
+    var tours=TOURNAMENTS[gf.org]||[];
+    var tourBtns=tours.map(function(t){
+      var on=gf.tournament===t.id;
+      return`<button onclick="gfSelectTournament('${t.id}')"
+        style="padding:12px 14px;border-radius:var(--ra);font-size:14px;font-family:inherit;text-align:left;
+          background:${on?"var(--b-bg)":"var(--sf)"};
+          border:${on?"1.5px solid var(--b)":".5px solid var(--bd2)"};
+          color:${on?"var(--b-t)":"var(--tx)"};
+          cursor:pointer;transition:all .15s;display:flex;align-items:center;gap:8px">
+        <span style="font-size:18px">${on?"✅":"⬜"}</span>
+        <span style="font-weight:${on?"700":"400"}">${t.label}</span>
+      </button>`;
+    }).join("");
+    body=`<div>
+      <div style="font-size:12px;color:var(--tx3);margin-bottom:8px">団体：<strong style="color:var(--tx)">${org?org.label:""}</strong></div>
+      <div class="slabel">大会を選択</div>
+      <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:14px">${tourBtns}</div>
+      ${gf.tournament?`<button class="pri" style="width:100%;padding:11px" onclick="gfNext()">次へ：選手を選ぶ →</button>`:""}
+    </div>`;
+  }
+
+  // ── STEP 3: 選手選択 ──
+  else if(step===3){
+    var org3=ORGS.find(function(o){return o.id===gf.org;});
+    var tour3=(TOURNAMENTS[gf.org]||[]).find(function(t){return t.id===gf.tournament;});
+    // 表示する団体タブ
+    var orgTab=gf.playerOrgTab||gf.org;
+    var orgTabBtns=ORGS.filter(function(o){return(PLAYERS_MASTER[o.id]||[]).length>0;}).map(function(o){
+      var on=orgTab===o.id;
+      return`<button class="kbd-tab${on?" on":""}" onclick="gfSetPlayerTab('${o.id}')">${o.label}</button>`;
+    }).join("");
+
+    var playersInTab=PLAYERS_MASTER[orgTab]||[];
+    var playerBtns=playersInTab.map(function(p){
+      var on=gf.players.includes(p.id);
+      return`<button onclick="gfTogglePlayer('${p.id}')"
+        style="padding:10px 12px;border-radius:var(--ra);font-family:inherit;text-align:left;
+          background:${on?"var(--b-bg)":"var(--sf)"};
+          border:${on?"1.5px solid var(--b)":".5px solid var(--bd2)"};
+          color:${on?"var(--b-t)":"var(--tx)"};
+          cursor:pointer;transition:all .15s;display:flex;align-items:center;gap:10px">
+        <span style="font-size:18px;flex-shrink:0">${on?"✅":"⬜"}</span>
+        <div>
+          <div style="font-size:14px;font-weight:${on?"700":"400"}">${p.name}</div>
+          <div style="font-size:10px;color:var(--tx3)">${p.ruby}${p.isPro?" · PRO":""}</div>
+        </div>
+      </button>`;
+    }).join("");
+
+    // 選択済み選手チップ
+    var selectedChips=gf.players.length
+      ?gf.players.map(function(id){
+          var p=Object.values(PLAYERS_MASTER).flat().find(function(x){return x.id===id;});
+          return p?`<span style="font-size:12px;padding:3px 10px;border-radius:20px;background:var(--b);color:#e6f1fb;display:inline-flex;align-items:center;gap:5px">
+            ${p.name}
+            <span style="cursor:pointer;opacity:.7" onclick="gfTogglePlayer('${p.id}')">✕</span>
+          </span>`:""}).join("")
+      :`<span style="font-size:12px;color:var(--tx3)">まだ選択されていません（最大4名）</span>`;
+
+    body=`<div>
+      <div style="font-size:12px;color:var(--tx3);margin-bottom:6px">
+        ${org3?org3.label:""} / ${tour3?tour3.label:""}
+      </div>
+      <div class="slabel">出場選手を選択 <span style="font-weight:400;color:var(--tx3)">(最大4名)</span></div>
+
+      <!-- 選択済みチップ -->
+      <div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:10px;min-height:28px">${selectedChips}</div>
+
+      <!-- 団体タブ -->
+      <div class="kbd-tabs" style="margin-bottom:8px">${orgTabBtns}</div>
+
+      <!-- 選手リスト -->
+      <div style="display:flex;flex-direction:column;gap:5px;margin-bottom:14px">${playerBtns}</div>
+
+      ${gf.players.length>=2
+        ?`<button class="pri" style="width:100%;padding:11px" onclick="gfNext()">次へ：確認 →</button>`
+        :`<div style="font-size:12px;color:var(--tx3);text-align:center;padding:6px">2名以上選択してください</div>`}
+    </div>`;
+  }
+
+  // ── STEP 4: 確認・マッチング ──
+  else if(step===4){
+    var org4=ORGS.find(function(o){return o.id===gf.org;});
+    var tour4=(TOURNAMENTS[gf.org]||[]).find(function(t){return t.id===gf.tournament;});
+    var selPlayers=gf.players.map(function(id){
+      return Object.values(PLAYERS_MASTER).flat().find(function(x){return x.id===id;});
+    }).filter(Boolean);
+
+    var matchKey=makeMatchKey(gf.date,gf.org,gf.tournament,gf.players);
+    var alreadyMatched=gf.matched&&gf.matchKey===matchKey;
+
+    body=`<div>
+      <div class="slabel">入力内容を確認</div>
+      <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px">
+        <div style="background:var(--sf2);border-radius:var(--ra);padding:10px 14px">
+          <div style="font-size:10px;color:var(--tx3);margin-bottom:2px">対局日</div>
+          <div style="font-size:15px;font-weight:600">${gf.date}</div>
+        </div>
+        <div style="background:var(--sf2);border-radius:var(--ra);padding:10px 14px">
+          <div style="font-size:10px;color:var(--tx3);margin-bottom:2px">団体 / 大会</div>
+          <div style="font-size:15px;font-weight:600">${org4?org4.label:""} / ${tour4?tour4.label:""}</div>
+        </div>
+        <div style="background:var(--sf2);border-radius:var(--ra);padding:10px 14px">
+          <div style="font-size:10px;color:var(--tx3);margin-bottom:3px">出場選手（${selPlayers.length}名）</div>
+          <div style="display:flex;flex-wrap:wrap;gap:5px">
+            ${selPlayers.map(function(p){
+              return`<span style="font-size:13px;padding:3px 10px;border-radius:20px;background:var(--b-bg);color:var(--b-t)">${p.name}</span>`;
+            }).join("")}
+          </div>
+        </div>
+      </div>
+
+      ${alreadyMatched
+        ?`<div style="background:var(--g-bg);border:.5px solid var(--g);border-radius:var(--ra);padding:12px 14px;margin-bottom:12px;display:flex;align-items:center;gap:10px">
+            <span style="font-size:22px">✅</span>
+            <div>
+              <div style="font-size:13px;font-weight:700;color:var(--g)">マッチング成功！</div>
+              <div style="font-size:12px;color:var(--g)">この対局の牌譜ファイルへの入力が可能になりました。</div>
+            </div>
+          </div>
+          <button class="pri" style="width:100%;padding:11px;font-size:15px" onclick="gfStartInput()">🀄 牌譜入力を開始する</button>`
+        :`<div style="background:var(--b-bg);border:.5px solid var(--b);border-radius:var(--ra);padding:12px 14px;margin-bottom:12px;font-size:12px;color:var(--b-t)">
+            ⚡ 同じ日付・団体・大会・選手を入力した他のユーザーとマッチングします。<br>
+            一致した場合、同じ牌譜ファイルへの入力が可能になります。
+          </div>
+          <button class="gold" style="width:100%;padding:12px;font-size:15px;border-radius:var(--ra);border:none;cursor:pointer;font-family:inherit;font-weight:700" onclick="gfDoMatch()">🔍 マッチングを開始する</button>`
+      }
+      <button class="ghost" style="width:100%;padding:8px;margin-top:8px" onclick="gfBack()">← 修正する</button>
+    </div>`;
+  }
+
+  return`<div class="card">
+    <div class="slabel">🀄 対局情報</div>
+    ${indicator}${backBtn}${body}
+  </div>`;
+}
+
+// ── ゲームフロー操作 ──
+function gfNext(){
+  var gf=state.gameFlow;
+  if(gf.step===0&&!gf.date)return;
+  if(gf.step===1&&!gf.org)return;
+  if(gf.step===2&&!gf.tournament)return;
+  if(gf.step===3&&gf.players.length<2)return;
+  state.gameFlow.step++;
+  renderSection();
+}
+function gfBack(){
+  if(state.gameFlow.step>0){state.gameFlow.step--;renderSection();}
+}
+function gfSelectOrg(id){
+  state.gameFlow.org=id;
+  state.gameFlow.tournament=null;
+  state.gameFlow.players=[];
+  state.gameFlow.playerOrgTab=id;
+  renderSection();
+}
+function gfSelectTournament(id){
+  state.gameFlow.tournament=id;
+  renderSection();
+}
+function gfSetPlayerTab(orgId){
+  state.gameFlow.playerOrgTab=orgId;
+  renderSection();
+}
+function gfTogglePlayer(id){
+  var arr=state.gameFlow.players;
+  var idx=arr.indexOf(id);
+  if(idx>=0){
+    state.gameFlow.players=arr.filter(function(x){return x!==id;});
+  } else {
+    if(arr.length>=4){
+      alert("選手は最大4名まで選択できます");return;
+    }
+    state.gameFlow.players=[...arr,id];
+  }
+  renderSection();
+}
+function gfDoMatch(){
+  var gf=state.gameFlow;
+  var key=makeMatchKey(gf.date,gf.org,gf.tournament,gf.players);
+  // デモ：常にマッチング成功（本番はサーバー照合）
+  state.gameFlow.matched=true;
+  state.gameFlow.matchKey=key;
+  // gameInfoにも反映
+  var org=ORGS.find(function(o){return o.id===gf.org;});
+  var tour=(TOURNAMENTS[gf.org]||[]).find(function(t){return t.id===gf.tournament;});
+  state.gameInfo.date=gf.date;
+  state.gameInfo.title=(org?org.label:"")+" "+(tour?tour.label:"");
+  renderNav();
+  renderSection();
+}
+function gfStartInput(){
+  setSection("player");
+}
+
+function applyTurnsText(){
+  var drawInp=document.getElementById("turns-text-draw");
+  var discInp=document.getElementById("turns-text-disc");
+  if(drawInp&&drawInp.value.trim()){
+    var dt=parseTileText(drawInp.value);
+    dt.forEach(function(t,i){if(i<18)state.draws[i]=t;});
+  }
+  if(discInp&&discInp.value.trim()){
+    var ds=parseTileText(discInp.value);
+    ds.forEach(function(t,i){if(i<18)state.discards[i]=t;});
+  }
+  renderNav();
+  renderSection();
+}
+
+function submitAll(){
+  document.getElementById("done-modal").classList.add("open");
+}
+function closeDone(){
+  document.getElementById("done-modal").classList.remove("open");
+}
+
+// ═══════════════════════════════════════════════
+// レポート
+// ═══════════════════════════════════════════════
+function meldHTML(melds){
+  if(!melds||!melds.length)return"";
+  return melds.map(function(m){
+    var label={chi:"チー",pon:"ポン",kan_open:"明カン",ankan:"暗カン",kan_add:"加カン"}[m.type]||m.type;
+    var tiles=(m.tiles||[]).map(function(t,i){
+      var hidden=m.type==="ankan"&&(i===0||i===3);
+      return hidden?`<span style="opacity:.25">${te(t)}</span>`:te(t);
+    }).join("");
+    return`<span style="display:inline-flex;align-items:center;gap:1px;margin-right:5px;border:.5px solid #ccc;border-radius:3px;padding:1px 4px;font-size:11px">`
+      +`<span style="font-size:8px;color:#b08030;font-weight:700;margin-right:2px">${label}</span>`
+      +tiles
+      +(m.discard?`<span style="font-size:8px;color:#888;margin:0 1px">→</span>${te(m.discard)}`:"")
+      +`</span>`;
+  }).join("");
+}
+
+function buildReportHTML(){
+  var g=SAMPLE_GAME;
+  var FS="13px",TH="1.3em",BH="9px";
+
+  function singleCell(e){
+    return`<div style="display:inline-flex;flex-direction:column;align-items:center;flex-shrink:0;vertical-align:top;">`
+      +`<div style="font-size:${FS};height:${TH};display:flex;align-items:center;justify-content:center;">${e}</div>`
+      +`<div style="height:${BH}"></div></div>`;
+  }
+  function tsumoHalf(e,dim){
+    if(e===null)return`<div style="font-size:${FS};height:${TH};visibility:hidden;display:flex;align-items:center;justify-content:center;">•</div>`;
+    return`<div style="font-size:${FS};height:${TH};display:flex;align-items:center;justify-content:center;${dim?"opacity:.35;":""}">${e}</div>`;
+  }
+  function discHalf(e,badge,bColor,cut){
+    var tile=cut?`<div style="font-size:${FS};height:${TH};display:flex;align-items:center;justify-content:center;color:#777;">↓</div>`
+                :`<div style="font-size:${FS};height:${TH};display:flex;align-items:center;justify-content:center;">${e}</div>`;
+    var bdg=badge?`<div style="font-size:7px;font-weight:700;color:${bColor};line-height:1;height:${BH};display:flex;align-items:center;justify-content:center;white-space:nowrap;">${badge}</div>`
+                 :`<div style="height:${BH}"></div>`;
+    return tile+bdg;
+  }
+  function tdCol(tH,dH){
+    return`<div style="display:inline-flex;flex-direction:column;align-items:center;flex-shrink:0;vertical-align:top;">${tH}${dH}</div>`;
+  }
+  function rowHtml(label,cells,suf){
+    return`<div style="display:flex;align-items:flex-start;margin-bottom:1px;">`
+      +`<div style="font-size:9px;color:#555;font-weight:600;min-width:22px;flex-shrink:0;text-align:right;padding-right:3px;display:flex;align-items:flex-start;padding-top:1px;">${label}</div>`
+      +`<div style="display:inline-flex;flex-wrap:nowrap;overflow-x:auto;flex:1;align-items:flex-start;font-size:0;white-space:nowrap;">${cells}`
+      +(suf?`<span style="font-size:8px;color:#aaa;white-space:nowrap;padding-left:3px;padding-top:2px;">${suf}</span>`:"")
+      +`</div></div>`;
+  }
+  function tsumoDiscRow(cols,ts,ds){
+    var lT=`<div style="font-size:9px;color:#555;font-weight:600;display:flex;align-items:center;justify-content:flex-end;padding-right:3px;white-space:nowrap;height:${TH};">ツモ</div>`;
+    var lD=`<div style="font-size:9px;color:#555;font-weight:600;display:flex;align-items:center;justify-content:flex-end;padding-right:3px;white-space:nowrap;height:calc(${TH} + ${BH});">捨て</div>`;
+    var lCol=`<div style="display:inline-flex;flex-direction:column;align-items:flex-end;flex-shrink:0;min-width:22px;vertical-align:top;">${lT}${lD}</div>`;
+    var suf=(ts||ds)?`<div style="display:inline-flex;flex-direction:column;align-items:flex-start;flex-shrink:0;padding-left:3px;vertical-align:top;">`
+      +`<div style="font-size:8px;color:#666;white-space:nowrap;height:${TH};display:flex;align-items:flex-end;line-height:1;">${ts||""}</div>`
+      +`<div style="font-size:8px;color:#666;white-space:nowrap;height:calc(${TH} + ${BH});display:flex;align-items:center;line-height:1;">${ds||""}</div>`
+      +`</div>`:"";
+    return`<div style="display:flex;align-items:flex-start;margin-bottom:1px;">${lCol}`
+      +`<div style="display:inline-flex;flex-wrap:nowrap;overflow-x:auto;flex:1;align-items:flex-start;font-size:0;white-space:nowrap;">${cols}${suf}</div></div>`;
+  }
+
+  var playersHtml=WE.map(function(w){
+    var p=SAMPLE_PLAYERS[w];
+    var isWin=g.winner===w, isLoser=g.loser===w;
+    var ic=p.haipai.map(function(t){return singleCell(te(t));}).join("");
+    var fc=p.final.map(function(t){return singleCell(te(t));}).join("");
+    var tsumoCount=0,cols="";
+    p.discards.forEach(function(d,i){
+      var t=p.draws[i]||null;
+      var cut=t&&t!=="?"&&t===d;
+      var badge="",bColor="";
+      if(i===p.riichiIdx){badge="R";bColor="#c0392b";}
+      var tH=(t&&t!=="?")?(tsumoCount++,tsumoHalf(te(t),cut)):tsumoHalf(null,false);
+      cols+=tdCol(tH,discHalf(te(d),badge,bColor,cut));
+    });
+    for(var ti=p.discards.length;ti<p.draws.length;ti++){
+      var t2=p.draws[ti];
+      if(t2&&t2!=="?"){cols+=tdCol(tsumoHalf(te(t2),false),discHalf("","","",false));tsumoCount++;}
+    }
+    var diff=(p.scoreStart!=null&&p.scoreEnd!=null)?(p.scoreEnd-p.scoreStart):null;
+    var diffStr=diff!=null?(diff>=0?"+"+diff.toLocaleString():""+diff.toLocaleString()):"";
+    var diffColor=diff===null?"#888":diff>0?"#3b6d11":diff<0?"#a32d2d":"#888";
+    var scoreCell=(p.scoreStart||p.scoreEnd)?`<div style="text-align:right;font-size:9px;color:#888;line-height:1.5;flex-shrink:0;margin-left:6px;">`
+      +(p.scoreStart?`<div>${p.scoreStart.toLocaleString()}</div>`:"")+`<div style="font-weight:700;color:#333;">${p.scoreEnd.toLocaleString()}</div>`
+      +(diffStr?`<div style="color:${diffColor};font-weight:700;">${diffStr}</div>`:"")+`</div>`:"";
+    var proBadge=p.isPro?` <span style="font-size:10px;padding:1px 6px;border-radius:10px;background:#faeeda;color:#ba7517;font-weight:600;">PRO</span>`:"";
+    var playerBadge=p.isPlayer?` <span style="font-size:10px;padding:1px 6px;border-radius:10px;background:#eaf3de;color:#3b6d11;font-weight:600;">本人</span>`:"";
+    var waitHtml=p.wait&&p.wait.length?`<span style="font-size:9px;color:#555;margin-left:5px;">待ち:${p.wait.map(te).join("")}</span>`:"";
+    return`<div style="border:1px solid #ccc;border-radius:4px;padding:3px 6px;margin-bottom:3px;background:${isWin?"#eaf3de":isLoser?"#fcebeb":"#fff"};page-break-inside:avoid;">`
+      +`<div style="display:flex;align-items:center;margin-bottom:1px;">`
+      +`<div style="font-size:11px;font-weight:600;flex:1;">${te(WJ[w])} ${WJ[w]}家`
+      +` <span style="font-size:10px;font-weight:400;color:#555;background:#f0f0ee;border-radius:3px;padding:0 4px;">${p.name}</span>`
+      +proBadge+playerBadge+(isWin?` 🏆${waitHtml}`:"")+(isLoser?" ⚡放銃":"")
+      +`</div>${scoreCell}</div>`
+      +rowHtml("初期",ic,"")
+      +tsumoDiscRow(cols,`（${tsumoCount}枚）`,`（${p.discards.length}枚）`)
+      +rowHtml("最終",fc,"")
+      +(p.melds.length?`<div style="margin-top:2px;display:flex;align-items:center;gap:4px;"><span style="font-size:9px;color:#888;font-weight:600;min-width:20px;text-align:right;">副露</span><div style="font-size:13px;">${meldHTML(p.melds)}</div></div>`:"")
+      +`</div>`;
+  }).join("");
+
+  var doraHtml=(g.dora||[]).map(te).join("")||"なし";
+  var uraHtml=(g.uraDora||[]).length?` <span style="font-size:9px;color:#555;">裏</span>`+(g.uraDora||[]).map(te).join(""):"";
+  var resultText=g.winner?(WJ[g.winner]+"家 "+(g.winType==="tsumo"?"ツモ":"ロン")+"和了 "+g.score+"点"):"流局";
+
+  // コメントページ
+  var commPage=`<div style="page-break-before:always;background:#fff;color:#1a1a18;padding:10px 14px;font-family:-apple-system,BlinkMacSystemFont,sans-serif;max-width:720px;margin:0 auto;">`
+    +`<div style="display:flex;align-items:baseline;gap:8px;margin-bottom:6px;">`
+    +`<h2 style="font-size:13px;margin:0;color:#555;">💬 コメント</h2>`
+    +`<span style="font-size:11px;font-weight:700;">${g.title}</span>`
+    +`<span style="font-size:10px;color:#aaa;">${g.date}</span>`
+    +`</div>`
+    +`<div style="font-size:10px;color:#888;margin-bottom:8px;">👑 対局者本人入力 +200pt　🎖 PRO入力 +80pt</div>`
+    +SAMPLE_COMMENTS.map(function(cm){
+      var bc=cm.isPlayer?"#3b6d11":cm.isPro?"#ba7517":"#ccc";
+      var bg=cm.isPlayer?"#eaf3de":cm.isPro?"#faeeda":"#fff";
+      var proBadge=cm.isPro?` <span style="font-size:9px;padding:1px 5px;border-radius:10px;background:#faeeda;color:#ba7517;font-weight:600;">PRO</span>`:"";
+      var playerBadge=cm.isPlayer?` <span style="font-size:9px;padding:1px 5px;border-radius:10px;background:#eaf3de;color:#3b6d11;font-weight:600;">対局者本人</span>`:"";
+      var ptColor=cm.pts>=100?"#ba7517":cm.pts>=50?"#3b6d11":"#888";
+      return`<div style="padding:8px 10px;border:1px solid ${bc};border-radius:6px;margin-bottom:6px;background:${bg};page-break-inside:avoid;">`
+        +`<div style="display:flex;align-items:center;gap:6px;margin-bottom:5px;">`
+        +`<div style="width:26px;height:26px;border-radius:50%;background:${cm.isPlayer?"#3b6d11":cm.isPro?"#ba7517":"#888"};display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0;">`
+        +(cm.isPlayer?"👑":cm.isPro?"🎖":"🀄")+`</div>`
+        +`<div style="flex:1;"><div style="font-size:11px;font-weight:700;">${cm.user}${proBadge}${playerBadge}</div>`
+        +`<div style="font-size:9px;color:#888;">${cm.handle}　${cm.time}</div></div>`
+        +`<div style="font-size:9px;font-weight:700;color:${ptColor};">+${cm.pts}pt</div>`
+        +`</div><div style="font-size:9px;color:#555;border-bottom:.5px solid #e0e0e0;padding-bottom:4px;margin-bottom:4px;">入力ボーナス</div>`
+        +`<div style="font-size:11px;line-height:1.6;color:#333;">${cm.text}</div></div>`;
+    }).join("")
+    +`</div>`;
+
+  return`<div id="report-inner" style="background:#fff;color:#1a1a18;padding:10px 14px;font-family:-apple-system,BlinkMacSystemFont,sans-serif;max-width:720px;margin:0 auto;">`
+    +`<div style="display:flex;align-items:baseline;gap:8px;margin-bottom:3px;">`
+    +`<h2 style="font-size:13px;margin:0;color:#555;">🀄︎ 麻雀牌譜レポート</h2>`
+    +`<span style="font-size:10px;color:#aaa;">${g.date}</span></div>`
+    +`<div style="font-size:16px;font-weight:700;margin-bottom:5px;">${g.title}　${g.round}</div>`
+    +`<div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:6px;font-size:11px;padding:5px 8px;background:#f5f5f3;border-radius:5px;">`
+    +`<span><span style="color:#555;">場風</span> <b>${g.bakaze}</b></span>`
+    +`<span><span style="color:#555;">本場</span> <b>${g.honba}本場</b></span>`
+    +`<span><span style="color:#555;">ドラ</span> <b>${doraHtml}${uraHtml}</b></span>`
+    +`<span><span style="color:#555;">結果</span> <b>${resultText}</b></span></div>`
+    +playersHtml
+    +`</div>`+commPage;
+}
+
+function openReport(){
+  // info tab
+  var infoEl=document.getElementById("rep-info-content");
+  var g=SAMPLE_GAME;
+  infoEl.innerHTML=`<div style="background:var(--gold-bg);border:.5px solid var(--gold);border-radius:var(--ra);padding:10px 14px;margin-bottom:12px;">`
+    +`<div style="font-size:15px;font-weight:700;margin-bottom:2px">${g.title}　${g.round}</div>`
+    +`<div style="font-size:12px;color:var(--tx3)">${g.date}　ドラ: ${(g.dora||[]).map(te).join("")}</div></div>`
+    +WE.map(function(w){
+      var p=SAMPLE_PLAYERS[w];
+      var isWin=g.winner===w;
+      var diff=p.scoreEnd-p.scoreStart;
+      var diffStr=(diff>=0?"+":"")+diff.toLocaleString();
+      var diffColor=diff>0?"var(--g)":"var(--r)";
+      return`<div style="border:.5px solid ${isWin?"var(--g)":"var(--bd)"};border-radius:var(--ra);padding:8px 10px;margin-bottom:6px;background:${isWin?"var(--g-bg)":"var(--sf)"};">`
+        +`<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">`
+        +`<div style="font-size:13px;font-weight:600;">${te(WJ[w])} ${WJ[w]}家 ${p.name}`
+        +(p.isPro?` <span class="badge pro">PRO</span>`:"")
+        +(p.isPlayer?` <span class="badge player">本人</span>`:"")
+        +(isWin?" 🏆":"")+`</div>`
+        +`<span style="font-size:14px;font-weight:700;color:${diffColor}">${diffStr}</span></div>`
+        +`<div style="font-size:18px;letter-spacing:1px;">${p.haipai.map(te).join("")}</div>`
+        +(p.wait&&p.wait.length?`<div style="font-size:12px;color:var(--tx3);margin-top:2px">待ち: ${p.wait.map(te).join("")}</div>`:"")
+        +`</div>`;
+    }).join("")
+    +`<div style="margin-top:10px"><label style="font-size:12px;color:var(--tx3);display:block;margin-bottom:4px">メモ（印刷に含まれます）</label>`
+    +`<textarea rows="2" placeholder="コメント・役・反省点など" style="font-size:13px"></textarea></div>`;
+
+  // comment tab
+  var commEl=document.getElementById("rep-comment-content");
+  commEl.innerHTML=`<div style="font-size:12px;color:var(--tx3);margin-bottom:10px">💬 ${SAMPLE_COMMENTS.length}件のコメント　<span style="font-size:11px">👑本人 +200pt　🎖PRO +80pt</span></div>`
+    +SAMPLE_COMMENTS.map(function(cm){
+      var bc=cm.isPlayer?"var(--g)":cm.isPro?"var(--a)":"var(--bd)";
+      return`<div style="border:.5px solid ${bc};border-radius:var(--ra);padding:10px 12px;margin-bottom:8px;background:var(--sf)">`
+        +`<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">`
+        +`<div style="width:30px;height:30px;border-radius:50%;background:${cm.isPlayer?"var(--g)":cm.isPro?"var(--a)":"var(--tx3)"};display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0">`
+        +(cm.isPlayer?"👑":cm.isPro?"🎖":"🀄")+`</div>`
+        +`<div style="flex:1"><div style="font-size:13px;font-weight:600">${cm.user}`
+        +(cm.isPro?` <span class="badge pro">PRO</span>`:"")
+        +(cm.isPlayer?` <span class="badge player">本人</span>`:"")+`</div>`
+        +`<div style="font-size:11px;color:var(--tx3)">${cm.handle}　${cm.time}</div></div>`
+        +`<div style="font-size:12px;font-weight:700;color:var(--gold)">+${cm.pts}pt</div></div>`
+        +`<div style="font-size:13px;line-height:1.6">${cm.text}</div></div>`;
+    }).join("")
+    +`<div style="border-top:.5px solid var(--bd);padding-top:10px;margin-top:6px">`
+    +`<label style="font-size:12px;color:var(--tx3);display:block;margin-bottom:4px">コメントを投稿 <span style="color:var(--gold)">（+5pt）</span></label>`
+    +`<textarea rows="2" placeholder="この局についてコメントを入力..."></textarea>`
+    +`<button class="pri" style="width:100%;margin-top:6px">投稿する</button></div>`;
+
+  document.getElementById("report-modal").classList.add("open");
+}
+function closeReport(){document.getElementById("report-modal").classList.remove("open");}
+function setRepTab(t){
+  document.getElementById("rep-info-content").style.display=t==="info"?"block":"none";
+  document.getElementById("rep-comment-content").style.display=t==="comment"?"block":"none";
+  document.getElementById("rep-tab-info").classList.toggle("on",t==="info");
+  document.getElementById("rep-tab-comment").classList.toggle("on",t==="comment");
+}
+function downloadReport(){
+  var html=buildReportHTML();
+  var frame=document.getElementById("print-frame");
+  if(frame)frame.remove();
+  frame=document.createElement("div");
+  frame.id="print-frame";
+  frame.style.cssText="position:fixed;inset:0;background:#fff;z-index:9999;padding:20px;overflow:auto;";
+  frame.innerHTML=html;
+  document.body.appendChild(frame);
+  var isIOS=/iphone|ipad|ipod/i.test(navigator.userAgent);
+  if(isIOS)alert("印刷ダイアログが開きます。「PDFに保存」を選んでください。");
+  window.print();
+  setTimeout(function(){var f=document.getElementById("print-frame");if(f)f.remove();},1500);
+}
+
+// ═══════════════════════════════════════════════
+// ショップ
+// ═══════════════════════════════════════════════
+var shopTab="pt";
+function openShop(){
+  renderShop();
+  document.getElementById("shop-modal").classList.add("open");
+}
+function closeShop(){document.getElementById("shop-modal").classList.remove("open");}
+function setShopTab(t){
+  shopTab=t;
+  document.getElementById("shop-pt-content").style.display=t==="pt"?"block":"none";
+  document.getElementById("shop-cash-content").style.display=t==="cash"?"block":"none";
+  document.getElementById("shop-tab-pt").classList.toggle("on",t==="pt");
+  document.getElementById("shop-tab-cash").classList.toggle("on",t==="cash");
+}
+function renderShop(){
+  var myPts=1240;
+  var ptItems=[
+    {name:"牌譜1局",icon:"📄",pts:100,desc:"1局分の完全牌譜"},
+    {name:"月次レポート",icon:"📊",pts:500,desc:"月間まとめ分析"},
+    {name:"全牌譜（月）",icon:"🗂️",pts:800,desc:"その月の全局"},
+    {name:"プレミアム解説",icon:"💎",pts:300,desc:"プロ・本人コメント付き"},
+  ];
+  var cashItems=[
+    {name:"牌譜1局",icon:"📄",price:120},
+    {name:"5局セット",icon:"📦",price:500},
+    {name:"月次レポート",icon:"📊",price:480},
+    {name:"全牌譜（月）",icon:"🗂️",price:980},
+    {name:"ポイント1,000pt",icon:"⭐",price:500},
+    {name:"ポイント3,000pt",icon:"🌟",price:1200},
+  ];
+  document.getElementById("shop-pt-content").innerHTML=`<div class="shop-grid">`
+    +ptItems.map(function(it){
+      var can=myPts>=it.pts;
+      return`<div class="shop-item">`
+        +`<div class="shop-item-icon">${it.icon}</div>`
+        +`<div style="flex:1"><div class="shop-item-name">${it.name}</div>`
+        +`<div style="font-size:11px;color:var(--tx3)">${it.desc}</div>`
+        +`<div class="shop-item-pts">${it.pts}pt</div></div>`
+        +`<button class="${can?"gold":"ghost"} sml" ${can?"":"disabled"} onclick="alert('${it.name}と交換しました！')">交換</button>`
+        +`</div>`;
+    }).join("")+`</div>`;
+  document.getElementById("shop-cash-content").innerHTML=`<div style="font-size:12px;color:var(--b-t);background:var(--b-bg);border-radius:var(--ra);padding:8px 10px;margin-bottom:10px">💳 実際の決済はStripe等と連携（現在はデモ）</div>`
+    +`<div class="shop-grid">`
+    +cashItems.map(function(it){
+      return`<div class="shop-item">`
+        +`<div class="shop-item-icon">${it.icon}</div>`
+        +`<div style="flex:1"><div class="shop-item-name">${it.name}</div>`
+        +`<div style="font-size:12px;color:var(--b);font-weight:700">¥${it.price.toLocaleString()}</div></div>`
+        +`<button class="pri sml" onclick="alert('購入完了：${it.name}')">購入</button>`
+        +`</div>`;
+    }).join("")+`</div>`;
+}
+
+// ═══════════════════════════════════════════════
+// ランキング
+// ═══════════════════════════════════════════════
+function renderRanking(){
+  document.getElementById("ranking-list").innerHTML=RANKINGS.map(function(r){
+    return`<div class="rank-row ${r.me?"me":""}">`
+      +`<div class="rank-num">${r.badge||r.rank}</div>`
+      +`<div class="rank-name">${r.name}${r.me?" <span style='font-size:11px;color:var(--b-t);background:var(--b-bg);border-radius:4px;padding:0 5px;'>自分</span>":""}`
+      +`<div style="font-size:11px;color:var(--tx3)">${r.games}局 / 正解率${r.acc}%</div></div>`
+      +`<div class="rank-pts">${r.pts.toLocaleString()}<span style="font-size:11px;color:var(--tx3);font-weight:400">pt</span></div>`
+      +`</div>`;
+  }).join("");
+}
+
+// ═══════════════════════════════════════════════
+// アカウント
+// ═══════════════════════════════════════════════
+function renderAccount(){
+  document.getElementById("pt-table-body").innerHTML=POINT_TABLE.map(function(p,i){
+    return`<tr><td>${p.task}</td><td class="td-pts ${p.cls}">+${p.pts}pt</td></tr>`;
+  }).join("");
+  document.getElementById("history-list").innerHTML=HISTORY.map(function(h,i){
+    var isLast=i===HISTORY.length-1;
+    return`<div style="display:flex;align-items:center;gap:10px;padding:8px 0;${isLast?"":"border-bottom:.5px solid var(--bd);"}">`
+      +`<span style="font-size:11px;color:var(--tx3);width:36px">${h.date}</span>`
+      +`<span style="flex:1;font-size:13px">${h.game}</span>`
+      +`<span style="font-size:11px;padding:1px 8px;border-radius:10px;background:${h.status==="正解"?"var(--g-bg)":"var(--a-bg)"};color:${h.status==="正解"?"var(--g)":"var(--a)"}">${h.status}</span>`
+      +`<span style="font-size:13px;font-weight:700;color:var(--gold)">+${h.pts}pt</span></div>`;
+  }).join("");
+}
+
+// ═══════════════════════════════════════════════
+// 初期化
+// ═══════════════════════════════════════════════
+function initApp(){
+  renderNav();
+  setSection("game");
+  renderRanking();
+  renderAccount();
+}
+
+// CSVを読み込んでから起動
+loadAllCSV();
+</script>
+</body>
+</html>

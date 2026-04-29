@@ -1,0 +1,15 @@
+id,org_id,label
+TS001,saikoui,最高位戦
+TS002,saikoui,プロアマオープン
+TK001,kyokai,麻雀グランプリMAX
+TK002,kyokai,協会リーグ
+TN001,renmei,十段戦
+TN002,renmei,王位戦
+TN003,renmei,連盟リーグ
+TR001,rmu,A大会
+TR002,rmu,B大会
+TR003,rmu,C大会
+TM001,mu,μリーグ
+TM002,mu,μオープン
+TH001,other,フリー対局
+TH001,other,その他大会
