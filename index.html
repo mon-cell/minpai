@@ -73,6 +73,7 @@ select{background:var(--sf);border:.5px solid var(--bd2);border-radius:var(--ra)
 
 /* ── 牌キーボード ── */
 .kbd-wrap{margin-top:8px;background:var(--sf2);border-radius:var(--ra);padding:10px}
+.grid-kbd textarea{height:28px!important;font-size:13px}
 .kbd-tabs{display:flex;gap:5px;margin-bottom:8px;flex-wrap:wrap}
 .kbd-tab{font-size:12px;padding:4px 10px;border-radius:20px;border:.5px solid var(--bd2);background:var(--sf);color:var(--tx2);cursor:pointer}
 .kbd-tab.on{background:var(--b);border-color:var(--b);color:#e6f1fb}
@@ -93,17 +94,13 @@ select{background:var(--sf);border:.5px solid var(--bd2);border-radius:var(--ra)
 .grid-wrap{display:flex;flex-direction:column;gap:8px;min-width:max-content}
 .grid-row{display:flex;gap:6px;align-items:stretch}
 .grid-label{font-size:11px;color:var(--tx3);font-weight:600;width:36px;flex-shrink:0;display:flex;align-items:center;justify-content:flex-end;padding-right:4px;white-space:nowrap}
-.grid-slot{width:52px;height:68px;border:.5px dashed var(--bd2);border-radius:6px;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;transition:all .12s;font-size:26px;background:var(--sf);position:relative;flex-shrink:0}
+.grid-slot{width:52px;height:52px;border:.5px dashed var(--bd2);border-radius:6px;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:border-color .12s,background .12s;font-size:26px;background:var(--sf);position:relative;flex-shrink:0}
 .grid-slot:hover{border-color:var(--b);background:var(--b-bg)}
 .grid-slot.active{border:2px solid var(--b);background:var(--b-bg);box-shadow:0 0 0 2px rgba(24,95,165,.2)}
-.grid-slot.filled{border-style:solid;border-color:var(--bd)}
-.grid-slot.draw-filled{background:var(--b-bg);border-color:var(--b);border-style:solid}
-.grid-slot.disc-filled{background:var(--r-bg);border-color:var(--r);border-style:solid}
-.grid-slot.disputed{border-color:#f39c12!important;background:rgba(243,156,18,.1)!important;animation:dispute-pulse 1s ease-in-out infinite}
+.grid-slot.filled{border-style:solid;border-color:var(--bd);background:var(--sf)}
+.grid-slot.disputed{border-color:#f39c12!important;background:rgba(243,156,18,.08)!important;animation:dispute-pulse 1s ease-in-out infinite}
 @keyframes dispute-pulse{0%,100%{box-shadow:0 0 0 0 rgba(243,156,18,.4)}50%{box-shadow:0 0 0 4px rgba(243,156,18,.0)}}
 .grid-slot .slot-num{font-size:9px;color:var(--bd2)}
-.grid-slot .slot-icon{font-size:20px;line-height:1}
-.grid-slot .slot-label{font-size:8px;color:var(--tx3);margin-top:1px}
 .active-dot{position:absolute;top:-5px;left:50%;transform:translateX(-50%);width:5px;height:5px;border-radius:50%;background:var(--b)}
 
 /* リアルタイム捨て牌 */
@@ -396,11 +393,14 @@ select{background:var(--sf);border:.5px solid var(--bd2);border-radius:var(--ra)
 // ═══════════════════════════════════════════════
 const TE={
   "東":"🀀","南":"🀁","西":"🀂","北":"🀃","中":"🀄︎","発":"🀅","白":"🀆",
+  "1z":"🀀","2z":"🀁","3z":"🀂","4z":"🀃","5z":"🀆","6z":"🀅","7z":"🀄︎",
   "1m":"🀇","2m":"🀈","3m":"🀉","4m":"🀊","5m":"🀋","6m":"🀌","7m":"🀍","8m":"🀎","9m":"🀏","r5m":"🀋",
   "1p":"🀙","2p":"🀚","3p":"🀛","4p":"🀜","5p":"🀝","6p":"🀞","7p":"🀟","8p":"🀠","9p":"🀡","r5p":"🀝",
   "1s":"🀐","2s":"🀑","3s":"🀒","4s":"🀓","5s":"🀔","6s":"🀕","7s":"🀖","8s":"🀗","9s":"🀘","r5s":"🀔",
   "?":"🂠"
 };
+// ALPHA_MAP: 元アプリ準拠 (s=南=2z など)
+const ALPHA_MAP={e:"1z",t:"1z",s:"2z",n:"4z",w:"3z",h:"5z",f:"6z",c:"7z"};
 function te(t){
   if(!t)return"";
   if(t==="r5m"||t==="r5p"||t==="r5s")
@@ -418,14 +418,13 @@ const WJ={east:"東",south:"南",west:"西",north:"北"};
 const WE=["east","south","west","north"];
 
 const SECTIONS=[
-  {key:"game",   label:"対局情報",   icon:"🀄"},
-  {key:"player", label:"プレイヤー", icon:"👤"},
-  {key:"haipai", label:"初期配牌",   icon:"🃏"},
-  {key:"turns",  label:"ツモ・捨て", icon:"♻️"},
-  {key:"final",  label:"最終手牌",   icon:"🖐"},
-  {key:"meld",   label:"副露",       icon:"🔗"},
-  {key:"wait",   label:"待ち",       icon:"⏳"},
-  {key:"agari",  label:"アガリ・点数",icon:"🏆"},
+  {key:"game",   label:"対局情報",      icon:"🀄"},
+  {key:"player", label:"プレイヤー",    icon:"👤"},
+  {key:"haipai", label:"配牌",          icon:"🃏"},
+  {key:"turns",  label:"ツモ・捨て",    icon:"♻️"},
+  {key:"final",  label:"最終手牌・待ち",icon:"🖐"},
+  {key:"meld",   label:"副露",          icon:"🔗"},
+  {key:"agari",  label:"アガリ・点数",  icon:"🏆"},
 ];
 
 // POINT_TABLE は points.csv から動的にロード
@@ -708,7 +707,7 @@ function sectionDone(key){
   if(key==="haipai")return state.haipai.length>=13;
   if(key==="turns")return state.draws.some(Boolean)||state.discards.some(Boolean);
   if(key==="final")return state.finalHand.length>0;
-  if(key==="wait")return state.waitTiles.length>0;
+  // wait は final に統合（final セクションで両方入力）
   if(key==="meld")return state.melds.length>0;
   if(key==="agari")return!!state.agari.type&&!!state.agari.score;
   return false;
@@ -740,119 +739,147 @@ function setSection(key){
 //   字牌: 1z〜7z  東南西北白発中  tsnbhfc  eswnhdc
 //   赤5:  r5m r5p r5s  0m 0p 0s
 //   略記: sss → 南南南  eee → 東東東
-function parseTileText(raw){
-  if(!raw)return[];
-  var out=[];
-
-  // ① 日本語字牌（長い文字列を先に処理）
-  var jiLong={"発":"6z","白":"5z","中":"7z"};
-  Object.keys(jiLong).forEach(function(k){raw=raw.split(k).join(jiLong[k]);});
-  var jiMap={"東":"1z","南":"2z","西":"3z","北":"4z"};
-  Object.keys(jiMap).forEach(function(k){raw=raw.split(k).join(jiMap[k]);});
-
-  // ② アルファベット略記（元アプリ準拠）
-  // e/t=東(1z) s/n=南(2z) w=西(3z) b/k=北(4z)
-  // h=白(5z) f=発(6z) c=中(7z)  ※数字の後ろの場合は除く
-  var alphaJi={"e":"1z","t":"1z","s":"2z","n":"2z","w":"3z","b":"4z","k":"4z",
-               "h":"5z","f":"6z","c":"7z","d":"7z"};
-
-  // ③ 赤5正規化
-  raw=raw.replace(/[rR]5([mMpPsS])/g,function(_,s){return"r5"+s.toLowerCase();});
-  raw=raw.replace(/0([mMpPsS])/g,function(_,s){return"r5"+s.toLowerCase();});
-  raw=raw.toLowerCase();
-
-  var i=0;
-  var nums=[];
-  while(i<raw.length){
-    var ch=raw[i];
-
-    // r5x
-    if(ch==="r"&&i+2<raw.length&&raw[i+1]==="5"&&"mps".includes(raw[i+2])){
-      // 前のnumsを先に閉じる（スーツがあれば）
-      // r5xはそのまま
-      out.push("r5"+raw[i+2]); i+=3;
+// parseTileText: 元アプリの parseTiles と同一方式
+function parseTileText(s){
+  if(!s)return[];
+  s=s.replace(/[　,、，]+/g," ").replace(/\s+/g," ").trim();
+  // スペースなし混在: 境界でトークン分割
+  s=s.replace(/([eswhnfc])(?=[eswhnfcr0-9東南西北白発中])/gi,"$1 ")
+     .replace(/([mps])(?=[0-9eswhnfcr東南西北白発中])/gi,"$1 ")
+     .replace(/\s+/g," ").trim();
+  var tokens=s.split(" ").filter(Boolean);
+  var result=[];
+  for(var j=0;j<tokens.length;j++){
+    var tok=tokens[j];
+    // 赤5
+    if(/^r5[mps]$/i.test(tok)){result.push(tok.toLowerCase());continue;}
+    // 字牌アルファベット単体
+    if(/^[eswhnfc]$/i.test(tok)){
+      var mapped=ALPHA_MAP[tok.toLowerCase()];
+      if(mapped)result.push(mapped);
+      continue;
     }
-    // 数字
-    else if("123456789".includes(ch)){
-      nums.push(ch); i++;
-    }
-    // スーツ文字でnumsを確定
-    else if("mps".includes(ch)){
-      nums.forEach(function(n){out.push(n+ch);});
-      nums=[]; i++;
-    }
-    // z = 直前のnumsを字牌として解釈
-    else if(ch==="z"){
-      nums.forEach(function(n){if(+n>=1&&+n<=7)out.push(n+"z");});
-      nums=[]; i++;
-    }
-    // アルファベット略記（字牌）— numsが空の時だけ字牌として解釈
-    else if(alphaJi[ch]&&nums.length===0){
-      out.push(alphaJi[ch]); i++;
-    }
-    // 数字コンテキストでのアルファベット（スーツとして処理済みでなければスキップ）
-    else{
-      if(nums.length>0&&!"mpsz".includes(ch)){
-        // スーツ来なかった場合は nums を捨てる
-        nums=[];
+    // 字牌アルファベット複数
+    if(/^[eswhnfc]{2,}$/i.test(tok)){
+      for(var ci=0;ci<tok.length;ci++){
+        var mapped=ALPHA_MAP[tok[ci].toLowerCase()];
+        if(mapped)result.push(mapped);
       }
-      i++;
+      continue;
     }
+    // 日本語字牌単体
+    var jiMap={"東":"1z","南":"2z","西":"3z","北":"4z","白":"5z","発":"6z","中":"7z"};
+    if(jiMap[tok]){result.push(jiMap[tok]);continue;}
+    // 日本語字牌複数
+    var allJi=true;
+    for(var ci=0;ci<tok.length;ci++){if(!jiMap[tok[ci]]){allJi=false;break;}}
+    if(allJi&&tok.length>0){
+      for(var ci=0;ci<tok.length;ci++)result.push(jiMap[tok[ci]]);
+      continue;
+    }
+    // 数牌単体: 1m, 2p, 9s
+    if(/^\d[mps]$/i.test(tok)){result.push(tok.toLowerCase());continue;}
+    // 数牌複数: 123m, 456p
+    var m=tok.match(/^(\d+)([mps])$/i);
+    if(m){for(var di=0;di<m[1].length;di++)result.push(m[1][di]+m[2].toLowerCase());continue;}
+    // 字牌数字: 1z-7z
+    if(/^\d[z]$/i.test(tok)){result.push(tok.toLowerCase());continue;}
+    var mz=tok.match(/^(\d+)[z]$/i);
+    if(mz){for(var di=0;di<mz[1].length;di++){var n=parseInt(mz[1][di]);if(n>=1&&n<=7)result.push(n+"z");}continue;}
   }
-  return out.filter(function(t){return t in TE;});
+  return result.filter(function(t){return TE[t]!==undefined;});
 }
 
 function kbdHTML(onSelectFn, extraClass){
-  // ── テキスト入力（常時表示） ──
-  var inputId="kbd-txt-"+onSelectFn;
-  var prevId ="kbd-prv-"+onSelectFn;
-  var textBox=`<div style="margin-bottom:8px;border-bottom:.5px solid var(--bd);padding-bottom:8px">
-    <div style="font-size:10px;color:var(--tx3);margin-bottom:4px">
-      テキスト入力:
-      <code style="background:var(--sf2);padding:1px 5px;border-radius:3px">123m456p東南</code>
-      赤5→<code style="background:var(--sf2);padding:1px 5px;border-radius:3px">r5m/0m</code>
-      字牌→<code style="background:var(--sf2);padding:1px 5px;border-radius:3px">eswnhfc</code>
-    </div>
-    <div style="display:flex;gap:5px">
-      <input type="text" id="${inputId}" placeholder="例: 123m456p789s東西白"
-        style="flex:1;font-size:14px;padding:6px 9px;font-family:monospace;background:var(--sf);border:.5px solid var(--bd2);border-radius:var(--ra);color:var(--tx);outline:none"
-        oninput="livePreviewKbd('${inputId}','${prevId}')"
-        onkeydown="if(event.key==='Enter'){applyKbdText('${onSelectFn}','${inputId}');this.value='';livePreviewKbd('${inputId}','${prevId}');event.preventDefault();}">
-      <button class="pri sml" onclick="applyKbdText('${onSelectFn}','${inputId}');document.getElementById('${inputId}').value='';livePreviewKbd('${inputId}','${prevId}')">確定</button>
-    </div>
-    <div id="${prevId}" style="font-size:20px;min-height:22px;margin-top:4px;letter-spacing:1px;line-height:1.3"></div>
-  </div>`;
+  var inputId="kt-"+onSelectFn;
+  var prevId ="kp-"+onSelectFn;
 
-  // ── ボタン入力 ──
+  // テキスト入力エリア（常時表示）
+  var textBox='<div style="margin-bottom:8px;border-bottom:.5px solid var(--bd);padding-bottom:8px">'
+    +'<div style="font-size:10px;color:var(--tx3);margin-bottom:4px">'
+    +'テキスト入力: <code style="background:var(--sf2);padding:1px 4px;border-radius:3px">123m sss</code>'
+    +' 字牌: <code style="background:var(--sf2);padding:1px 4px;border-radius:3px">e/s/w/n/h/f/c</code>'
+    +'</div>'
+    +'<div style="display:flex;gap:5px;align-items:flex-start">'
+    +'<textarea id="'+inputId+'" rows="1" placeholder="例: 123m sss 東西"'
+    +' style="flex:1;font-size:14px;font-family:monospace;padding:5px 8px;'
+    +'resize:none;background:var(--sf);border:.5px solid var(--bd2);'
+    +'border-radius:var(--ra);color:var(--tx);outline:none;overflow:hidden"'
+    +' oninput="kbdLivePreview(\''+inputId+'\',\''+prevId+'\')"'
+    +' onkeydown="if(event.key===\'Enter\'){kbdConfirm(\''+onSelectFn+'\',\''+inputId+'\');event.preventDefault();}"></textarea>'
+    +'<button class="pri sml" style="flex-shrink:0" onclick="kbdConfirm(\''+onSelectFn+'\',\''+inputId+'\')">確定</button>'
+    +'</div>'
+    +'<div id="'+prevId+'" style="font-size:20px;min-height:20px;margin-top:4px;'
+    +'letter-spacing:1px;line-height:1.3;word-break:break-all"></div>'
+    +'</div>';
+
+  // ボタン入力
   var tabs=KBD_TABS.map(function(t){
-    return`<button class="kbd-tab${state.kbdTab===t.id?" on":""}" onclick="setKbdTab('${t.id}')">${t.label}</button>`;
+    return'<button class="kbd-tab'+(state.kbdTab===t.id?" on":"")
+      +'" onclick="setKbdTab(\''+t.id+'\')">'+t.label+'</button>';
   }).join("");
   var cur=KBD_TABS.find(function(t){return t.id===state.kbdTab;});
   var tiles=cur.tiles.map(function(t){
-    return`<button class="tile-btn" onclick="${onSelectFn}('${t}')">${te(t)}</button>`;
+    return'<button class="tile-btn" onclick="'+onSelectFn+'(\''+t+'\')">'+te(t)+'</button>';
   }).join("");
 
-  return`<div class="kbd-wrap ${extraClass||''}">
-    ${textBox}
-    <div class="kbd-tabs">${tabs}</div>
-    <div class="kbd-row">${tiles}</div>
-    <div class="util-row">
-      <button class="util-btn del" onclick="kbdDelete()">← 削除</button>
-      <button class="util-btn" onclick="kbdClear()">全消去</button>
-    </div>
-  </div>`;
+  return'<div class="kbd-wrap '+(extraClass||'')+'">'
+    +textBox
+    +'<div class="kbd-tabs">'+tabs+'</div>'
+    +'<div class="kbd-row">'+tiles+'</div>'
+    +'<div class="util-row">'
+    +'<button class="util-btn del" onclick="kbdDelete()">← 削除</button>'
+    +'<button class="util-btn" onclick="kbdClear()">全消去</button>'
+    +'</div></div>';
 }
 function setKbdTab(id){state.kbdTab=id;renderSection();}
 
-// ライブプレビュー（テキスト入力中）
-function livePreviewKbd(inputId,prevId){
+// リアルタイムプレビュー
+function kbdLivePreview(inputId, prevId){
   var inp=document.getElementById(inputId);
   var prv=document.getElementById(prevId);
   if(!inp||!prv)return;
   var tiles=parseTileText(inp.value);
   prv.innerHTML=tiles.length
-    ? tiles.map(te).join("")+`<span style="font-size:11px;color:var(--tx3);margin-left:4px">${tiles.length}枚</span>`
+    ? tiles.map(te).join("")+'<span style="font-size:11px;color:var(--tx3);margin-left:4px">'+tiles.length+'枚</span>'
     : "";
+}
+
+// テキスト確定（追加モード）
+function kbdConfirm(fn, inputId){
+  var inp=document.getElementById(inputId);
+  if(!inp)return;
+  var tiles=parseTileText(inp.value);
+  if(!tiles.length)return;
+  tiles.forEach(function(t){
+    if(fn==="haipaiPick"&&state.haipai.length<13)      state.haipai.push(t);
+    else if(fn==="finalPick"&&state.finalHand.length<14) state.finalHand.push(t);
+    else if(fn==="meldPickNakiTileDirect") meldPickNakiTileDirect(t);
+    else if(fn==="meldPickDiscDirect")     meldPickDiscDirect(t);
+    else if(fn==="meldPickRinshan")        meldPickRinshan(t);
+    else if(fn==="meldPickKandora")        meldPickKandora(t);
+    else if(fn==="gridTilePick")           gridTilePick(t);
+  });
+  inp.value="";
+  var prv=document.getElementById(inputId.replace("kt-","kp-"));
+  if(prv)prv.innerHTML="";
+  renderNav();
+  renderSection();
+}
+
+// 旧関数を新関数に転送（互換性）
+function livePreviewKbd(inputId,prevId){kbdLivePreview(inputId,prevId);}
+function applyKbdText(fn,inputId){kbdConfirm(fn,inputId);}
+
+
+function livePreviewKbd(inputId,prevId){
+  var inp=document.getElementById(inputId);
+  var prv=document.getElementById(prevId);
+  if(!inp||!prv)return;
+  var tiles=parseTileText(inp.value);
+  if(!tiles.length){prv.innerHTML="";return;}
+  prv.innerHTML=tiles.map(te).join("")
+    +'<span style="font-size:11px;color:var(--tx3);margin-left:4px">'+tiles.length+'枚</span>';
 }
 
 // テキスト確定（追加モード）
@@ -864,7 +891,6 @@ function applyKbdText(fn,inputId){
   tiles.forEach(function(t){
     if(fn==="haipaiPick"&&state.haipai.length<13)state.haipai.push(t);
     else if(fn==="finalPick"&&state.finalHand.length<14)state.finalHand.push(t);
-    else if(fn==="waitPick"&&!state.waitTiles.includes(t))state.waitTiles.push(t);
   });
   renderNav();
   renderSection();
@@ -907,59 +933,56 @@ function handPreview(tiles){
 // グリッド（ツモ/捨て 18マス）
 // ═══════════════════════════════════════════════
 function renderGrid(){
-  // 巡目ごとに [ツモ, 捨て] を縦並びで18列 横スクロール
   function slotEl(type, idx){
     var isActive=state.activeSlot&&state.activeSlot.grid===type&&state.activeSlot.idx===idx;
     var tile=type==="draw"?state.draws[idx]:state.discards[idx];
-    // 審議チェック: rtData に同巡同種で違う値があるか
     var rtVals=getRtValsForSlot(type,idx);
     var disputed=tile&&rtVals.some(function(v){return v&&v!==tile;});
-    var empty=!tile;
-    var cls="grid-slot";
-    if(isActive)cls+=" active";
-    else if(disputed)cls+=" disputed";
-    else if(tile&&type==="draw")cls+=" draw-filled";
-    else if(tile&&type==="discard")cls+=" disc-filled";
-    var inner=tile
-      ?`<span class="slot-icon">${te(tile)}</span>`
-        +(disputed?`<span style="font-size:9px;color:#f39c12">⚠</span>`:`<span class="slot-label">${type==="draw"?"ツモ":"捨"}</span>`)
-      :`<span class="slot-num">${idx+1}</span>`;
-    return`<div class="${cls}" onclick="slotClick('${type}',${idx})" title="${disputed?'審議！他の入力と一致しません':''}">${inner}</div>`;
+    var cls="grid-slot"+(tile?" filled":"")+(isActive?" active":"")+(disputed?" disputed":"");
+    var iid="si-"+type+"-"+idx;
+    var inner="";
+    if(tile){
+      inner='<span style="font-size:24px;line-height:1">'+te(tile)+'</span>'
+        +(disputed?'<span style="position:absolute;top:2px;right:2px;font-size:11px">&#x26A0;</span>':"");
+    } else if(isActive){
+      inner='<input id="'+iid+'" type="text" maxlength="4"'
+        +' style="width:44px;height:38px;font-size:13px;font-family:monospace;'
+        +'text-align:center;border:none;outline:none;background:transparent;color:var(--tx);padding:0"'
+        +' placeholder="'+(idx+1)+'"'
+        +' oninput="slotTextInput(this)"'
+        +' onkeydown="slotTextKeydown(event,this,\''+type+'\','+idx+')">';
+    } else {
+      inner='<span class="slot-num">'+(idx+1)+'</span>';
+    }
+    return'<div class="'+cls+'" onclick="slotClick(\''+type+'\','+idx+')"'
+      +' title="'+(disputed?'審議！他の入力と一致しません':'')+'">'
+      +inner+'</div>';
   }
-
-  // 18巡分の列
-  var cols=Array.from({length:18},function(_,i){
-    return`<div style="display:flex;flex-direction:column;gap:3px;align-items:center">
-      ${slotEl("draw",i)}
-      ${slotEl("discard",i)}
-    </div>`;
-  }).join("");
 
   var drawCount=state.draws.filter(Boolean).length;
   var discCount=state.discards.filter(Boolean).length;
 
-  return`<div class="grid-outer">
-    <div style="display:flex;gap:0;align-items:center;margin-bottom:4px;min-width:max-content;padding-left:40px">
-      ${Array.from({length:18},function(_,i){
-        return`<div style="width:52px;text-align:center;font-size:9px;color:var(--tx3);flex-shrink:0;margin-right:6px">${i+1}巡</div>`;
-      }).join("")}
-    </div>
-    <div class="grid-wrap" style="padding-bottom:2px">
-      <div class="grid-row">
-        <div class="grid-label">ツモ</div>
-        ${Array.from({length:18},function(_,i){return slotEl("draw",i);}).join("")}
-      </div>
-      <div class="grid-row">
-        <div class="grid-label">捨て</div>
-        ${Array.from({length:18},function(_,i){return slotEl("discard",i);}).join("")}
-      </div>
-    </div>
-    <div style="font-size:11px;color:var(--tx3);margin-top:4px;display:flex;gap:12px">
-      <span>ツモ: ${drawCount}/18</span><span>捨て: ${discCount}/18</span>
-      <span style="color:#f39c12">${hasDisputed()?"⚠ 審議中の巡があります":""}</span>
-    </div>
-  </div>
-  ${state.activeSlot?kbdHTML("gridTilePick"):""}`;
+  var drawSlots=Array.from({length:18},function(_,i){return slotEl("draw",i);}).join("");
+  var discSlots=Array.from({length:18},function(_,i){return slotEl("discard",i);}).join("");
+
+  var hdrCells=Array.from({length:18},function(_,i){
+    return'<div style="width:52px;text-align:center;font-size:9px;color:var(--tx3);flex-shrink:0">'+
+      (i+1)+'巡</div>';
+  }).join("");
+
+  return'<div class="grid-outer">'
+    +'<div style="display:flex;gap:6px;align-items:center;margin-bottom:4px;min-width:max-content;padding-left:40px">'
+    +hdrCells+'</div>'
+    +'<div class="grid-wrap" style="padding-bottom:2px">'
+    +'<div class="grid-row"><div class="grid-label">ツモ</div>'+drawSlots+'</div>'
+    +'<div class="grid-row"><div class="grid-label">捨て</div>'+discSlots+'</div>'
+    +'</div>'
+    +'<div style="font-size:11px;color:var(--tx3);margin-top:4px;display:flex;gap:12px">'
+    +'<span>ツモ: '+drawCount+'/18</span><span>捨て: '+discCount+'/18</span>'
+    +(hasDisputed()?'<span style="color:#f39c12">⚠ 審議中の巡があります</span>':"")
+    +'</div>'
+    +(state.activeSlot?kbdHTML("gridTilePick","grid-kbd"):"")
+    +'</div>';
 }
 
 function getRtValsForSlot(type, idx){
@@ -985,48 +1008,233 @@ function slotClick(grid,idx){
   if(state.activeSlot&&state.activeSlot.grid===grid&&state.activeSlot.idx===idx){
     state.activeSlot=null;
   } else {
-    state.activeSlot={grid,idx};
+    state.activeSlot={grid:grid,idx:idx};
   }
   renderSection();
+  focusActiveSlot();
 }
+
+// スロット内テキスト入力: リアルタイムプレビュー
+function slotTextInput(input){
+  var tiles=parseTileText(input.value);
+  // プレビューをinputの下に表示
+  var prev=input.nextSibling;
+  if(!prev||prev.className!=="slot-preview"){
+    prev=document.createElement("span");
+    prev.className="slot-preview";
+    prev.style.cssText="position:absolute;bottom:1px;left:0;right:0;text-align:center;font-size:11px;line-height:1;pointer-events:none";
+    input.parentNode.appendChild(prev);
+  }
+  prev.innerHTML=tiles.length?te(tiles[0]):"";
+}
+
+// activeSlot のinputにフォーカスを当てる（renderSection後に呼ぶ）
+function focusActiveSlot(){
+  if(!state.activeSlot)return;
+  var g=state.activeSlot.grid, i=state.activeSlot.idx;
+  // rAF x2: DOM再構築→ペイント完了後にフォーカス
+  requestAnimationFrame(function(){
+    requestAnimationFrame(function(){
+      var el=document.getElementById("si-"+g+"-"+i);
+      if(el){el.focus();el.select();}
+    });
+  });
+}
+
+// スロット内テキスト入力: Enter確定・Backspace戻る
+function slotTextKeydown(e,input,type,idx){
+  if(e.key==="Enter"||e.key==="Tab"){
+    e.preventDefault();
+    var tiles=parseTileText(input.value);
+    if(tiles.length){
+      if(type==="draw")    state.draws[idx]=tiles[0];
+      else                 state.discards[idx]=tiles[0];
+      if(type==="draw")    state.activeSlot={grid:"discard",idx:idx};
+      else if(idx+1<18)    state.activeSlot={grid:"draw",idx:idx+1};
+      else                 state.activeSlot=null;
+      rtPush({type:type,idx:idx,tile:tiles[0],seat:state.seat||"東家",ts:Date.now()});
+      renderNav();
+      renderSection();
+      focusActiveSlot();
+    } else if(input.value===""){
+      // 空Enter → スキップ
+      if(type==="draw")    state.activeSlot={grid:"discard",idx:idx};
+      else if(idx+1<18)    state.activeSlot={grid:"draw",idx:idx+1};
+      else                 state.activeSlot=null;
+      renderSection();
+      focusActiveSlot();
+    }
+  } else if(e.key==="Backspace"&&input.value===""){
+    e.preventDefault();
+    if(type==="draw"&&state.draws[idx])         {state.draws[idx]=null;}
+    else if(type==="discard"&&state.discards[idx]){state.discards[idx]=null;}
+    else if(type==="discard")                    {state.activeSlot={grid:"draw",idx:idx};}
+    else if(idx>0)                               {state.activeSlot={grid:"discard",idx:idx-1};}
+    renderSection();
+    focusActiveSlot();
+  } else if(e.key==="Escape"){
+    state.activeSlot=null; renderSection();
+  }
+}
+
 function gridTilePick(t){
   if(!state.activeSlot)return;
   var g=state.activeSlot.grid, i=state.activeSlot.idx;
   if(g==="draw") state.draws[i]=t;
   else           state.discards[i]=t;
 
-  // ツモ入力後 → 同巡の捨てへ自動移動
-  // 捨て入力後 → 次巡のツモへ自動移動
   if(g==="draw"){
-    // 同巡の捨てが空なら捨てへ
     state.activeSlot={grid:"discard",idx:i};
   } else {
-    // 次巡のツモへ
     var next=i+1<18?i+1:null;
     state.activeSlot=next!==null?{grid:"draw",idx:next}:null;
   }
-  // リアルタイム小窓に追加
   rtPush({type:g, idx:i, tile:t, seat:state.seat||"東家", ts:Date.now()});
   renderSection();
-  // アクティブスロットが画面外に出ないようスクロール
-  setTimeout(function(){
+  focusActiveSlot();
+  // スクロール
+  requestAnimationFrame(function(){
     var outer=document.querySelector(".grid-outer");
     if(!outer||!state.activeSlot)return;
     var slotW=58, labelW=40;
     var targetX=labelW+state.activeSlot.idx*slotW;
     outer.scrollLeft=Math.max(0, targetX - outer.clientWidth/2);
-  }, 50);
+  });
 }
+// ── 待ち牌グリッド（小ボックス方式）──
+var waitActiveIdx=null; // アクティブなスロットindex
+
+function renderWaitGrid(){
+  var MAX=8;
+  var slots=Array.from({length:MAX},function(_,i){
+    var tile=state.waitTiles[i]||null;
+    var isActive=(waitActiveIdx===i);
+    var cls="grid-slot"+(tile?" filled":"")+(isActive?" active":"");
+    var iid="wi-"+i;
+    var inner="";
+    if(tile){
+      inner='<span style="font-size:22px;line-height:1">'+te(tile)+'</span>'
+        +'<span style="position:absolute;top:1px;right:2px;font-size:9px;color:var(--r);cursor:pointer;line-height:1" onclick="waitRemove('+i+',event)">✕</span>';
+    } else if(isActive){
+      inner='<input id="'+iid+'" type="text" maxlength="4"'
+        +' style="width:34px;height:28px;font-size:12px;font-family:monospace;'
+        +'text-align:center;border:none;outline:none;background:transparent;color:var(--tx);padding:0"'
+        +' placeholder="待ち"'
+        +' oninput="waitTextInput(this)"'
+        +' onkeydown="waitTextKeydown(event,this,'+i+')">';
+    } else {
+      inner='<span class="slot-num">'+(i+1)+'</span>';
+    }
+    return'<div class="'+cls+'" onclick="waitSlotClick('+i+')" style="margin-right:3px">'+inner+'</div>';
+  }).join("");
+
+  var filled=state.waitTiles.filter(Boolean).length;
+  return'<div style="display:flex;flex-wrap:wrap;gap:3px;margin-bottom:10px">'
+    +slots
+    +'</div>'
+    +'<div style="font-size:11px;color:var(--tx3)">'
+    +(filled?filled+'牌選択済み':'未入力')
+    +'</div>'
+    +(waitActiveIdx!==null?kbdHTML("waitGridPick","grid-kbd"):"");
+}
+
+function waitSlotClick(i){
+  if(waitActiveIdx===i){waitActiveIdx=null;}
+  else{waitActiveIdx=i;}
+  renderSection();
+  if(waitActiveIdx!==null){
+    requestAnimationFrame(function(){requestAnimationFrame(function(){
+      var el=document.getElementById("wi-"+waitActiveIdx);
+      if(el){el.focus();}
+    });});
+  }
+}
+
+function waitRemove(i,e){
+  e.stopPropagation();
+  state.waitTiles.splice(i,1);
+  waitActiveIdx=null;
+  renderSection();
+}
+
+function waitGridPick(t){
+  if(waitActiveIdx===null)return;
+  // すでに同じ牌があっても待ちは複数OK（両面など）
+  if(!state.waitTiles[waitActiveIdx]){
+    // 新規追加
+    state.waitTiles[waitActiveIdx]=t;
+  } else {
+    state.waitTiles[waitActiveIdx]=t;
+  }
+  // 次の空きへ
+  var next=null;
+  for(var j=waitActiveIdx+1;j<8;j++){if(!state.waitTiles[j]){next=j;break;}}
+  waitActiveIdx=next;
+  renderNav();
+  renderSection();
+  if(waitActiveIdx!==null){
+    requestAnimationFrame(function(){requestAnimationFrame(function(){
+      var el=document.getElementById("wi-"+waitActiveIdx);
+      if(el){el.focus();}
+    });});
+  }
+}
+
+function waitTextInput(input){
+  var tiles=parseTileText(input.value);
+  var prev=input.parentNode.querySelector(".slot-preview");
+  if(!prev){
+    prev=document.createElement("span");
+    prev.className="slot-preview";
+    prev.style.cssText="position:absolute;bottom:0;left:0;right:0;text-align:center;font-size:9px;line-height:1;pointer-events:none";
+    input.parentNode.appendChild(prev);
+  }
+  prev.innerHTML=tiles.length?te(tiles[0]):"";
+}
+
+function waitTextKeydown(e,input,idx){
+  if(e.key==="Enter"||e.key==="Tab"){
+    e.preventDefault();
+    var tiles=parseTileText(input.value);
+    if(tiles.length){
+      state.waitTiles[idx]=tiles[0];
+      // 次の空きへ
+      var next=null;
+      for(var j=idx+1;j<8;j++){if(!state.waitTiles[j]){next=j;break;}}
+      waitActiveIdx=next;
+      renderNav();
+      renderSection();
+      if(waitActiveIdx!==null){
+        requestAnimationFrame(function(){requestAnimationFrame(function(){
+          var el=document.getElementById("wi-"+waitActiveIdx);
+          if(el){el.focus();}
+        });});
+      }
+    } else {
+      // 空でEnter→スキップ
+      var next=null;
+      for(var j=idx+1;j<8;j++){if(!state.waitTiles[j]){next=j;break;}}
+      waitActiveIdx=next;
+      renderSection();
+    }
+  } else if(e.key==="Backspace"&&input.value===""){
+    e.preventDefault();
+    if(state.waitTiles[idx]){state.waitTiles.splice(idx,1);}
+    waitActiveIdx=idx>0?idx-1:0;
+    renderSection();
+  } else if(e.key==="Escape"){
+    waitActiveIdx=null; renderSection();
+  }
+}
+
 function kbdDelete(){
   if(state.section==="haipai"){state.haipai.pop();}
   else if(state.section==="final"){state.finalHand.pop();}
-  else if(state.section==="wait"){state.waitTiles.pop();}
   renderSection();
 }
 function kbdClear(){
   if(state.section==="haipai"){state.haipai=[];}
   else if(state.section==="final"){state.finalHand=[];}
-  else if(state.section==="wait"){state.waitTiles=[];}
   renderSection();
 }
 function haipaiPick(t){
@@ -1059,7 +1267,7 @@ function renderSection(){
         <div class="p-name">${SAMPLE_PLAYERS[w].name}</div>
         <div class="p-badges">
           ${SAMPLE_PLAYERS[w].isPro?`<span class="badge pro">PRO 🎖️</span>`:""}
-          ${SAMPLE_PLAYERS[w].isPlayer?`<span class="badge player">本人 👑</span>`:""}
+          
         </div>
       </div>`;
     }).join("");
@@ -1072,7 +1280,7 @@ function renderSection(){
 
   else if(s==="haipai"){
     h=`<div class="card">
-      <div class="slabel">🃏 初期配牌 <span style="color:var(--tx3);font-weight:400">(13枚)</span></div>
+      <div class="slabel">🃏 配牌 <span style="color:var(--tx3);font-weight:400">(13枚)</span></div>
       <div class="hand-prev">${handPreview(state.haipai)}</div>
       ${kbdHTML("haipaiPick")}
     </div>`;
@@ -1081,31 +1289,7 @@ function renderSection(){
   else if(s==="turns"){
     h=`<div class="card">
       <div class="slabel">♻️ ツモ牌・捨て牌</div>
-
-      <!-- テキスト一括入力（キーボードより上） -->
-      <div style="margin-bottom:12px;background:var(--sf2);border-radius:var(--ra);padding:10px 12px">
-        <div style="font-size:11px;color:var(--tx3);margin-bottom:6px">
-          テキスト一括入力　<code style="background:var(--sf);padding:1px 5px;border-radius:3px">3m4m6m東南</code> 形式
-        </div>
-        <div style="display:flex;gap:6px;margin-bottom:5px">
-          <span style="font-size:11px;color:var(--tx3);width:28px;line-height:30px;flex-shrink:0">ツモ</span>
-          <input type="text" id="turns-text-draw" placeholder="例: 3m4m6m2s7p..."
-            style="flex:1;font-size:13px;font-family:monospace;background:var(--sf);border:.5px solid var(--bd2);border-radius:var(--ra);padding:5px 8px;color:var(--tx);outline:none"
-            onkeydown="if(event.key==='Enter'){applyTurnsText();event.preventDefault();}">
-        </div>
-        <div style="display:flex;gap:6px">
-          <span style="font-size:11px;color:var(--tx3);width:28px;line-height:30px;flex-shrink:0">捨て</span>
-          <input type="text" id="turns-text-disc" placeholder="例: 9s8s7s6s5p..."
-            style="flex:1;font-size:13px;font-family:monospace;background:var(--sf);border:.5px solid var(--bd2);border-radius:var(--ra);padding:5px 8px;color:var(--tx);outline:none"
-            onkeydown="if(event.key==='Enter'){applyTurnsText();event.preventDefault();}">
-          <button class="pri sml" onclick="applyTurnsText()">確定</button>
-        </div>
-      </div>
-
-      <!-- グリッド -->
-      <p style="font-size:11px;color:var(--tx3);margin-bottom:8px">
-        巡目をタップ → 牌を選択 → ツモ入力後は自動で捨てへ移動
-      </p>
+      <p style="font-size:11px;color:var(--tx3);margin-bottom:8px">マスをタップして入力 → Enter で次へ自動移動</p>
       ${renderGrid()}
     </div>`;
   }
@@ -1115,6 +1299,11 @@ function renderSection(){
       <div class="slabel">🖐 最終手牌</div>
       <div class="hand-prev">${handPreview(state.finalHand)}</div>
       ${kbdHTML("finalPick")}
+    </div>
+    <div class="card" style="margin-top:8px">
+      <div class="slabel">⏳ 待ち牌 <span style="color:var(--tx3);font-weight:400">(複数可)</span></div>
+      <p style="font-size:11px;color:var(--tx3);margin-bottom:8px">マスをタップして入力 → Enter で追加</p>
+      ${renderWaitGrid()}
     </div>`;
   }
 
@@ -1122,13 +1311,6 @@ function renderSection(){
     h=renderMeldSection();
   }
 
-  else if(s==="wait"){
-    h=`<div class="card">
-      <div class="slabel">⏳ 待ち牌 <span style="color:var(--tx3);font-weight:400">(複数可)</span></div>
-      <div class="hand-prev">${state.waitTiles.length?state.waitTiles.map(te).join(""):`<span style="font-size:13px;color:var(--tx3)">待ち牌を選んでください</span>`}</div>
-      ${kbdHTML("waitPick")}
-    </div>`;
-  }
 
   else if(s==="agari"){
     var seats=["東家","南家","西家","北家"];
@@ -1559,28 +1741,65 @@ function renderRtPanel(){
     return t;
   };
 
-  var logHtml=tabLogs.length
-    ? tabLogs.slice(0,20).map(function(e){
-        var ago=Math.round((Date.now()-e.ts)/1000);
-        var agoStr=ago<60?ago+"秒前":Math.round(ago/60)+"分前";
-        var disputed=e.tile&&!e.self&&(
-          (e.type==="draw"&&state.draws[e.idx]&&state.draws[e.idx]!==e.tile)||
-          (e.type==="discard"&&state.discards[e.idx]&&state.discards[e.idx]!==e.tile)
-        );
-        var bg=e.self?"var(--b-bg)":disputed?"rgba(243,156,18,.1)":"var(--sf2)";
-        var bdr=e.self?"var(--b)":disputed?"#f39c12":"var(--bd)";
-        return'<div style="display:flex;align-items:center;gap:6px;padding:5px 8px;border-radius:6px;background:'+bg+';border:.5px solid '+bdr+';margin-bottom:3px">'
-          +'<span style="font-size:11px;color:var(--tx3);flex-shrink:0;min-width:64px">'+typeLabel(e.type,e.idx)+'</span>'
-          +'<span style="font-size:22px;line-height:1">'+(e.tile?te(e.tile):"")+'</span>'
-          +(disputed
-            ?'<span style="font-size:10px;color:#f39c12;font-weight:700;flex-shrink:0">⚠審議！</span>'
-              +'<button onclick="correctDispute(\''+e.type+'\','+e.idx+',\''+e.tile+'\')" style="font-size:10px;padding:2px 6px;border-radius:4px;background:var(--b);border:none;color:#e6f1fb;cursor:pointer">採用</button>'
-            :"")
-          +(e.self?'<span style="font-size:10px;color:var(--b);margin-left:auto">自分</span>'
-                  :'<span style="font-size:10px;color:var(--tx3);margin-left:auto">'+agoStr+'</span>')
-          +'</div>';
-      }).join("")
-    : '<div style="font-size:12px;color:var(--tx3);padding:8px 0">このタブの入力はまだありません</div>';
+  // ── 巡目グリッド表示 ──
+  var drawByIdx={}, discByIdx={};
+  tabLogs.forEach(function(e){
+    if(e.type==="draw")    drawByIdx[e.idx]=e;
+    if(e.type==="discard") discByIdx[e.idx]=e;
+  });
+  var otherLogs=tabLogs.filter(function(e){return e.type!=="draw"&&e.type!=="discard";});
+  var allIdxs=Object.keys(drawByIdx).concat(Object.keys(discByIdx)).map(Number);
+  var maxIdx=allIdxs.length?Math.max.apply(null,allIdxs):-1;
+  var logHtml="";
+  if(maxIdx>=0){
+    var hdr='<div style="width:28px;flex-shrink:0"></div>';
+    var drawRow='<div style="width:28px;flex-shrink:0;font-size:9px;color:var(--tx3);text-align:right;padding-right:3px;line-height:32px">ツモ</div>';
+    var discRow='<div style="width:28px;flex-shrink:0;font-size:9px;color:var(--tx3);text-align:right;padding-right:3px;line-height:32px">捨て</div>';
+    for(var i=0;i<=maxIdx;i++){
+      hdr+='<div style="width:32px;flex-shrink:0;text-align:center;font-size:9px;color:var(--tx3)">'+(i+1)+'</div>';
+      // ツモ
+      var de=drawByIdx[i];
+      if(de){
+        var bg=de.self?"var(--b-bg)":"var(--sf2)";
+        var bdr=de.self?"var(--b)":"var(--bd)";
+        drawRow+='<div style="width:32px;height:32px;flex-shrink:0;border:.5px solid '+bdr+';border-radius:4px;background:'+bg+';display:flex;align-items:center;justify-content:center;font-size:20px;position:relative">'
+          +te(de.tile)+(de.self?'<span style="position:absolute;bottom:0;right:1px;font-size:7px;color:var(--b)">自</span>':"")+'</div>';
+      } else {
+        drawRow+='<div style="width:32px;height:32px;flex-shrink:0;border:.5px dashed var(--bd);border-radius:4px"></div>';
+      }
+      // 捨て
+      var di=discByIdx[i];
+      if(di){
+        var disp=di.tile&&!di.self&&state.discards[i]&&state.discards[i]!==di.tile;
+        var bg2=disp?"rgba(243,156,18,.1)":di.self?"var(--b-bg)":"var(--sf2)";
+        var bdr2=disp?"#f39c12":di.self?"var(--b)":"var(--bd)";
+        discRow+='<div style="width:32px;height:32px;flex-shrink:0;border:.5px solid '+bdr2+';border-radius:4px;background:'+bg2+';display:flex;align-items:center;justify-content:center;font-size:20px;position:relative">'
+          +te(di.tile)+(disp?'<span style="position:absolute;top:0;right:1px;font-size:9px">⚠</span>':"")+(di.self?'<span style="position:absolute;bottom:0;right:1px;font-size:7px;color:var(--b)">自</span>':"")+'</div>';
+      } else {
+        discRow+='<div style="width:32px;height:32px;flex-shrink:0;border:.5px dashed var(--bd);border-radius:4px"></div>';
+      }
+    }
+    logHtml='<div style="overflow-x:auto;-webkit-overflow-scrolling:touch">'
+      +'<div style="min-width:max-content;display:flex;flex-direction:column;gap:3px;padding:4px 0">'
+      +'<div style="display:flex;gap:3px;align-items:center">'+hdr+'</div>'
+      +'<div style="display:flex;gap:3px;align-items:center">'+drawRow+'</div>'
+      +'<div style="display:flex;gap:3px;align-items:center">'+discRow+'</div>'
+      +'</div></div>';
+  }
+  if(otherLogs.length){
+    logHtml+=otherLogs.slice(0,5).map(function(e){
+      var ago=Math.round((Date.now()-e.ts)/1000);
+      var agoStr=ago<60?ago+"秒前":Math.round(ago/60)+"分前";
+      return'<div style="display:flex;align-items:center;gap:6px;padding:4px 8px;border-radius:5px;background:var(--sf2);border:.5px solid var(--bd);margin-top:4px;font-size:12px">'
+        +'<span style="color:var(--tx3)">'+typeLabel(e.type,e.idx)+'</span>'
+        +(e.tile?'<span style="font-size:18px">'+te(e.tile)+'</span>':"")
+        +(e.self?'<span style="font-size:10px;color:var(--b);margin-left:auto">自分</span>'
+                :'<span style="font-size:10px;color:var(--tx3);margin-left:auto">'+agoStr+'</span>')
+        +'</div>';
+    }).join("");
+  }
+  if(!logHtml) logHtml='<div style="font-size:12px;color:var(--tx3);padding:8px 0">このタブの入力はまだありません</div>';
+
 
   el.innerHTML=
     // 完成度バー
@@ -1753,20 +1972,17 @@ function renderMeldSection(){
 
   var body="";
 
-  // STEP1: 鳴いた牌を捨て牌から選ぶ
+  // STEP1: 他家から鳴いた牌をテキスト/キーボードで直接入力
   if(d.step===1){
-    var discBtns=myDiscards.length
-      ? myDiscards.map(function(t,i){
-          return'<button onclick="meldPickNakiTile(\''+t+'\','+i+')" style="font-size:26px;padding:3px 5px;border-radius:6px;border:.5px solid var(--a);background:var(--a-bg);cursor:pointer;line-height:1.2">'+te(t)+'</button>';
-        }).join("")
-      :'<span style="font-size:12px;color:var(--tx3)">先にツモ・捨て牌を入力してください</span>';
-    body='<div style="font-size:11px;color:var(--tx3);margin-bottom:8px">鳴いた牌を選んでください（自分の捨て牌から）</div>'
-      +'<div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:12px">'+discBtns+'</div>'
-      +'<div style="font-size:10px;color:var(--tx3);margin-bottom:6px">捨て牌にない場合は直接入力:</div>'
+    body='<div style="font-size:11px;color:var(--tx3);margin-bottom:8px">'
+      +'他家から鳴いた牌を入力してください<br>'
+      +'<span style="font-size:10px;opacity:.7">（他家の捨て牌は未入力の場合があるので直接入力）</span>'
+      +'</div>'
       +kbdHTML("meldPickNakiTileDirect");
   }
 
-  // STEP2: 形・方向選択
+
+  // STEP2: 形・方向選択（optionsをグローバルに保存してインデックス参照）
   else if(d.step===2){
     var opts=[];
     var hint="";
@@ -1783,12 +1999,17 @@ function renderMeldSection(){
       opts=kanOptions(d.nakiTile);
       hint="カンの種類を選んでください";
     }
+    // opts をグローバルに保存
+    window._meldOpts=opts;
     if(opts.length){
       body='<div style="font-size:11px;color:var(--tx3);margin-bottom:8px">'+hint+'</div>'
         +'<div style="display:flex;flex-direction:column;gap:6px">'
-        +opts.map(function(opt){
-          return'<button onclick="meldPickShape(\''+JSON.stringify(opt).replace(/'/g,"&apos;")+'\')" style="display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:var(--ra);border:.5px solid var(--bd2);background:var(--sf);cursor:pointer;font-family:inherit">'
-            +(opt.from?'<span style="font-size:12px;color:var(--tx2);min-width:8em">'+opt.from+'</span>':"")
+        +opts.map(function(opt,oi){
+          return'<button onclick="meldPickShapeIdx('+oi+')"'
+            +' style="display:flex;align-items:center;gap:10px;padding:9px 12px;'
+            +'border-radius:var(--ra);border:.5px solid var(--bd2);background:var(--sf);'
+            +'cursor:pointer;font-family:inherit;text-align:left;width:100%">'
+            +(opt.from?'<span style="font-size:12px;color:var(--tx2);min-width:9em;flex-shrink:0">'+opt.from+'</span>':"")
             +'<span style="font-size:22px">'+tilesWithNakiHTML(opt.tiles,opt.nakiIdx)+'</span>'
             +(opt.label?'<span style="font-size:12px;color:var(--tx3)">'+opt.label+'</span>':"")
             +'</button>';
@@ -1796,6 +2017,7 @@ function renderMeldSection(){
         +'</div>';
     }
   }
+
 
   // STEP3: 嶺上牌（カンのみ）
   else if(d.step===3){
@@ -1807,18 +2029,28 @@ function renderMeldSection(){
       +kbdHTML("meldPickRinshan");
   }
 
-  // STEP4: 捨て牌（副露後の捨て）
+  // STEP4: 副露後の自分の捨て牌を巡目付きで選択
   else if(d.step===4){
     var discBtns2=myDiscards.length
       ? myDiscards.map(function(t,i){
-          return'<button onclick="meldPickDisc(\''+t+'\','+i+')" style="font-size:26px;padding:3px 5px;border-radius:6px;border:.5px solid var(--bd2);background:var(--sf);cursor:pointer;line-height:1.2">'+te(t)+'</button>';
+          return'<button onclick="meldPickDisc(\''+t+'\','+i+')"'
+            +' style="display:flex;flex-direction:column;align-items:center;gap:1px;'
+            +'padding:4px 6px;border-radius:6px;border:.5px solid var(--bd2);'
+            +'background:var(--sf);cursor:pointer;min-width:40px">'
+            +'<span style="font-size:22px;line-height:1">'+te(t)+'</span>'
+            +'<span style="font-size:9px;color:var(--tx3)">'+(i+1)+'巡目</span>'
+            +'</button>';
         }).join("")
-      :'';
-    body='<div style="font-size:11px;color:var(--tx3);margin-bottom:8px">副露後の捨て牌を選んでください</div>'
+      :'<span style="font-size:12px;color:var(--tx3)">まだ捨て牌が入力されていません</span>';
+    body='<div style="font-size:11px;color:var(--tx3);margin-bottom:8px">'
+      +'副露後に自分が捨てた牌を選んでください（何巡目か確認できます）'
+      +'</div>'
       +(d.rinshanTile?'<div style="font-size:12px;color:var(--a-t);margin-bottom:8px">嶺上: '+te(d.rinshanTile)+' → 捨て?</div>':"")
-      +'<div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:10px">'+discBtns2+'</div>'
+      +'<div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:10px">'+discBtns2+'</div>'
+      +'<div style="font-size:10px;color:var(--tx3);margin-bottom:6px">未入力の場合は直接入力:</div>'
       +kbdHTML("meldPickDiscDirect");
   }
+
 
   // STEP5: カンドラ（カンのみ）
   else if(d.step===5){
@@ -1857,18 +2089,24 @@ function meldPickNakiTile(tile,discIdx){
 function meldPickNakiTileDirect(tile){
   meldPickNakiTile(tile,null);
 }
-function meldPickShape(optJson){
-  var opt=typeof optJson==="string"?JSON.parse(optJson.replace(/&apos;/g,"'")):optJson;
+function meldPickShapeIdx(oi){
+  var opt=(window._meldOpts||[])[oi];
+  if(!opt)return;
   state.meldDraft.tiles=opt.tiles;
   state.meldDraft.nakiIdx=opt.nakiIdx!=null?opt.nakiIdx:0;
   state.meldDraft.from=opt.from||"";
   state.meldDraft.isAnkan=(opt.attr==="ankan");
-  // カンなら嶺上へ、ポン/チーなら捨て牌へ
-  if(state.meldDraft.type==="kan"){
-    state.meldDraft.step=state.meldDraft.isAnkan?3:3; // 嶺上
-  } else {
-    state.meldDraft.step=4; // 捨て牌
-  }
+  state.meldDraft.step=(state.meldDraft.type==="kan")?3:4;
+  renderSection();
+}
+function meldPickShape(opt){
+  // 後方互換
+  if(typeof opt==="number"){meldPickShapeIdx(opt);return;}
+  state.meldDraft.tiles=opt.tiles;
+  state.meldDraft.nakiIdx=opt.nakiIdx!=null?opt.nakiIdx:0;
+  state.meldDraft.from=opt.from||"";
+  state.meldDraft.isAnkan=(opt.attr==="ankan");
+  state.meldDraft.step=(state.meldDraft.type==="kan")?3:4;
   renderSection();
 }
 function meldPickRinshan(tile){
@@ -2073,7 +2311,7 @@ function buildReportHTML(){
       +(p.scoreStart?`<div>${p.scoreStart.toLocaleString()}</div>`:"")+`<div style="font-weight:700;color:#333;">${p.scoreEnd.toLocaleString()}</div>`
       +(diffStr?`<div style="color:${diffColor};font-weight:700;">${diffStr}</div>`:"")+`</div>`:"";
     var proBadge=p.isPro?` <span style="font-size:10px;padding:1px 6px;border-radius:10px;background:#faeeda;color:#ba7517;font-weight:600;">PRO</span>`:"";
-    var playerBadge=p.isPlayer?` <span style="font-size:10px;padding:1px 6px;border-radius:10px;background:#eaf3de;color:#3b6d11;font-weight:600;">本人</span>`:"";
+    
     var waitHtml=p.wait&&p.wait.length?`<span style="font-size:9px;color:#555;margin-left:5px;">待ち:${p.wait.map(te).join("")}</span>`:"";
     return`<div style="border:1px solid #ccc;border-radius:4px;padding:3px 6px;margin-bottom:3px;background:${isWin?"#eaf3de":isLoser?"#fcebeb":"#fff"};page-break-inside:avoid;">`
       +`<div style="display:flex;align-items:center;margin-bottom:1px;">`
