@@ -1,0 +1,14 @@
+id,task,pts,cls,note
+player_pos,プレイヤー・位置情報（東家:AAA など）,2,,
+haipai,配牌入力,3,,
+turn,ツモ・捨て牌入力（1巡につき）,1,,
+meld,副露（巡目＋ポン捨て/チー捨て/嶺上捨てまで）,3,,
+final_wait,最終形＋待ち,3,,
+agari,アガり方（誰が・どこから・ロンまたはツモ・点数）,3,,
+comment,コメントを投稿する,1,,
+all_correct,1局まるごと正解（照合一致ボーナス）,20,,hi
+player_self,対局者本人として入力,30,,hi
+pro_account,プロアカウントで入力,10,,mid
+first_bonus,初回ボーナス,10,,hi
+streak_7,連続7日間入力,7,,mid
+monthly_100,月間100局入力達成,50,,hi
