@@ -72,8 +72,21 @@ select{background:var(--sf);border:.5px solid var(--bd2);border-radius:var(--ra)
 .prog-fill{height:100%;background:linear-gradient(90deg,var(--b),var(--tl));border-radius:3px;transition:width .5s ease}
 
 /* ── 牌キーボード ── */
-.kbd-wrap{margin-top:8px;background:var(--sf2);border-radius:var(--ra);padding:10px}
-.grid-kbd textarea{height:28px!important;font-size:13px}
+.kbd-wrap{background:var(--sf2);border-radius:var(--ra);padding:10px}
+.kbd-float{
+  position:fixed;bottom:0;left:0;right:0;z-index:300;
+  background:var(--sf);border-top:1px solid var(--bd2);
+  padding:10px 12px 16px;
+  box-shadow:0 -4px 20px rgba(0,0,0,.12);
+  max-height:55vh;overflow-y:auto;
+}
+.kbd-toggle-btn{
+  display:flex;align-items:center;gap:5px;
+  font-size:12px;padding:5px 12px;border-radius:20px;
+  background:var(--sf2);border:.5px solid var(--bd2);
+  color:var(--tx3);cursor:pointer;font-family:inherit;
+  margin-top:6px;
+}
 .kbd-tabs{display:flex;gap:5px;margin-bottom:8px;flex-wrap:wrap}
 .kbd-tab{font-size:12px;padding:4px 10px;border-radius:20px;border:.5px solid var(--bd2);background:var(--sf);color:var(--tx2);cursor:pointer}
 .kbd-tab.on{background:var(--b);border-color:var(--b);color:#e6f1fb}
@@ -86,22 +99,32 @@ select{background:var(--sf);border:.5px solid var(--bd2);border-radius:var(--ra)
 
 /* ── 手牌プレビュー ── */
 .hand-prev{font-size:22px;min-height:28px;margin:6px 0;letter-spacing:1px;line-height:1.4;word-break:break-all;overflow-x:auto;white-space:nowrap;padding:4px 0}
-.hand-prev .r5{position:relative;display:inline-block;line-height:1}
-.hand-prev .r5::after{content:"●";position:absolute;top:-1px;right:-2px;font-size:.4em;color:#e53935;text-shadow:0 0 2px #fff}
+.r5{position:relative;display:inline-block;line-height:1}
+.r5::after{content:"";position:absolute;top:0;right:0;width:.35em;height:.35em;border-radius:50%;background:#e53935;box-shadow:0 0 2px #fff}
 
 /* ── グリッド入力（ツモ/捨て） ── */
-.grid-outer{overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:4px}
-.grid-wrap{display:flex;flex-direction:column;gap:8px;min-width:max-content}
-.grid-row{display:flex;gap:6px;align-items:stretch}
-.grid-label{font-size:11px;color:var(--tx3);font-weight:600;width:36px;flex-shrink:0;display:flex;align-items:center;justify-content:flex-end;padding-right:4px;white-space:nowrap}
-.grid-slot{width:52px;height:52px;border:.5px dashed var(--bd2);border-radius:6px;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:border-color .12s,background .12s;font-size:26px;background:var(--sf);position:relative;flex-shrink:0}
-.grid-slot:hover{border-color:var(--b);background:var(--b-bg)}
-.grid-slot.active{border:2px solid var(--b);background:var(--b-bg);box-shadow:0 0 0 2px rgba(24,95,165,.2)}
-.grid-slot.filled{border-style:solid;border-color:var(--bd);background:var(--sf)}
-.grid-slot.disputed{border-color:#f39c12!important;background:rgba(243,156,18,.08)!important;animation:dispute-pulse 1s ease-in-out infinite}
-@keyframes dispute-pulse{0%,100%{box-shadow:0 0 0 0 rgba(243,156,18,.4)}50%{box-shadow:0 0 0 4px rgba(243,156,18,.0)}}
-.grid-slot .slot-num{font-size:9px;color:var(--bd2)}
-.active-dot{position:absolute;top:-5px;left:50%;transform:translateX(-50%);width:5px;height:5px;border-radius:50%;background:var(--b)}
+/* grid_test.html と同一構造 */
+.grid-outer{overflow-x:auto;-webkit-overflow-scrolling:touch;width:100%;}
+.grid-wrap{display:flex;flex-direction:column;gap:3px;}
+.grid-row{display:flex;gap:3px;align-items:center;width:max-content;}
+.grid-label{font-size:11px;color:var(--tx3);font-weight:600;width:32px;flex-shrink:0;text-align:right;padding-right:4px;}
+.slot-as-input{
+  width:36px;height:36px;
+  flex-shrink:0;
+  font-size:20px;text-align:center;font-family:inherit;
+  border:.5px dashed var(--bd2);border-radius:5px;
+  background:var(--sf);padding:0;cursor:pointer;
+  -webkit-appearance:none;
+  line-height:36px;
+  box-sizing:border-box;
+  outline:none;
+  caret-color:transparent;
+}
+.slot-as-input:focus{border:2px solid var(--b);background:var(--b-bg);caret-color:var(--b);outline:none;}
+.slot-as-input::placeholder{font-size:10px;color:var(--bd2);}
+.slot-as-input.filled{border-style:solid;border-color:var(--bd);}
+.slot-as-input.active{border:2px solid var(--b)!important;background:var(--b-bg)!important;caret-color:var(--b);}
+.slot-as-input.disputed{border-color:#f39c12!important;background:rgba(243,156,18,.08)!important;}
 
 /* リアルタイム捨て牌 */
 .rt-panel{background:var(--sf2);border-radius:var(--ra);padding:10px 12px;margin-bottom:10px;border:.5px solid var(--bd)}
@@ -162,8 +185,7 @@ select{background:var(--sf);border:.5px solid var(--bd2);border-radius:var(--ra)
 
 /* ── フローティング送信ボタン ── */
 .fab-wrap{
-  position:fixed;bottom:16px;right:16px;z-index:150;
-  display:flex;flex-direction:column;align-items:flex-end;gap:8px;
+  display:none; /* タブバーに統合するため非表示 */
 }
 .fab-submit{
   display:flex;align-items:center;gap:8px;
@@ -183,7 +205,7 @@ select{background:var(--sf);border:.5px solid var(--bd2);border-radius:var(--ra)
   box-shadow:0 2px 8px rgba(0,0,0,.15);
 }
 /* フローティングボタン分の余白 */
-.wrap{padding-bottom:90px;}
+.wrap{padding-bottom:16px;}
 
 .st.ok{display:block;background:var(--g-bg);color:var(--g)}
 .st.warn{display:block;background:var(--a-bg);color:var(--a-t)}
@@ -193,24 +215,28 @@ select{background:var(--sf);border:.5px solid var(--bd2);border-radius:var(--ra)
 
 <!-- ── リアルタイム小窓 ── -->
 <div id="rt-window" style="
-  position:fixed;bottom:76px;right:16px;z-index:140;
-  width:min(340px, calc(100vw - 32px));
-  background:var(--sf);border:.5px solid var(--bd2);
-  border-radius:var(--ral);box-shadow:0 4px 20px rgba(0,0,0,.15);
-  display:none;flex-direction:column;max-height:320px;
+  position:fixed;top:0;left:0;right:0;bottom:0;z-index:500;
+  display:none;align-items:flex-start;justify-content:center;
+  background:rgba(0,0,0,.45);padding-top:60px;
 ">
-  <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;border-bottom:.5px solid var(--bd);flex-shrink:0">
-    <div style="font-size:12px;font-weight:600;display:flex;align-items:center;gap:6px">
-      <span id="rt-badge" style="width:8px;height:8px;border-radius:50%;background:var(--g);display:inline-block;animation:rt-blink 2s ease-in-out infinite"></span>
-      リアルタイム入力状況
+  <div style="width:min(480px,calc(100vw - 24px));max-height:calc(100vh - 80px);
+    background:var(--sf);border-radius:var(--ral);
+    box-shadow:0 8px 32px rgba(0,0,0,.25);
+    display:flex;flex-direction:column;overflow:hidden">
+    <!-- ヘッダー -->
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-bottom:.5px solid var(--bd);flex-shrink:0">
+      <div style="font-size:13px;font-weight:600;display:flex;align-items:center;gap:6px">
+        <span id="rt-badge" style="width:8px;height:8px;border-radius:50%;background:var(--g);display:inline-block;animation:rt-blink 2s ease-in-out infinite"></span>
+        入力状況
+      </div>
+      <button onclick="document.getElementById('rt-window').style.display='none'" style="background:none;border:none;color:var(--tx3);cursor:pointer;font-size:20px;padding:0;line-height:1">✕</button>
     </div>
-    <div style="display:flex;align-items:center;gap:8px">
-      <span id="rt-count" style="font-size:11px;color:var(--tx3)"></span>
-      <button onclick="document.getElementById('rt-window').style.display='none'" style="background:none;border:none;color:var(--tx3);cursor:pointer;font-size:16px;padding:0;line-height:1">✕</button>
+    <!-- タブ -->
+    <div id="rt-tabs" style="display:flex;border-bottom:.5px solid var(--bd);flex-shrink:0;background:var(--sf2)"></div>
+    <!-- コンテンツ -->
+    <div id="rt-panel-inner" style="overflow-y:auto;padding:12px 14px;flex:1;font-size:0;min-height:200px">
+      <div style="font-size:12px;color:var(--tx3);padding:8px 0">まだ入力はありません</div>
     </div>
-  </div>
-  <div id="rt-panel-inner" style="overflow-y:auto;padding:8px 10px;flex:1;font-size:0">
-    <div style="font-size:12px;color:var(--tx3);padding:8px 0">まだ入力はありません</div>
   </div>
 </div>
 <style>
@@ -223,9 +249,16 @@ select{background:var(--sf);border:.5px solid var(--bd2);border-radius:var(--ra)
     👁 入力状況
     <span id="fab-rt-badge" style="display:none;position:absolute;top:-4px;right:-4px;width:16px;height:16px;border-radius:50%;background:var(--r);color:#fff;font-size:9px;font-weight:700;display:none;align-items:center;justify-content:center"></span>
   </button>
-  <button class="fab-report" onclick="openReport()">📋 レポート</button>
   <button class="fab-submit" onclick="submitAll()">🀄 送信する</button>
 </div>
+<script>
+// FAB: 対局情報入力中は非表示
+(function updateFab(){
+  var fab=document.getElementById("fab-wrap");
+  if(!fab)return;
+  // stateはDOMより後に定義されるため、renderNavから呼ぶ
+})();
+</script>
 
 
 <nav class="top-nav">
@@ -252,7 +285,14 @@ select{background:var(--sf);border:.5px solid var(--bd2);border-radius:var(--ra)
     <div class="prog-wrap"><div class="prog-fill" id="prog-fill" style="width:0%"></div></div>
 
     <!-- セクションナビ -->
-    <div class="sec-nav" id="sec-nav"></div>
+    <div id="seat-indicator" style="display:none;padding:4px 14px 0;font-size:11px;color:var(--tx3)"></div>
+    <div style="display:flex;align-items:center;gap:0">
+      <div class="sec-nav" id="sec-nav" style="flex:1;overflow-x:auto"></div>
+      <div id="top-action-btns" style="display:none;flex-shrink:0;padding:4px 8px;display:flex;gap:6px;align-items:center">
+        <button onclick="toggleRtWindow()" style="padding:5px 10px;border-radius:14px;background:var(--sf);border:.5px solid var(--bd2);font-size:12px;font-family:inherit;cursor:pointer;color:var(--tx2);white-space:nowrap">👁 入力状況</button>
+        <button onclick="submitAll()" style="padding:5px 12px;border-radius:14px;background:linear-gradient(135deg,var(--gold),var(--a));border:none;font-size:12px;font-weight:700;font-family:inherit;cursor:pointer;color:#fff;white-space:nowrap">送信</button>
+      </div>
+    </div>
 
     <!-- セクションコンテンツ -->
     <div id="sec-content"></div>
@@ -338,51 +378,13 @@ select{background:var(--sf);border:.5px solid var(--bd2);border-radius:var(--ra)
 
 </div><!-- /wrap -->
 
-<!-- ── ポイントショップ モーダル ── -->
-<div class="modal-overlay" id="shop-modal" onclick="if(event.target===this)closeShop()">
-  <div class="modal-box">
-    <div class="modal-hdr">
-      <div class="modal-title">🛒 ポイントショップ</div>
-      <button class="modal-close" onclick="closeShop()">✕</button>
-    </div>
-    <div style="background:var(--sf2);border-radius:var(--ra);padding:8px 12px;margin-bottom:12px;font-size:13px">
-      保有ポイント: <strong style="color:var(--gold)">1,240 pt</strong>
-    </div>
-    <!-- tabs -->
-    <div style="display:flex;gap:0;margin-bottom:14px;border-bottom:.5px solid var(--bd)">
-      <button class="nav-tab on" id="shop-tab-pt" onclick="setShopTab('pt')" style="font-size:13px;padding:6px 16px">ポイントで交換</button>
-      <button class="nav-tab" id="shop-tab-cash" onclick="setShopTab('cash')" style="font-size:13px;padding:6px 16px">課金で購入</button>
-    </div>
-    <div id="shop-pt-content"></div>
-    <div id="shop-cash-content" style="display:none"></div>
-  </div>
-</div>
-
-<!-- ── レポートモーダル ── -->
-<div class="modal-overlay" id="report-modal" onclick="if(event.target===this)closeReport()">
-  <div class="modal-box" style="max-width:600px">
-    <div class="modal-hdr">
-      <div class="modal-title">📋 牌譜レポート</div>
-      <button class="modal-close" onclick="closeReport()">✕</button>
-    </div>
-    <!-- tabs -->
-    <div style="display:flex;gap:0;margin-bottom:14px;border-bottom:.5px solid var(--bd)">
-      <button class="nav-tab on" id="rep-tab-info" onclick="setRepTab('info')" style="font-size:13px;padding:6px 14px">📊 対局情報</button>
-      <button class="nav-tab" id="rep-tab-comment" onclick="setRepTab('comment')" style="font-size:13px;padding:6px 14px">💬 コメント</button>
-    </div>
-    <div id="rep-info-content"></div>
-    <div id="rep-comment-content" style="display:none"></div>
-    <div style="border-top:.5px solid var(--bd);padding-top:12px;margin-top:4px" id="rep-footer"></div>
-  </div>
-</div>
-
 <!-- ── 送信完了モーダル ── -->
 <div class="modal-overlay" id="done-modal" onclick="if(event.target===this)closeDone()">
   <div class="modal-box" style="text-align:center;padding:36px 24px">
     <div style="font-size:52px;margin-bottom:12px">✅</div>
-    <div style="font-size:18px;font-weight:600;margin-bottom:6px">入力完了！</div>
-    <div style="font-size:13px;color:var(--tx2);margin-bottom:6px">検証後、正解であればポイントが付与されます。</div>
-    <div style="font-size:20px;font-weight:700;color:var(--gold);margin-bottom:20px">最大 +150 pt 獲得予定</div>
+    <div style="font-size:18px;font-weight:600;margin-bottom:6px">送信完了！</div>
+    <div style="font-size:13px;color:var(--tx2);margin-bottom:10px">データを受け付けました。照合後にポイントが付与されます。</div>
+    <div id="done-json-link" style="margin-bottom:16px"></div>
     <button class="pri" onclick="closeDone()">閉じる</button>
   </div>
 </div>
@@ -586,11 +588,15 @@ function loadAllCSV(){
     loadCSV("tournaments.csv"),
     loadCSV("players.csv"),
     loadCSV("points.csv"),
+    loadCSV("scores.csv"),
+    loadCSV("yaku.csv"),
   ]).then(function(texts){
     applyOrgsCSV(parseCSV(texts[0]));
     applyTournamentsCSV(parseCSV(texts[1]));
     applyPlayersCSV(parseCSV(texts[2]));
     applyPointsCSV(parseCSV(texts[3]));
+    applyScoresCSV(parseCSV(texts[4]));
+    applyYakuCSV(parseCSV(texts[5]));
     MASTER_LOADED=true;
     showLoadStatus("",false);
     initApp();
@@ -606,6 +612,8 @@ function loadAllCSV(){
 // ── フォールバック（CSVが読めない場合）──
 function loadFallback(){
   POINT_TABLE=POINT_TABLE_FALLBACK.slice();
+  applyScoresCSV([]);
+  applyYakuCSV([]);
   applyOrgsCSV([
     {id:"saikoui",label:"最高位",sort_order:1},
     {id:"kyokai", label:"協会",  sort_order:2},
@@ -636,6 +644,23 @@ function applyPointsCSV(rows){
   });
 }
 
+// ── scores.csv → SCORE_PRESETS ──
+var SCORE_PRESETS={east_tsumo:[],east_ron:[],noneast_tsumo:[],noneast_ron:[]};
+function applyScoresCSV(rows){
+  SCORE_PRESETS={east_tsumo:[],east_ron:[],noneast_tsumo:[],noneast_ron:[]};
+  rows.sort(function(a,b){return(+a.sort_order)-(+b.sort_order);})
+    .forEach(function(r){
+      if(SCORE_PRESETS[r.category]!==undefined)
+        SCORE_PRESETS[r.category].push(r.value);
+    });
+}
+
+// ── yaku.csv → YAKU_LIST ──
+var YAKU_LIST=[];
+function applyYakuCSV(rows){
+  YAKU_LIST=rows.sort(function(a,b){return(+a.sort_order)-(+b.sort_order);});
+}
+
 // ─── マッチングキー生成（date+org+tournament+選手IDセット）───
 function makeMatchKey(date,org,tournament,playerIds){
   var sorted=[...playerIds].sort().join(",");
@@ -649,6 +674,7 @@ var state={
   view:"input",
   section:"game",
   seat:null,
+  seatMap:{east:null,south:null,west:null,north:null},
   // ── 対局情報ステップ ──
   gameFlow:{
     step:0,        // 0:日付 1:団体 2:大会 3:選手 4:確認
@@ -672,6 +698,8 @@ var state={
   rtTab:null,   // リアルタイム小窓の選択タブ（null=自分の座席）
   melds:[],     // [{type,tiles,nakiIdx,from,rinshanTile,discTile,kanDoraTile,巡目}]
   meldDraft:null, // 入力中の副露データ
+  kanField:null,  // "rinshan"|"disc"|"kandora" アクティブなカン入力フィールド
+  kbdOpen:{},     // {fnName: bool} 各キーボードの表示状態
   melds:[],
   activeSlot:null, // {grid:"draw"|"discard", idx:number}
   kbdTab:"man",
@@ -703,7 +731,7 @@ function setView(v){
 // ═══════════════════════════════════════════════
 function sectionDone(key){
   if(key==="game")return state.gameFlow.matched;
-  if(key==="player")return!!state.seat;
+  if(key==="player")return!!state.seat&&Object.values(state.seatMap||{}).some(Boolean);
   if(key==="haipai")return state.haipai.length>=13;
   if(key==="turns")return state.draws.some(Boolean)||state.discards.some(Boolean);
   if(key==="final")return state.finalHand.length>0;
@@ -718,11 +746,82 @@ function completion(){
 }
 function renderNav(){
   var nav=document.getElementById("sec-nav");
-  nav.innerHTML=SECTIONS.map(function(s){
-    var cls="sec-btn"+(state.section===s.key?" on":sectionDone(s.key)?" done":"");
-    return`<button class="${cls}" onclick="setSection('${s.key}')">${s.icon} ${s.label}</button>`;
+  var matched=state.gameFlow.matched;
+  // マッチング前: gameタブのみ表示
+  // マッチング後: gameタブを非表示、他タブを表示
+  var WJseats=["東家","南家","西家","北家"];
+  var mySeatLabel=state.seat?WJseats[WE.indexOf(state.seat)]+"の情報を入力中":"プレイヤー";
+  var visibleSections=SECTIONS.filter(function(s){
+    if(!matched) return s.key==="game";
+    return s.key!=="game";
+  });
+  nav.innerHTML=visibleSections.map(function(s){
+    // seat未設定のとき haipai/turns/final/meld/agari はロック
+    var locked=!state.seat && s.key!=="player";
+    var cls="sec-btn"+(state.section===s.key?" on":sectionDone(s.key)?" done":locked?" locked":"");
+    var label=s.key==="player"?("👤 "+mySeatLabel):(s.icon+" "+s.label);
+    return'<button class="'+cls+'"'
+      +(locked?' style="opacity:.35;pointer-events:none" title="プレイヤー設定後に入力できます"':'')
+      +' onclick="setSection(\''+s.key+'\')">'+label+'</button>';
   }).join("");
+  // マッチング後: 「← 対局情報に戻る」ボタン
+  if(matched){
+    nav.innerHTML+='<button class="sec-btn" onclick="backToGameInfo()" style="border-color:var(--tx3);color:var(--tx3)">← 対局情報</button>';
+  }
   document.getElementById("prog-fill").style.width=completion()+"%";
+  var fab=document.getElementById("fab-wrap");
+  if(fab)fab.style.display="none";
+  var topBtns=document.getElementById("top-action-btns");
+  if(topBtns)topBtns.style.display=state.gameFlow.matched&&state.seat?"flex":"none";
+
+  // 入力担当座席インジケーター
+  var si=document.getElementById("seat-indicator");
+  if(si){
+    if(state.seat&&state.gameFlow.matched){
+      var allP=Object.values(PLAYERS_MASTER).flat();
+      var sm=state.seatMap||{};
+      var WJseats=["東家","南家","西家","北家"];
+      var mySeatIdx=WE.indexOf(state.seat);
+      var mySeatLabel=WJseats[mySeatIdx]||"";
+      var myPid=sm[state.seat];
+      var myP=myPid?allP.find(function(x){return x.id===myPid;}):null;
+      // 全4座席の簡易表示
+      var allSeats=WE.map(function(w,wi){
+        var pid=sm[w];
+        var p=pid?allP.find(function(x){return x.id===pid;}):null;
+        var isMe=w===state.seat;
+        return'<span style="'+(isMe?'font-weight:700;color:var(--g);':'opacity:.6;')+'margin-right:10px">'
+          +WJseats[wi]+': '+(p?p.name:"未設定")
+          +(isMe?' ◀':'')
+          +'</span>';
+      }).join("");
+      si.innerHTML=allSeats;
+      si.style.display="block";
+    } else {
+      si.style.display="none";
+    }
+  }
+}
+
+function toggleYaku(name){
+  var ag=state.agari;
+  var list=ag.yaku?ag.yaku.split(/[・,，、]/).map(function(s){return s.trim();}).filter(Boolean):[];
+  var idx=list.indexOf(name);
+  if(idx>=0) list.splice(idx,1);
+  else list.push(name);
+  state.agari.yaku=list.join("・");
+  renderNav();
+  renderSection();
+}
+
+function backToGameInfo(){
+  // マッチングを解除して対局情報に戻る
+  if(!confirm("対局情報の修正画面に戻りますか？（マッチング状態はリセットされます）"))return;
+  state.gameFlow.matched=false;
+  state.gameFlow.matchKey=null;
+  state.section="game";
+  renderNav();
+  renderSection();
 }
 function setSection(key){
   state.section=key;
@@ -790,52 +889,82 @@ function parseTileText(s){
   return result.filter(function(t){return TE[t]!==undefined;});
 }
 
-function kbdHTML(onSelectFn, extraClass){
-  var inputId="kt-"+onSelectFn;
-  var prevId ="kp-"+onSelectFn;
+function kbdHTML(onSelectFn, extraClass, showTextInput){
+  var isOpen=!!(state.kbdOpen&&state.kbdOpen[onSelectFn]);
+  var inputId="kbd-inp-"+onSelectFn;
+  var prevId ="kbd-prv-"+onSelectFn;
 
-  // テキスト入力エリア（常時表示）
-  var textBox='<div style="margin-bottom:8px;border-bottom:.5px solid var(--bd);padding-bottom:8px">'
-    +'<div style="font-size:10px;color:var(--tx3);margin-bottom:4px">'
-    +'テキスト入力: <code style="background:var(--sf2);padding:1px 4px;border-radius:3px">123m sss</code>'
-    +' 字牌: <code style="background:var(--sf2);padding:1px 4px;border-radius:3px">e/s/w/n/h/f/c</code>'
-    +'</div>'
-    +'<div style="display:flex;gap:5px;align-items:flex-start">'
-    +'<textarea id="'+inputId+'" rows="1" placeholder="例: 123m sss 東西"'
-    +' style="flex:1;font-size:14px;font-family:monospace;padding:5px 8px;'
-    +'resize:none;background:var(--sf);border:.5px solid var(--bd2);'
-    +'border-radius:var(--ra);color:var(--tx);outline:none;overflow:hidden"'
-    +' oninput="kbdLivePreview(\''+inputId+'\',\''+prevId+'\')"'
-    +' onkeydown="if(event.key===\'Enter\'){kbdConfirm(\''+onSelectFn+'\',\''+inputId+'\');event.preventDefault();}"></textarea>'
-    +'<button class="pri sml" style="flex-shrink:0" onclick="kbdConfirm(\''+onSelectFn+'\',\''+inputId+'\')">確定</button>'
-    +'</div>'
-    +'<div id="'+prevId+'" style="font-size:20px;min-height:20px;margin-top:4px;'
-    +'letter-spacing:1px;line-height:1.3;word-break:break-all"></div>'
-    +'</div>';
+  // ── 入力ボックス（スロット方式 input）──
 
-  // ボタン入力
-  var tabs=KBD_TABS.map(function(t){
-    return'<button class="kbd-tab'+(state.kbdTab===t.id?" on":"")
-      +'" onclick="setKbdTab(\''+t.id+'\')">'+t.label+'</button>';
-  }).join("");
-  var cur=KBD_TABS.find(function(t){return t.id===state.kbdTab;});
-  var tiles=cur.tiles.map(function(t){
-    return'<button class="tile-btn" onclick="'+onSelectFn+'(\''+t+'\')">'+te(t)+'</button>';
-  }).join("");
+  var inputArea='';
+
+  // テキスト入力欄（haipai/final のみ）
+  var textInputHtml='';
+  if(showTextInput){
+    var hint='<div style="font-size:10px;color:var(--tx3);margin-bottom:4px;line-height:1.7">'
+      +'<code style="background:var(--sf2);padding:1px 3px;border-radius:3px">123m</code> '
+      +'<code style="background:var(--sf2);padding:1px 3px;border-radius:3px">456p</code> '
+      +'<code style="background:var(--sf2);padding:1px 3px;border-radius:3px">r5p</code> '
+      +'<code style="background:var(--sf2);padding:1px 3px;border-radius:3px">e</code>=東 '
+      +'<code style="background:var(--sf2);padding:1px 3px;border-radius:3px">s</code>=南 '
+      +'<code style="background:var(--sf2);padding:1px 3px;border-radius:3px">w</code>=西 '
+      +'<code style="background:var(--sf2);padding:1px 3px;border-radius:3px">n</code>=北 '
+      +'<code style="background:var(--sf2);padding:1px 3px;border-radius:3px">h</code>=白 '
+      +'<code style="background:var(--sf2);padding:1px 3px;border-radius:3px">f</code>=發 '
+      +'<code style="background:var(--sf2);padding:1px 3px;border-radius:3px">c</code>=中'
+      +'</div>';
+    textInputHtml='<div style="margin-bottom:8px">'
+      +hint
+      +'<div style="display:flex;gap:5px;align-items:center">'
+      +'<input id="'+inputId+'" type="text" inputmode="text"'
+      +' autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"'
+      +' placeholder="例: 123m e s 西北 r5p"'
+      +' style="flex:1;font-size:15px;font-family:monospace;padding:7px 10px;'
+      +'background:var(--sf);border:.5px solid var(--bd2);border-radius:var(--ra);'
+      +'color:var(--tx);outline:none;"'
+      +' oninput="kbdInpPreview(\''+inputId+'\',\''+prevId+'\')"'
+      +' onkeydown="if(event.key===\'Enter\'){kbdInpConfirm(\''+onSelectFn+'\',\''+inputId+'\');event.preventDefault();}">'      +'<button class="pri sml" onclick="kbdInpConfirm(\''+onSelectFn+'\',\''+inputId+'\')">確定</button>'
+      +'</div>'
+      +'<div id="'+prevId+'" style="font-size:22px;min-height:24px;margin-top:4px;letter-spacing:2px;line-height:1.3"></div>'
+      +'</div>';
+  }
+
+  // 「牌ボタンで選ぶ」トグル
+  var toggleBtn='<button class="kbd-toggle-btn" onclick="toggleKbd(\''+onSelectFn+'\')">'
+    +(isOpen?'▲ 牌ボタンを閉じる':'▼ 牌ボタンで選ぶ')+'</button>';
+
+  // 牌ボタンパネル（フロート）
+  var tilePanel="";
+  if(isOpen){
+    var tabs=KBD_TABS.map(function(t){
+      return'<button class="kbd-tab'+(state.kbdTab===t.id?" on":"")
+        +'" onclick="setKbdTab(\''+t.id+'\')">'+t.label+'</button>';
+    }).join("");
+    var cur=KBD_TABS.find(function(t){return t.id===state.kbdTab;});
+    var tiles=cur.tiles.map(function(t){
+      return'<button class="tile-btn" onclick="'+onSelectFn+'(\''+t+'\')">'+te(t)+'</button>';
+    }).join("");
+    tilePanel='<div class="kbd-float">'
+      +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">'
+      +'<span style="font-size:12px;color:var(--tx3)">牌ボタン</span>'
+      +'<button onclick="toggleKbd(\''+onSelectFn+'\')" style="background:none;border:none;'
+      +'font-size:18px;cursor:pointer;color:var(--tx3);padding:0;line-height:1">✕</button>'
+      +'</div>'
+      +'<div class="kbd-tabs">'+tabs+'</div>'
+      +'<div class="kbd-row">'+tiles+'</div>'
+      +'<div class="util-row">'
+      +'<button class="util-btn del" onclick="kbdDelete()">← 削除</button>'
+      +'<button class="util-btn" onclick="kbdClear()">全消去</button>'
+      +'</div></div>';
+  }
 
   return'<div class="kbd-wrap '+(extraClass||'')+'">'
-    +textBox
-    +'<div class="kbd-tabs">'+tabs+'</div>'
-    +'<div class="kbd-row">'+tiles+'</div>'
-    +'<div class="util-row">'
-    +'<button class="util-btn del" onclick="kbdDelete()">← 削除</button>'
-    +'<button class="util-btn" onclick="kbdClear()">全消去</button>'
-    +'</div></div>';
+    +textInputHtml+toggleBtn
+    +'</div>'+tilePanel;
 }
-function setKbdTab(id){state.kbdTab=id;renderSection();}
 
-// リアルタイムプレビュー
-function kbdLivePreview(inputId, prevId){
+// テキスト入力プレビュー
+function kbdInpPreview(inputId, prevId){
   var inp=document.getElementById(inputId);
   var prv=document.getElementById(prevId);
   if(!inp||!prv)return;
@@ -845,15 +974,16 @@ function kbdLivePreview(inputId, prevId){
     : "";
 }
 
-// テキスト確定（追加モード）
-function kbdConfirm(fn, inputId){
+// テキスト入力確定
+function kbdInpConfirm(fn, inputId){
   var inp=document.getElementById(inputId);
   if(!inp)return;
   var tiles=parseTileText(inp.value);
   if(!tiles.length)return;
   tiles.forEach(function(t){
-    if(fn==="haipaiPick"&&state.haipai.length<13)      state.haipai.push(t);
-    else if(fn==="finalPick"&&state.finalHand.length<14) state.finalHand.push(t);
+    if(fn==="haipaiPick")          haipaiPick(t);
+    else if(fn==="finalPick")      finalPick(t);
+    else if(fn==="waitGridPick")   waitGridPick(t);
     else if(fn==="meldPickNakiTileDirect") meldPickNakiTileDirect(t);
     else if(fn==="meldPickDiscDirect")     meldPickDiscDirect(t);
     else if(fn==="meldPickRinshan")        meldPickRinshan(t);
@@ -861,14 +991,13 @@ function kbdConfirm(fn, inputId){
     else if(fn==="gridTilePick")           gridTilePick(t);
   });
   inp.value="";
-  var prv=document.getElementById(inputId.replace("kt-","kp-"));
+  var prv=document.getElementById(inputId.replace("kbd-inp-","kbd-prv-"));
   if(prv)prv.innerHTML="";
   renderNav();
   renderSection();
 }
 
-// 旧関数を新関数に転送（互換性）
-function livePreviewKbd(inputId,prevId){kbdLivePreview(inputId,prevId);}
+
 function applyKbdText(fn,inputId){kbdConfirm(fn,inputId);}
 
 
@@ -882,19 +1011,6 @@ function livePreviewKbd(inputId,prevId){
     +'<span style="font-size:11px;color:var(--tx3);margin-left:4px">'+tiles.length+'枚</span>';
 }
 
-// テキスト確定（追加モード）
-function applyKbdText(fn,inputId){
-  var inp=document.getElementById(inputId);
-  if(!inp)return;
-  var tiles=parseTileText(inp.value);
-  if(!tiles.length)return;
-  tiles.forEach(function(t){
-    if(fn==="haipaiPick"&&state.haipai.length<13)state.haipai.push(t);
-    else if(fn==="finalPick"&&state.finalHand.length<14)state.finalHand.push(t);
-  });
-  renderNav();
-  renderSection();
-}
 
 // テキスト入力プレビュー
 function previewTileText(raw,fn){
@@ -925,305 +1041,385 @@ function applyTileText(fn){
 // 手牌プレビュー
 // ═══════════════════════════════════════════════
 function handPreview(tiles){
-  if(!tiles.length)return`<span style="color:var(--tx3);font-size:13px">牌を選んでください</span>`;
-  return tiles.map(te).join("")+`<span style="font-size:12px;color:var(--tx3);margin-left:4px">${tiles.length}枚</span>`;
+  if(!tiles.length)return'<span style="color:var(--tx3);font-size:13px">牌を選んでください</span>';
+  return tiles.map(teHtml).join('')+'<span style="font-size:12px;color:var(--tx3);margin-left:4px">'+tiles.length+'枚</span>';
 }
 
 // ═══════════════════════════════════════════════
 // グリッド（ツモ/捨て 18マス）
 // ═══════════════════════════════════════════════
 function renderGrid(){
-  function slotEl(type, idx){
-    var isActive=state.activeSlot&&state.activeSlot.grid===type&&state.activeSlot.idx===idx;
-    var tile=type==="draw"?state.draws[idx]:state.discards[idx];
-    var rtVals=getRtValsForSlot(type,idx);
-    var disputed=tile&&rtVals.some(function(v){return v&&v!==tile;});
-    var cls="grid-slot"+(tile?" filled":"")+(isActive?" active":"")+(disputed?" disputed":"");
-    var iid="si-"+type+"-"+idx;
-    var inner="";
-    if(tile){
-      inner='<span style="font-size:24px;line-height:1">'+te(tile)+'</span>'
-        +(disputed?'<span style="position:absolute;top:2px;right:2px;font-size:11px">&#x26A0;</span>':"");
-    } else if(isActive){
-      inner='<input id="'+iid+'" type="text" maxlength="4"'
-        +' style="width:44px;height:38px;font-size:13px;font-family:monospace;'
-        +'text-align:center;border:none;outline:none;background:transparent;color:var(--tx);padding:0"'
-        +' placeholder="'+(idx+1)+'"'
-        +' oninput="slotTextInput(this)"'
-        +' onkeydown="slotTextKeydown(event,this,\''+type+'\','+idx+')">';
-    } else {
-      inner='<span class="slot-num">'+(idx+1)+'</span>';
+  var MAX_BASIC=18;  // 基本表示数
+  var MAX_EXT=21;    // 最大数（延長時）
+  // activeSlot が18以上なら拡張表示
+  if(!state.activeSlot){
+    var found=false;
+    for(var ri=0;ri<MAX_BASIC&&!found;ri++){
+      for(var rt of ['draw','discard']){
+        if(!(rt==='draw'?state.draws:state.discards)[ri]){
+          state.activeSlot={grid:rt,idx:ri}; found=true; break;
+        }
+      }
     }
-    return'<div class="'+cls+'" onclick="slotClick(\''+type+'\','+idx+')"'
-      +' title="'+(disputed?'審議！他の入力と一致しません':'')+'">'
-      +inner+'</div>';
+    if(!state.activeSlot) state.activeSlot={grid:'draw',idx:MAX_BASIC-1};
+  }
+  var g=state.activeSlot.grid, idx=state.activeSlot.idx;
+  var maxShow=(idx>=MAX_BASIC)?MAX_EXT:MAX_BASIC;
+
+  // ミニ行（入力済み牌を小さく表示）
+  function miniRow(type,label){
+    var tiles=type==='draw'?state.draws:state.discards;
+    var cells=Array.from({length:maxShow},function(_,i){
+      var t=tiles[i];
+      var isCur=(g===type&&idx===i);
+      var cell='<span id="mini-'+type+'-'+i+'" onclick="slotJump(\''+type+'\','+i+')"'
+        +' style="display:inline-flex;align-items:center;justify-content:center;'
+        +'width:22px;height:22px;border-radius:4px;border:.5px solid var(--bd);'
+        +'background:'+(isCur?'var(--b)':t?'var(--sf)':'var(--sf2)')+';'
+        +'color:'+(isCur?'#fff':'var(--tx)')+';font-size:'+(t?'14':'9')+'px;'
+        +'cursor:pointer;flex-shrink:0;margin:1px;position:relative">'
+        +(t?teHtml(t):(i+1))
+        +(t?'<span onclick="slotClear(\''+type+'\','+i+',event)" '
+          +'style="position:absolute;top:-4px;right:-4px;width:12px;height:12px;'
+          +'border-radius:50%;background:var(--r);color:#fff;font-size:8px;'
+          +'display:flex;align-items:center;justify-content:center;'
+          +'line-height:1;z-index:2">✕</span>':"")
+        +'</span>';
+      return cell;
+    }).join('');
+    return'<div style="margin-bottom:4px">'
+      +'<span style="font-size:10px;color:var(--tx3);margin-right:4px">'+label+'</span>'
+      +'<div id="mini-wrap-'+type+'" style="display:flex;flex-wrap:wrap;gap:0">'+cells+'</div>'
+      +'</div>';
   }
 
-  var drawCount=state.draws.filter(Boolean).length;
-  var discCount=state.discards.filter(Boolean).length;
-
-  var drawSlots=Array.from({length:18},function(_,i){return slotEl("draw",i);}).join("");
-  var discSlots=Array.from({length:18},function(_,i){return slotEl("discard",i);}).join("");
-
-  var hdrCells=Array.from({length:18},function(_,i){
-    return'<div style="width:52px;text-align:center;font-size:9px;color:var(--tx3);flex-shrink:0">'+
-      (i+1)+'巡</div>';
-  }).join("");
-
-  return'<div class="grid-outer">'
-    +'<div style="display:flex;gap:6px;align-items:center;margin-bottom:4px;min-width:max-content;padding-left:40px">'
-    +hdrCells+'</div>'
-    +'<div class="grid-wrap" style="padding-bottom:2px">'
-    +'<div class="grid-row"><div class="grid-label">ツモ</div>'+drawSlots+'</div>'
-    +'<div class="grid-row"><div class="grid-label">捨て</div>'+discSlots+'</div>'
+  // メイン入力（1牌・大きく）
+  var tile=g==='draw'?state.draws[idx]:state.discards[idx];
+  var iid='si-'+g+'-'+idx;
+  var mainSlot='<div style="margin:10px 0 8px">'
+    +'<div id="slot-turn-label" style="font-size:11px;color:var(--tx3);margin-bottom:6px;text-align:center">'
+    +(g==='draw'?'ツモ':'捨て')+(idx+1)+'巡目'
+    +(idx>=MAX_BASIC?'<span style="font-size:9px;color:var(--r);margin-left:4px">延長</span>':'')
     +'</div>'
-    +'<div style="font-size:11px;color:var(--tx3);margin-top:4px;display:flex;gap:12px">'
-    +'<span>ツモ: '+drawCount+'/18</span><span>捨て: '+discCount+'/18</span>'
-    +(hasDisputed()?'<span style="color:#f39c12">⚠ 審議中の巡があります</span>':"")
+    +'<div style="display:flex;align-items:center;justify-content:center;gap:10px">'
+    +'<div id="main-slot-wrap">'
+    +'<input id="'+iid+'" type="text" inputmode="text"'
+    +' autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"'
+    +' maxlength="3" placeholder=""'
+    +' value=""'
+    +' style="width:64px;height:64px;font-size:16px;font-family:monospace;text-align:center;'
+    +'border:2px solid var(--b);border-radius:10px;background:var(--b-bg);'
+    +'color:var(--tx);padding:0;-webkit-appearance:none;box-sizing:border-box;'
+    +'outline:none;caret-color:var(--b);display:block;"'
+    +' onfocus="slotFocused(\''+g+'\','+idx+')"'
+    +' oninput="slotOnInput(this,\''+g+'\','+idx+')"'
+    +' onkeydown="slotTextKeydown(event,this,\''+g+'\','+idx+')">'
     +'</div>'
-    +(state.activeSlot?kbdHTML("gridTilePick","grid-kbd"):"")
+    +'<div id="slot-tile-preview" style="font-size:52px;min-width:56px;text-align:left;line-height:1">'
+    +(tile?teHtml(tile):'')
+    +'</div>'
+    +'</div>'
+    +'<div style="font-size:11px;color:var(--tx3);margin-top:6px;text-align:center">'
+    +'<code>3m</code> <code>s</code> <code>r5p</code>（スーツ文字で即確定）　Enter/→で次へ'
+    +'</div>'
+    +'</div>';
+
+  // 前後ボタン
+  var canPrev=!(g==='draw'&&idx===0);
+  var navBtns='<div style="display:flex;justify-content:center;gap:12px;margin-bottom:8px">'
+    +'<button id="nav-prev-btn" onclick="slotMovePrev(\''+g+'\','+idx+')" style="padding:6px 20px;border-radius:var(--ra);border:.5px solid var(--bd2);background:var(--sf);font-family:inherit;font-size:13px;cursor:pointer;'+(canPrev?'':'opacity:.3;pointer-events:none;')+'">← 前</button>'
+    +'<button id="nav-next-btn" onclick="slotMoveNext(\''+g+'\','+idx+')" style="padding:6px 20px;border-radius:var(--ra);border:.5px solid var(--bd2);background:var(--sf);font-family:inherit;font-size:13px;cursor:pointer">次 →</button>'
+    +'</div>';
+
+  var dc=state.draws.filter(Boolean).length;
+  var ec=state.discards.filter(Boolean).length;
+  return'<div>'
+    +miniRow('draw','ツモ')
+    +miniRow('discard','捨て')
+    +mainSlot
+    +navBtns
+    +'<div style="font-size:11px;color:var(--tx3);text-align:center">'
+    +'ツモ:'+dc+'/'+maxShow+'　捨て:'+ec+'/'+maxShow
+    +(hasDisputed()?'　<span style="color:#f39c12">⚠ 審議中</span>':"")
+    +'</div>'
+    +'<div id="grid-kbd-area">'+kbdHTML("gridTilePick","grid-kbd")+'</div>'
     +'</div>';
 }
 
-function getRtValsForSlot(type, idx){
-  // リアルタイム小窓のデータから同巡の値を取得
-  var result=[];
-  (state.rtLog||[]).forEach(function(entry){
-    if(entry.type===type&&entry.idx===idx&&entry.seat!==(state.seat||"東家")){
-      result.push(entry.tile);
-    }
-  });
-  return result;
+
+function slotJump(type,idx){
+  slotSwitch(type,idx);
 }
-function hasDisputed(){
-  for(var i=0;i<18;i++){
-    var dv=state.draws[i]; var disc=state.discards[i];
-    if(dv&&getRtValsForSlot("draw",i).some(function(v){return v&&v!==dv;}))return true;
-    if(disc&&getRtValsForSlot("discard",i).some(function(v){return v&&v!==disc;}))return true;
+
+// スロット切り替え（renderSectionなし・iOSキーボード維持）
+function slotSwitch(grid, idx){
+  state.activeSlot={grid:grid, idx:idx};
+  // ラベル更新
+  var lbl=document.getElementById('slot-turn-label');
+  if(lbl) lbl.innerHTML=(grid==='draw'?'ツモ':'捨て')+(idx+1)+'巡目'
+    +(idx>=18?'<span style="font-size:9px;color:var(--r);margin-left:4px">延長</span>':'');
+  // ナビボタン更新
+  var navPrev=document.getElementById('nav-prev-btn');
+  var navNext=document.getElementById('nav-next-btn');
+  if(navPrev){
+    navPrev.onclick=function(){slotMovePrev(grid,idx);};
+    navPrev.style.opacity=(grid==='draw'&&idx===0)?'0.3':'1';
+    navPrev.style.pointerEvents=(grid==='draw'&&idx===0)?'none':'auto';
   }
-  return false;
-}
-
-function slotClick(grid,idx){
-  if(state.activeSlot&&state.activeSlot.grid===grid&&state.activeSlot.idx===idx){
-    state.activeSlot=null;
-  } else {
-    state.activeSlot={grid:grid,idx:idx};
-  }
-  renderSection();
-  focusActiveSlot();
-}
-
-// スロット内テキスト入力: リアルタイムプレビュー
-function slotTextInput(input){
-  var tiles=parseTileText(input.value);
-  // プレビューをinputの下に表示
-  var prev=input.nextSibling;
-  if(!prev||prev.className!=="slot-preview"){
-    prev=document.createElement("span");
-    prev.className="slot-preview";
-    prev.style.cssText="position:absolute;bottom:1px;left:0;right:0;text-align:center;font-size:11px;line-height:1;pointer-events:none";
-    input.parentNode.appendChild(prev);
-  }
-  prev.innerHTML=tiles.length?te(tiles[0]):"";
-}
-
-// activeSlot のinputにフォーカスを当てる（renderSection後に呼ぶ）
-function focusActiveSlot(){
-  if(!state.activeSlot)return;
-  var g=state.activeSlot.grid, i=state.activeSlot.idx;
-  // rAF x2: DOM再構築→ペイント完了後にフォーカス
-  requestAnimationFrame(function(){
-    requestAnimationFrame(function(){
-      var el=document.getElementById("si-"+g+"-"+i);
-      if(el){el.focus();el.select();}
-    });
-  });
-}
-
-// スロット内テキスト入力: Enter確定・Backspace戻る
-function slotTextKeydown(e,input,type,idx){
-  if(e.key==="Enter"||e.key==="Tab"){
-    e.preventDefault();
-    var tiles=parseTileText(input.value);
-    if(tiles.length){
-      if(type==="draw")    state.draws[idx]=tiles[0];
-      else                 state.discards[idx]=tiles[0];
-      if(type==="draw")    state.activeSlot={grid:"discard",idx:idx};
-      else if(idx+1<18)    state.activeSlot={grid:"draw",idx:idx+1};
-      else                 state.activeSlot=null;
-      rtPush({type:type,idx:idx,tile:tiles[0],seat:state.seat||"東家",ts:Date.now()});
-      renderNav();
-      renderSection();
-      focusActiveSlot();
-    } else if(input.value===""){
-      // 空Enter → スキップ
-      if(type==="draw")    state.activeSlot={grid:"discard",idx:idx};
-      else if(idx+1<18)    state.activeSlot={grid:"draw",idx:idx+1};
-      else                 state.activeSlot=null;
-      renderSection();
-      focusActiveSlot();
-    }
-  } else if(e.key==="Backspace"&&input.value===""){
-    e.preventDefault();
-    if(type==="draw"&&state.draws[idx])         {state.draws[idx]=null;}
-    else if(type==="discard"&&state.discards[idx]){state.discards[idx]=null;}
-    else if(type==="discard")                    {state.activeSlot={grid:"draw",idx:idx};}
-    else if(idx>0)                               {state.activeSlot={grid:"discard",idx:idx-1};}
+  if(navNext) navNext.onclick=function(){slotMoveNext(grid,idx);};
+  // プレビュー更新
+  var tile=grid==='draw'?state.draws[idx]:state.discards[idx];
+  var prevArea=document.getElementById('slot-tile-preview');
+  if(prevArea) prevArea.innerHTML=tile?teHtml(tile):'';
+  // inputを取得（なければrenderSection fallback）
+  var wrap=document.getElementById('main-slot-wrap');
+  if(!wrap){
     renderSection();
-    focusActiveSlot();
-  } else if(e.key==="Escape"){
-    state.activeSlot=null; renderSection();
+    var el=document.getElementById('si-'+grid+'-'+idx);
+    if(el){el.value='';el.focus();}
+    return;
   }
+  var ni=wrap.querySelector('input');
+  if(!ni){
+    renderSection();
+    var el2=document.getElementById('si-'+grid+'-'+idx);
+    if(el2){el2.value='';el2.focus();}
+    return;
+  }
+  // ハンドラを一旦クリアしてからvalue変更（誤発火防止）
+  ni.oninput=null; ni.onkeydown=null; ni.onfocus=null;
+  ni.id='si-'+grid+'-'+idx;
+  ni.value='';
+  // ハンドラ再設定
+  ni.onfocus  =function(){slotFocused(grid,idx);};
+  ni.oninput  =function(){slotOnInput(ni,grid,idx);};
+  ni.onkeydown=function(e){slotTextKeydown(e,ni,grid,idx);};
+  // フォーカス
+  ni.focus();
+  // ミニ行更新
+  slotUpdateMini();
+}
+
+function slotFocused(grid,idx){
+  state.activeSlot={grid:grid,idx:idx};
+}
+
+function slotOnInput(input,type,idx){
+  var v=input.value;
+  if(!v)return;
+  // プレビュー更新
+  slotPreviewUpdate(input,v);
+  var tiles=parseTileText(v);
+  if(tiles.length!==1)return;
+  var tile=tiles[0];
+  if(v.trim().length>=tileInputLen(tile)){
+    slotPreviewClear(input);
+    slotConfirm(tile,type,idx);
+  }
+}
+
+function slotConfirm(tile,type,idx){
+  if(type==='draw') state.draws[idx]=tile;
+  else              state.discards[idx]=tile;
+  rtPush({type:type,idx:idx,tile:tile,seat:state.seat||'東家',ts:Date.now()});
+  // 次スロットへ（slotSwitchが内部でfocusを行う）
+  var ng=(type==='draw')?'discard':(idx+1<21?'draw':null);
+  var ni=(type==='draw')?idx:idx+1;
+  if(ng){slotSwitch(ng,ni);}
+  else{slotUpdateMini();}
+  renderNav();
+}
+
+function slotTextKeydown(e,input,type,idx){
+  if(e.key==='Enter'||e.key==='Tab'){
+    e.preventDefault();
+    var v=input.value.trim();
+    var tiles=v?parseTileText(v):[];
+    if(tiles.length){
+      slotConfirm(tiles[0],type,idx);
+    } else {
+      slotMoveNext(type,idx);
+    }
+  } else if(e.key==='Backspace'&&input.value===''){
+    e.preventDefault();
+    if(type==='draw'&&state.draws[idx]){state.draws[idx]=null;slotUpdateMini();}
+    else if(type==='discard'&&state.discards[idx]){state.discards[idx]=null;slotUpdateMini();}
+    else{slotMovePrev(type,idx);}
+  } else if(e.key==='Escape'){
+    input.blur();
+  }
+}
+
+function slotMoveNext(type,idx){
+  var ng=(type==='draw')?'discard':(idx+1<21?'draw':null);
+  var ni=(type==='draw')?idx:idx+1;
+  if(ng) slotSwitch(ng,ni);
+}
+
+function slotMovePrev(type,idx){
+  var ng=(type==='discard')?'draw':(idx>0?'discard':null);
+  var ni=(type==='discard')?idx:(idx-1);
+  if(ng) slotSwitch(ng,ni);
 }
 
 function gridTilePick(t){
   if(!state.activeSlot)return;
-  var g=state.activeSlot.grid, i=state.activeSlot.idx;
-  if(g==="draw") state.draws[i]=t;
-  else           state.discards[i]=t;
+  slotConfirm(t,state.activeSlot.grid,state.activeSlot.idx);
+}
 
-  if(g==="draw"){
-    state.activeSlot={grid:"discard",idx:i};
-  } else {
-    var next=i+1<18?i+1:null;
-    state.activeSlot=next!==null?{grid:"draw",idx:next}:null;
-  }
-  rtPush({type:g, idx:i, tile:t, seat:state.seat||"東家", ts:Date.now()});
-  renderSection();
-  focusActiveSlot();
-  // スクロール
-  requestAnimationFrame(function(){
-    var outer=document.querySelector(".grid-outer");
-    if(!outer||!state.activeSlot)return;
-    var slotW=58, labelW=40;
-    var targetX=labelW+state.activeSlot.idx*slotW;
-    outer.scrollLeft=Math.max(0, targetX - outer.clientWidth/2);
-  });
+function slotClear(type,idx,e){
+  if(e){e.stopPropagation();e.preventDefault();}
+  if(type==='draw') state.draws[idx]=null;
+  else state.discards[idx]=null;
+  // キーボードを維持しながらミニ行だけ更新
+  slotUpdateMini();
 }
 // ── 待ち牌グリッド（小ボックス方式）──
 var waitActiveIdx=null; // アクティブなスロットindex
 
 function renderWaitGrid(){
-  var MAX=8;
-  var slots=Array.from({length:MAX},function(_,i){
-    var tile=state.waitTiles[i]||null;
-    var isActive=(waitActiveIdx===i);
-    var cls="grid-slot"+(tile?" filled":"")+(isActive?" active":"");
-    var iid="wi-"+i;
-    var inner="";
-    if(tile){
-      inner='<span style="font-size:22px;line-height:1">'+te(tile)+'</span>'
-        +'<span style="position:absolute;top:1px;right:2px;font-size:9px;color:var(--r);cursor:pointer;line-height:1" onclick="waitRemove('+i+',event)">✕</span>';
-    } else if(isActive){
-      inner='<input id="'+iid+'" type="text" maxlength="4"'
-        +' style="width:34px;height:28px;font-size:12px;font-family:monospace;'
-        +'text-align:center;border:none;outline:none;background:transparent;color:var(--tx);padding:0"'
-        +' placeholder="待ち"'
-        +' oninput="waitTextInput(this)"'
-        +' onkeydown="waitTextKeydown(event,this,'+i+')">';
-    } else {
-      inner='<span class="slot-num">'+(i+1)+'</span>';
-    }
-    return'<div class="'+cls+'" onclick="waitSlotClick('+i+')" style="margin-right:3px">'+inner+'</div>';
-  }).join("");
+  // アクティブがなければ最初の空きへ
+  if(waitActiveIdx===null){
+    for(var i=0;i<8;i++){if(!state.waitTiles[i]){waitActiveIdx=i;break;}}
+    if(waitActiveIdx===null)waitActiveIdx=7;
+  }
+  var idx=waitActiveIdx;
+  var tile=state.waitTiles[idx]||null;
+  var iid='wi-'+idx;
 
-  var filled=state.waitTiles.filter(Boolean).length;
-  return'<div style="display:flex;flex-wrap:wrap;gap:3px;margin-bottom:10px">'
-    +slots
+  // ミニ表示
+  var miniCells=Array.from({length:8},function(_,i){
+    var t=state.waitTiles[i]||null;
+    var isCur=(idx===i);
+    return'<span onclick="waitJump('+i+')"'
+      +' style="display:inline-flex;align-items:center;justify-content:center;'
+      +'width:22px;height:22px;border-radius:4px;border:.5px solid var(--bd);'
+      +'background:'+(isCur?'var(--b)':t?'var(--sf)':'var(--sf2)')+';'
+      +'color:'+(isCur?'#fff':'var(--tx)')+';font-size:'+(t?'14':'9')+'px;'
+      +'cursor:pointer;margin:1px;position:relative">'
+      +(t?teHtml(t):(i+1))
+      +(t?'<span onclick="waitClear('+i+',event)" style="position:absolute;top:-4px;right:-4px;width:12px;height:12px;border-radius:50%;background:var(--r);color:#fff;font-size:8px;display:flex;align-items:center;justify-content:center;z-index:2">✕</span>':"")
+      +'</span>';
+  }).join('');
+
+  // メインスロット
+  var mainSlot='<div style="display:flex;align-items:center;justify-content:center;gap:10px;margin:8px 0">'
+    +'<input id="'+iid+'" type="text" inputmode="text"'
+    +' autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"'
+    +' maxlength="3" placeholder="待ち"'
+    +' value=""'
+    +' style="width:56px;height:56px;font-size:14px;font-family:monospace;text-align:center;'
+    +'border:2px solid var(--b);border-radius:10px;background:var(--b-bg);'
+    +'color:var(--tx);padding:0;-webkit-appearance:none;box-sizing:border-box;outline:none;caret-color:var(--b)"'
+    +' onfocus="waitFocused('+idx+')"'
+    +' oninput="waitOnInput(this,'+idx+')"'
+    +' onkeydown="waitKeydown(event,this,'+idx+')">'
+    +'<div id="wait-tile-preview" style="font-size:42px;min-width:44px;line-height:1">'
+    +(tile?teHtml(tile):'')
     +'</div>'
-    +'<div style="font-size:11px;color:var(--tx3)">'
-    +(filled?filled+'牌選択済み':'未入力')
-    +'</div>'
-    +(waitActiveIdx!==null?kbdHTML("waitGridPick","grid-kbd"):"");
+    +'</div>';
+
+  var navBtns='<div style="display:flex;justify-content:center;gap:8px;margin-bottom:6px">'
+    +'<button onclick="waitMovePrev('+idx+')" style="padding:4px 14px;border-radius:var(--ra);border:.5px solid var(--bd2);background:var(--sf);font-family:inherit;font-size:12px;cursor:pointer;'+(idx===0?'opacity:.3;pointer-events:none;':'')+'">← 前</button>'
+    +'<button onclick="waitMoveNext('+idx+')" style="padding:4px 14px;border-radius:var(--ra);border:.5px solid var(--bd2);background:var(--sf);font-family:inherit;font-size:12px;cursor:pointer">次 →</button>'
+    +'</div>';
+
+  var floatKbd=kbdHTML("waitGridPick","grid-kbd");
+  return'<div>'
+    +'<div style="margin-bottom:4px;display:flex;flex-wrap:wrap;gap:0">'+miniCells+'</div>'
+    +mainSlot
+    +navBtns
+    +floatKbd
+    +'</div>';
+}
+
+function waitJump(i){
+  waitActiveIdx=i;
+  renderSection();
+  setTimeout(function(){
+    var el=document.getElementById('wi-'+i);
+    if(el){el.value='';el.focus();}
+  },30);
+}
+function waitClear(i,e){
+  e.stopPropagation();
+  state.waitTiles[i]=null;
+  waitActiveIdx=i;
+  renderSection();
+}
+function waitMoveNext(idx){
+  if(idx+1<8){waitActiveIdx=idx+1;renderSection();
+    setTimeout(function(){var el=document.getElementById('wi-'+(idx+1));if(el){el.value='';el.focus();}},30);}
+}
+function waitMovePrev(idx){
+  if(idx>0){waitActiveIdx=idx-1;renderSection();
+    setTimeout(function(){var el=document.getElementById('wi-'+(idx-1));if(el){el.value='';el.focus();}},30);}
+}
+
+
+function waitFocused(i){
+  waitActiveIdx=i;
 }
 
 function waitSlotClick(i){
-  if(waitActiveIdx===i){waitActiveIdx=null;}
-  else{waitActiveIdx=i;}
+  if(waitActiveIdx===i){waitActiveIdx=null;renderSection();return;}
+  waitActiveIdx=i;
   renderSection();
-  if(waitActiveIdx!==null){
-    requestAnimationFrame(function(){requestAnimationFrame(function(){
-      var el=document.getElementById("wi-"+waitActiveIdx);
-      if(el){el.focus();}
-    });});
-  }
+  var el=document.getElementById("wi-"+i);
+  if(el){el.value="";el.focus();}
 }
 
 function waitRemove(i,e){
-  e.stopPropagation();
+  if(e)e.stopPropagation();
   state.waitTiles.splice(i,1);
   waitActiveIdx=null;
   renderSection();
 }
 
 function waitGridPick(t){
-  if(waitActiveIdx===null)return;
-  // すでに同じ牌があっても待ちは複数OK（両面など）
-  if(!state.waitTiles[waitActiveIdx]){
-    // 新規追加
-    state.waitTiles[waitActiveIdx]=t;
-  } else {
-    state.waitTiles[waitActiveIdx]=t;
+  if(waitActiveIdx===null){waitActiveIdx=0;}
+  waitConfirm(t,waitActiveIdx);
+}
+
+function waitOnInput(input,i){
+  var v=input.value;
+  if(!v)return;
+  // プレビュー
+  var tiles=parseTileText(v);
+  var prevArea=document.getElementById('wait-tile-preview');
+  if(prevArea){prevArea.innerHTML=tiles.length?teHtml(tiles[0]):'';}
+  if(tiles.length!==1)return;
+  if(v.trim().length>=tileInputLen(tiles[0])){
+    if(prevArea)prevArea.innerHTML='';
+    waitConfirm(tiles[0],i);
   }
-  // 次の空きへ
-  var next=null;
-  for(var j=waitActiveIdx+1;j<8;j++){if(!state.waitTiles[j]){next=j;break;}}
-  waitActiveIdx=next;
+}
+
+function waitConfirm(tile,i){
+  state.waitTiles[i]=tile;
   renderNav();
+  var next=null;
+  for(var j=i+1;j<8;j++){if(!state.waitTiles[j]){next=j;break;}}
+  waitActiveIdx=(next!==null)?next:i;
   renderSection();
-  if(waitActiveIdx!==null){
-    requestAnimationFrame(function(){requestAnimationFrame(function(){
-      var el=document.getElementById("wi-"+waitActiveIdx);
-      if(el){el.focus();}
-    });});
-  }
+  setTimeout(function(){
+    var el=document.getElementById('wi-'+waitActiveIdx);
+    if(el){el.value='';el.focus();}
+  },30);
 }
 
-function waitTextInput(input){
-  var tiles=parseTileText(input.value);
-  var prev=input.parentNode.querySelector(".slot-preview");
-  if(!prev){
-    prev=document.createElement("span");
-    prev.className="slot-preview";
-    prev.style.cssText="position:absolute;bottom:0;left:0;right:0;text-align:center;font-size:9px;line-height:1;pointer-events:none";
-    input.parentNode.appendChild(prev);
-  }
-  prev.innerHTML=tiles.length?te(tiles[0]):"";
-}
-
-function waitTextKeydown(e,input,idx){
-  if(e.key==="Enter"||e.key==="Tab"){
+function waitKeydown(e,input,i){
+  if(e.key==="Enter"){
     e.preventDefault();
     var tiles=parseTileText(input.value);
-    if(tiles.length){
-      state.waitTiles[idx]=tiles[0];
-      // 次の空きへ
-      var next=null;
-      for(var j=idx+1;j<8;j++){if(!state.waitTiles[j]){next=j;break;}}
-      waitActiveIdx=next;
-      renderNav();
-      renderSection();
-      if(waitActiveIdx!==null){
-        requestAnimationFrame(function(){requestAnimationFrame(function(){
-          var el=document.getElementById("wi-"+waitActiveIdx);
-          if(el){el.focus();}
-        });});
-      }
-    } else {
-      // 空でEnter→スキップ
-      var next=null;
-      for(var j=idx+1;j<8;j++){if(!state.waitTiles[j]){next=j;break;}}
-      waitActiveIdx=next;
-      renderSection();
-    }
+    if(tiles.length){waitConfirm(tiles[0],i);}
+    else{waitMoveNext(i);}
   } else if(e.key==="Backspace"&&input.value===""){
     e.preventDefault();
-    if(state.waitTiles[idx]){state.waitTiles.splice(idx,1);}
-    waitActiveIdx=idx>0?idx-1:0;
-    renderSection();
+    if(state.waitTiles[i]){state.waitTiles[i]=null;renderSection();}
+    else{waitMovePrev(i);}
   } else if(e.key==="Escape"){
-    waitActiveIdx=null; renderSection();
+    waitActiveIdx=null;renderSection();
   }
 }
 
@@ -1260,137 +1456,208 @@ function renderSection(){
   }
 
   else if(s==="player"){
-    var cards=WE.map(function(w){
-      var on=state.seat===w;
-      return`<div class="player-card ${on?"on":""}" onclick="state.seat='${w}';renderNav();renderSection()">
-        <div class="seat-lbl">${WJ[w]}家</div>
-        <div class="p-name">${SAMPLE_PLAYERS[w].name}</div>
-        <div class="p-badges">
-          ${SAMPLE_PLAYERS[w].isPro?`<span class="badge pro">PRO 🎖️</span>`:""}
-          
-        </div>
-      </div>`;
+    var allP=Object.values(PLAYERS_MASTER).flat();
+    var gfP=state.gameFlow.players;
+    var sm=state.seatMap;
+    var WJseats=["東家","南家","西家","北家"];
+    var selPid=state.playerDragSel||null;
+
+    // 割り当て済みIDのセット
+    var assignedIds={};
+    WE.forEach(function(w){if(sm[w])assignedIds[sm[w]]=w;});
+
+    // 選手リスト（割り当て済みはストックから除外）
+    var playerList=gfP.filter(function(pid){
+      return !assignedIds[pid]; // 未割り当てのみ表示
+    }).map(function(pid){
+      var p=allP.find(function(x){return x.id===pid;});
+      if(!p)return "";
+      var isSel=(selPid===pid);
+      return'<div data-pid2="'+pid+'" onclick="gfSelPlayer(this.dataset.pid2)" '
+        +'style="display:inline-flex;align-items:center;gap:6px;'
+        +'padding:8px 14px;border-radius:20px;cursor:pointer;font-size:13px;'
+        +'background:'+(isSel?"var(--b)":"var(--sf)")+';'
+        +'border:'+(isSel?"2px solid var(--b)":".5px solid var(--bd2)")+';'
+        +'color:'+(isSel?"#e6f1fb":"var(--tx)")+';'
+        +'box-shadow:0 1px 4px rgba(0,0,0,.08);transition:all .15s;margin:3px">'
+        +(p.isPro?'<span style="font-size:10px;background:rgba(255,255,255,.2);padding:1px 5px;border-radius:3px">PRO</span>':'')+p.name
+        +(isSel?'<span style="font-size:11px;margin-left:2px">✓</span>':"")
+        +'</div>';
     }).join("");
-    h=`<div class="card">
-      <div class="slabel">👤 視聴していた座席を選択</div>
-      <div class="player-grid">${cards}</div>
-      ${state.seat?`<div class="st ok">✓ ${WJ[state.seat]}家として入力します</div>`:""}
-    </div>`;
+
+    // 全員割り当て済みの場合のメッセージ
+    if(!playerList) playerList='<span style="font-size:12px;color:var(--tx3)">全員配置済み</span>';
+
+    // 座席ボックス
+    var seatBoxes=WE.map(function(w,wi){
+      var seat=WJseats[wi];
+      var assignedId=sm[w];
+      var assignedP=assignedId?allP.find(function(p){return p.id===assignedId;}):null;
+      var isMe=(state.seat===w);
+      var rowBd=isMe?"var(--g)":selPid?"var(--b)":"var(--bd)";
+      var rowBg=isMe?"var(--g-bg)":"var(--sf)";
+
+      var content="";
+      if(assignedP){
+        // 割り当て済み: 名前 + 解除ボタン + 「〇家の情報を入力」ボタン
+        var meBg=isMe?"var(--g)":"var(--sf2)";
+        var meBd=isMe?"1px solid var(--g)":".5px solid var(--bd2)";
+        var meCol=isMe?"var(--g-bg)":"var(--tx3)";
+        content='<div style="display:flex;align-items:center;gap:8px;flex:1">'
+          +'<span style="font-size:14px;font-weight:500">'+assignedP.name+'</span>'
+          +'<button onclick="event.stopPropagation();gfAssignSeat(\''+w+'\',null)" '
+            +'style="font-size:11px;padding:2px 8px;border-radius:4px;'
+            +'background:none;border:.5px solid var(--bd2);cursor:pointer;color:var(--tx3)">← 外す</button>'
+          +'</div>'
+          +'<button onclick="gfSetMyseat(\''+w+'\')" '
+            +'style="font-size:11px;padding:3px 8px;border-radius:6px;font-family:inherit;cursor:pointer;'
+            +'background:'+meBg+';border:'+meBd+';color:'+meCol+'">'
+            +seat+'の情報を入力</button>';
+      } else if(selPid){
+        var selP=allP.find(function(x){return x.id===selPid;});
+        content='<button data-seatw="'+w+'" onclick="gfDropToSeat(this.dataset.seatw)" '
+          +'style="font-size:12px;padding:4px 12px;border-radius:6px;font-family:inherit;cursor:pointer;'
+          +'background:var(--b);border:none;color:#e6f1fb;font-weight:600">'
+          +(selP?selP.name:"選手")+'をここに配置</button>';
+      } else {
+        content='<span style="font-size:12px;color:var(--tx3)">↑ 選手を選んでタップ</span>';
+      }
+
+      return'<div style="border:.5px solid '+rowBd+';border-radius:var(--ra);'
+        +'background:'+rowBg+';padding:10px 12px;margin-bottom:6px;'
+        +'min-height:52px;transition:all .15s">'
+        +'<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">'
+        +'<div style="font-size:13px;font-weight:600;color:var(--tx2);min-width:32px">'+seat+'</div>'
+        +content
+        +'</div>'
+        +'</div>';
+    }).join("");
+
+    var myChosen=!!state.seat;
+    var mySeatLabel2=myChosen?WJseats[WE.indexOf(state.seat)]:"";
+
+    h='<div class="card">'
+      +'<div class="slabel">👤 座席割り当て</div>'
+      +(selPid
+        ?'<div style="background:var(--b-bg);border:.5px solid var(--b);border-radius:var(--ra);padding:8px 12px;margin-bottom:10px;font-size:13px;color:var(--b)">'
+          +'✓ '+(allP.find(function(x){return x.id===selPid;})||{name:"?"}).name+'を選択中 — 座席をタップして配置'
+          +'<button onclick="state.playerDragSel=null;renderSection()" '
+            +'style="margin-left:8px;font-size:11px;padding:2px 8px;border-radius:4px;background:none;border:.5px solid var(--b);color:var(--b);cursor:pointer">キャンセル</button>'
+          +'</div>'
+        :'<p style="font-size:12px;color:var(--tx3);margin-bottom:10px">①選手名をタップして選択 → ②座席をタップして配置<br>「外す」で再配置、別の座席への移動も可能</p>')
+      +'<div style="display:flex;flex-wrap:wrap;gap:0;margin-bottom:12px;padding:10px;background:var(--sf2);border-radius:var(--ra)">'
+      +'<div style="font-size:11px;color:var(--tx3);width:100%;margin-bottom:6px">未配置の選手</div>'
+      +playerList
+      +'</div>'
+      +seatBoxes
+      +(myChosen
+        ?'<div style="background:var(--g-bg);border:.5px solid var(--g);border-radius:var(--ra);'
+          +'padding:8px 12px;font-size:13px;color:var(--g);font-weight:600;margin-top:8px">'
+          +'✓ '+mySeatLabel2+'の情報を入力します</div>'
+          +'<button onclick="setSection(\'haipai\')"'
+          +' style="width:100%;margin-top:10px;padding:12px;border-radius:var(--ra);'
+          +'background:var(--b);border:none;color:#e6f1fb;font-size:15px;'
+          +'font-weight:600;font-family:inherit;cursor:pointer">'
+          +'📝 '+mySeatLabel2+'の情報を入力する</button>'
+        :'<div style="font-size:12px;color:var(--tx3);margin-top:8px">'
+          +'※「〇家の情報を入力」を押して担当座席を決めてください</div>')
+      +'</div>';
   }
 
   else if(s==="haipai"){
-    h=`<div class="card">
-      <div class="slabel">🃏 配牌 <span style="color:var(--tx3);font-weight:400">(13枚)</span></div>
-      <div class="hand-prev">${handPreview(state.haipai)}</div>
-      ${kbdHTML("haipaiPick")}
-    </div>`;
+    h='<div class="card">'
+      +'<div class="slabel">🃏 配牌 <span style="color:var(--tx3);font-weight:400">(13枚)</span></div>'
+      +'<div class="hand-prev">'+handPreview(state.haipai)+'</div>'
+      +kbdHTML("haipaiPick","",true)
+      +'</div>';
   }
 
   else if(s==="turns"){
-    h=`<div class="card">
-      <div class="slabel">♻️ ツモ牌・捨て牌</div>
-      <p style="font-size:11px;color:var(--tx3);margin-bottom:8px">マスをタップして入力 → Enter で次へ自動移動</p>
-      ${renderGrid()}
-    </div>`;
+    h='<div class="card">'
+      +'<div class="slabel">♻️ ツモ牌・捨て牌</div>'
+      +'<p style="font-size:11px;color:var(--tx3);margin-bottom:8px">マスをタップして入力 → 次へ自動移動</p>'
+      +renderGrid()
+      +'</div>';
   }
 
   else if(s==="final"){
-    h=`<div class="card">
-      <div class="slabel">🖐 最終手牌</div>
-      <div class="hand-prev">${handPreview(state.finalHand)}</div>
-      ${kbdHTML("finalPick")}
-    </div>
-    <div class="card" style="margin-top:8px">
-      <div class="slabel">⏳ 待ち牌 <span style="color:var(--tx3);font-weight:400">(複数可)</span></div>
-      <p style="font-size:11px;color:var(--tx3);margin-bottom:8px">マスをタップして入力 → Enter で追加</p>
-      ${renderWaitGrid()}
-    </div>`;
+    h='<div class="card">'
+      +'<div class="slabel">🖐 最終手牌</div>'
+      +'<div class="hand-prev">'+handPreview(state.finalHand)+'</div>'
+      +kbdHTML("finalPick","",true)
+      +'</div>'
+      +'<div class="card" style="margin-top:8px">'
+      +'<div class="slabel">⏳ 待ち牌 <span style="color:var(--tx3);font-weight:400">(複数可)</span></div>'
+      +'<p style="font-size:11px;color:var(--tx3);margin-bottom:8px">マスをタップして入力</p>'
+      +renderWaitGrid()
+      +'</div>';
   }
 
   else if(s==="meld"){
     h=renderMeldSection();
   }
 
-
   else if(s==="agari"){
     var seats=["東家","南家","西家","北家"];
     var ag=state.agari;
-
-    // ① 誰が
     var whoBtn=seats.map(function(seat){
       var on=ag.who===seat;
-      return`<button onclick="state.agari.who='${seat}';renderSection()"
-        style="flex:1;padding:10px;border-radius:var(--ra);font-size:14px;font-family:inherit;
-          background:${on?"var(--b)":"var(--sf)"};border:${on?"1.5px solid var(--b)":".5px solid var(--bd2)"};
-          color:${on?"#e6f1fb":"var(--tx)"};cursor:pointer">${seat}</button>`;
-    }).join("");
-
-    // ② どうやって
+      return'<button onclick="state.agari.who=\''+seat+'\';renderSection()"'
+        +' style="flex:1;padding:10px;border-radius:var(--ra);font-size:14px;font-family:inherit;cursor:pointer;'
+        +'background:'+(on?'var(--b)':'var(--sf)')+';border:'+(on?'1.5px solid var(--b)':'.5px solid var(--bd2)')+';'
+        +'color:'+(on?'#e6f1fb':'var(--tx)')+'">'+seat+'</button>';
+    }).join('');
     var howBtn=["ツモ","ロン","流局"].map(function(t){
       var on=ag.type===t;
-      return`<button onclick="state.agari.type='${t}';renderNav();renderSection()"
-        style="flex:1;padding:10px;border-radius:var(--ra);font-size:14px;font-family:inherit;
-          background:${on?"var(--b)":"var(--sf)"};border:${on?"1.5px solid var(--b)":".5px solid var(--bd2)"};
-          color:${on?"#e6f1fb":"var(--tx)"};cursor:pointer">${t}</button>`;
-    }).join("");
-
-    // ③ 誰から（ロン時のみ）
-    var fromSection="";
+      return'<button onclick="state.agari.type=\''+t+'\';renderNav();renderSection()"'
+        +' style="flex:1;padding:10px;border-radius:var(--ra);font-size:14px;font-family:inherit;cursor:pointer;'
+        +'background:'+(on?'var(--b)':'var(--sf)')+';border:'+(on?'1.5px solid var(--b)':'.5px solid var(--bd2)')+';'
+        +'color:'+(on?'#e6f1fb':'var(--tx)')+'">'+t+'</button>';
+    }).join('');
+    var fromSection='';
     if(ag.type==="ロン"){
       var fromBtn=seats.filter(function(s){return s!==ag.who;}).map(function(seat){
         var on=ag.from===seat;
-        return`<button onclick="state.agari.from='${seat}';renderSection()"
-          style="flex:1;padding:9px;border-radius:var(--ra);font-size:13px;font-family:inherit;
-            background:${on?"var(--r-bg)":"var(--sf)"};border:${on?"1.5px solid var(--r)":".5px solid var(--bd2)"};
-            color:${on?"var(--r)":"var(--tx)"};cursor:pointer">${seat}</button>`;
-      }).join("");
-      fromSection=`<div style="margin-top:12px">
-        <div style="font-size:11px;color:var(--tx3);margin-bottom:5px">③ 誰から（放銃者）</div>
-        <div style="display:flex;gap:6px">${fromBtn}</div>
-      </div>`;
+        return'<button onclick="state.agari.from=\''+seat+'\';renderSection()"'
+          +' style="flex:1;padding:9px;border-radius:var(--ra);font-size:13px;font-family:inherit;cursor:pointer;'
+          +'background:'+(on?'var(--r-bg)':'var(--sf)')+';border:'+(on?'1.5px solid var(--r)':'.5px solid var(--bd2)')+';'
+          +'color:'+(on?'var(--r)':'var(--tx)')+'">'+seat+'</button>';
+      }).join('');
+      fromSection='<div style="margin-top:12px">'
+        +'<div style="font-size:11px;color:var(--tx3);margin-bottom:5px">③ 誰から（放銃者）</div>'
+        +'<div style="display:flex;gap:6px">'+fromBtn+'</div>'
+        +'</div>';
     }
-
-    // ④ 点数・役
-    var scoreColor=ag.score.startsWith("+")?'var(--g)':ag.score.startsWith("-")?'var(--r)':'var(--tx)';
-    var scoreSection=`<div style="margin-top:12px;padding-top:12px;border-top:.5px solid var(--bd)">
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
-        <div>
-          <label style="font-size:11px;color:var(--tx3);display:block;margin-bottom:4px">④ 点数（+/-）</label>
-          <input type="text" value="${ag.score}" oninput="state.agari.score=this.value;renderNav()"
-            placeholder="+3900"
-            style="font-size:20px;font-weight:700;color:${scoreColor};width:100%;background:var(--sf);border:.5px solid var(--bd2);border-radius:var(--ra);padding:7px 10px;font-family:inherit;outline:none">
-        </div>
-        <div>
-          <label style="font-size:11px;color:var(--tx3);display:block;margin-bottom:4px">役</label>
-          <input type="text" value="${ag.yaku}" oninput="state.agari.yaku=this.value"
-            placeholder="リーチ・平和 など"
-            style="font-size:13px;width:100%;background:var(--sf);border:.5px solid var(--bd2);border-radius:var(--ra);padding:7px 10px;font-family:inherit;outline:none">
-        </div>
-      </div>
-    </div>`;
-
-    // サマリー表示
-    var summary="";
+    var scoreColor=ag.score&&ag.score.startsWith("+")?'var(--g)':ag.score&&ag.score.startsWith("-")?'var(--r)':'var(--tx)';
+    var scoreSection='<div style="margin-top:12px;padding-top:12px;border-top:.5px solid var(--bd)">'
+      +'<div style="font-size:11px;color:var(--tx3);margin-bottom:5px">④ 点数 / 役</div>'
+      +'<div style="display:flex;gap:8px">'
+      +'<input type="text" value="'+(ag.score||'')+'" oninput="state.agari.score=this.value;renderNav()" placeholder="+3900"'
+      +' style="flex:1;font-size:18px;font-weight:700;color:'+scoreColor+';background:var(--sf);border:.5px solid var(--bd2);border-radius:var(--ra);padding:7px 10px;font-family:inherit;outline:none">'
+      +'<input type="text" value="'+(ag.yaku||'')+'" oninput="state.agari.yaku=this.value" placeholder="リーチ・平和 など"'
+      +' style="flex:2;font-size:13px;background:var(--sf);border:.5px solid var(--bd2);border-radius:var(--ra);padding:7px 10px;font-family:inherit;outline:none">'
+      +'</div>'
+      +'</div>';
+    var summary='';
     if(ag.who||ag.type){
       var parts=[];
       if(ag.who)parts.push(ag.who);
       if(ag.type)parts.push(ag.type+(ag.type==="ロン"&&ag.from?"（"+ag.from+"から）":""));
       if(ag.score)parts.push(ag.score+"点");
-      summary=`<div style="background:var(--g-bg);border:.5px solid var(--g);border-radius:var(--ra);
-        padding:8px 12px;margin-bottom:12px;font-size:13px;color:var(--g);font-weight:600">
-        ${parts.join(" / ")}</div>`;
+      summary='<div style="background:var(--g-bg);border:.5px solid var(--g);border-radius:var(--ra);'
+        +'padding:8px 12px;margin-bottom:12px;font-size:13px;color:var(--g);font-weight:600">'
+        +parts.join(" / ")+'</div>';
     }
-
-    h=`<div class="card">
-      <div class="slabel">🏆 アガリ・点数</div>
-      ${summary}
-      <div style="font-size:11px;color:var(--tx3);margin-bottom:5px">① 誰が</div>
-      <div style="display:flex;gap:6px;margin-bottom:12px">${whoBtn}</div>
-      <div style="font-size:11px;color:var(--tx3);margin-bottom:5px">② どうやって</div>
-      <div style="display:flex;gap:6px">${howBtn}</div>
-      ${fromSection}
-      ${scoreSection}
-    </div>`;
+    h='<div class="card">'
+      +'<div class="slabel">🏆 アガリ・点数</div>'
+      +summary
+      +'<div style="font-size:11px;color:var(--tx3);margin-bottom:5px">① 誰が</div>'
+      +'<div style="display:flex;gap:6px;margin-bottom:12px">'+whoBtn+'</div>'
+      +'<div style="font-size:11px;color:var(--tx3);margin-bottom:5px">② どうやって</div>'
+      +'<div style="display:flex;gap:6px">'+howBtn+'</div>'
+      +fromSection
+      +scoreSection
+      +'</div>';
   }
 
   el.innerHTML=h;
@@ -1661,7 +1928,67 @@ function gfDoMatch(){
   renderSection();
 }
 function gfStartInput(){
+  renderNav();
   setSection("player");
+}
+
+// タップ選択方式（iOS/Android対応）
+function gfSelPlayer(pid){
+  state.playerDragSel=(state.playerDragSel===pid)?null:pid;
+  renderSection();
+}
+function gfDropToSeat(w){
+  var pid=state.playerDragSel;
+  if(!pid)return;
+  gfAssignSeat(w,pid);
+  state.playerDragSel=null;
+  renderSection();
+}
+// PC向けドラッグも残す
+var _dragPid=null;
+function dragPlayer(e,pid){
+  _dragPid=pid||e.currentTarget.dataset.pid;
+  if(e.dataTransfer)e.dataTransfer.effectAllowed="move";
+}
+function dropToSeat(e,w){
+  if(e.preventDefault)e.preventDefault();
+  var pid=_dragPid||(e.dataTransfer&&e.dataTransfer.getData("pid"));
+  if(pid)gfAssignSeat(w,pid);
+  _dragPid=null;
+}
+
+// 座席に選手を割り当て
+function gfAssignSeat(w, pid){
+  if(!state.seatMap)state.seatMap={east:null,south:null,west:null,north:null};
+  if(pid===null){state.seatMap[w]=null;}
+  else{
+    // 他の座席に同じ選手が割り当て済みなら外す
+    WE.forEach(function(ow){if(state.seatMap[ow]===pid&&ow!==w)state.seatMap[ow]=null;});
+    state.seatMap[w]=pid;
+  }
+  renderSection();
+}
+
+// 自分が入力する座席を設定
+function gfSetMyseat(w){
+  state.seat=w;
+  // リアルタイム小窓のタブも連動
+  state.rtTab=["東家","南家","西家","北家"][WE.indexOf(w)];
+  renderNav();
+  renderSection();
+}
+
+// ══════════════════════════════════════════════
+// 牌ボタントグル
+// ══════════════════════════════════════════════
+function toggleKbd(fn){
+  if(!state.kbdOpen)state.kbdOpen={};
+  state.kbdOpen[fn]=!state.kbdOpen[fn];
+  renderSection();
+}
+function setKbdTab(tabId){
+  state.kbdTab=tabId;
+  renderSection();
 }
 
 // ══════════════════════════════════════════════
@@ -1703,121 +2030,199 @@ function calcCompletion(){
 }
 
 function renderRtPanel(){
-  var el=document.getElementById("rt-panel-inner");
-  if(!el)return;
+  var tabsEl = document.getElementById("rt-tabs");
+  var inner  = document.getElementById("rt-panel-inner");
+  if(!inner) return;
 
-  // 現在のタブ（未設定なら自分の座席）
-  var mySeat=state.seat||"東家";
-  if(!state.rtTab)state.rtTab=mySeat;
-  var tab=state.rtTab;
-
-  // 完成度
-  var pct=calcCompletion();
-  var pctColor=pct>=80?"var(--g)":pct>=40?"var(--a)":"var(--r)";
+  var RT_TABS = [
+    {id:"haipai", label:"配牌"},
+    {id:"turns",  label:"ツモ・捨て"},
+    {id:"final",  label:"最終・待ち・副露"},
+    {id:"agari",  label:"アガリ・点数"},
+  ];
+  if(!state.rtViewTab) state.rtViewTab = "haipai";
+  var tab = state.rtViewTab;
 
   // タブボタン
-  var seats=["東家","南家","西家","北家"];
-  var tabBtns=seats.map(function(s){
-    var on=s===tab;
-    var isMine=s===mySeat;
-    return'<button onclick="state.rtTab=\''+s+'\';renderRtPanel()" style="'
-      +'flex:1;padding:5px 2px;font-size:11px;border:none;border-bottom:2px solid '
-      +(on?"var(--b)":"transparent")+';background:transparent;'
-      +'color:'+(on?"var(--b)":"var(--tx3)")+';cursor:pointer;font-weight:'+(on?"600":"400")+'">'
-      +s+(isMine?' <span style="font-size:9px;opacity:.7">自</span>':"")+
-    '</button>';
-  }).join("");
-
-  // 該当タブのログ
-  var tabLogs=state.rtLog.filter(function(e){return e.seat===tab;});
-
-  var typeLabel=function(t,idx){
-    if(t==="draw")   return (idx+1)+"巡目ツモ";
-    if(t==="discard")return (idx+1)+"巡目捨て";
-    if(t==="haipai") return "配牌";
-    if(t==="final")  return "最終手牌";
-    if(t==="wait")   return "待ち";
-    if(t==="agari")  return "アガリ";
-    return t;
-  };
-
-  // ── 巡目グリッド表示 ──
-  var drawByIdx={}, discByIdx={};
-  tabLogs.forEach(function(e){
-    if(e.type==="draw")    drawByIdx[e.idx]=e;
-    if(e.type==="discard") discByIdx[e.idx]=e;
-  });
-  var otherLogs=tabLogs.filter(function(e){return e.type!=="draw"&&e.type!=="discard";});
-  var allIdxs=Object.keys(drawByIdx).concat(Object.keys(discByIdx)).map(Number);
-  var maxIdx=allIdxs.length?Math.max.apply(null,allIdxs):-1;
-  var logHtml="";
-  if(maxIdx>=0){
-    var hdr='<div style="width:28px;flex-shrink:0"></div>';
-    var drawRow='<div style="width:28px;flex-shrink:0;font-size:9px;color:var(--tx3);text-align:right;padding-right:3px;line-height:32px">ツモ</div>';
-    var discRow='<div style="width:28px;flex-shrink:0;font-size:9px;color:var(--tx3);text-align:right;padding-right:3px;line-height:32px">捨て</div>';
-    for(var i=0;i<=maxIdx;i++){
-      hdr+='<div style="width:32px;flex-shrink:0;text-align:center;font-size:9px;color:var(--tx3)">'+(i+1)+'</div>';
-      // ツモ
-      var de=drawByIdx[i];
-      if(de){
-        var bg=de.self?"var(--b-bg)":"var(--sf2)";
-        var bdr=de.self?"var(--b)":"var(--bd)";
-        drawRow+='<div style="width:32px;height:32px;flex-shrink:0;border:.5px solid '+bdr+';border-radius:4px;background:'+bg+';display:flex;align-items:center;justify-content:center;font-size:20px;position:relative">'
-          +te(de.tile)+(de.self?'<span style="position:absolute;bottom:0;right:1px;font-size:7px;color:var(--b)">自</span>':"")+'</div>';
-      } else {
-        drawRow+='<div style="width:32px;height:32px;flex-shrink:0;border:.5px dashed var(--bd);border-radius:4px"></div>';
-      }
-      // 捨て
-      var di=discByIdx[i];
-      if(di){
-        var disp=di.tile&&!di.self&&state.discards[i]&&state.discards[i]!==di.tile;
-        var bg2=disp?"rgba(243,156,18,.1)":di.self?"var(--b-bg)":"var(--sf2)";
-        var bdr2=disp?"#f39c12":di.self?"var(--b)":"var(--bd)";
-        discRow+='<div style="width:32px;height:32px;flex-shrink:0;border:.5px solid '+bdr2+';border-radius:4px;background:'+bg2+';display:flex;align-items:center;justify-content:center;font-size:20px;position:relative">'
-          +te(di.tile)+(disp?'<span style="position:absolute;top:0;right:1px;font-size:9px">⚠</span>':"")+(di.self?'<span style="position:absolute;bottom:0;right:1px;font-size:7px;color:var(--b)">自</span>':"")+'</div>';
-      } else {
-        discRow+='<div style="width:32px;height:32px;flex-shrink:0;border:.5px dashed var(--bd);border-radius:4px"></div>';
-      }
-    }
-    logHtml='<div style="overflow-x:auto;-webkit-overflow-scrolling:touch">'
-      +'<div style="min-width:max-content;display:flex;flex-direction:column;gap:3px;padding:4px 0">'
-      +'<div style="display:flex;gap:3px;align-items:center">'+hdr+'</div>'
-      +'<div style="display:flex;gap:3px;align-items:center">'+drawRow+'</div>'
-      +'<div style="display:flex;gap:3px;align-items:center">'+discRow+'</div>'
-      +'</div></div>';
+  if(tabsEl){
+    tabsEl.innerHTML = RT_TABS.map(function(t){
+      var on = (t.id === tab);
+      return '<button onclick="state.rtViewTab=\''+t.id+'\';renderRtPanel()" style="'
+        +'flex:1;padding:7px 4px;font-size:11px;border:none;border-bottom:2px solid '
+        +(on?'var(--b)':'transparent')+';background:transparent;'
+        +'color:'+(on?'var(--b)':'var(--tx3)')+';cursor:pointer;font-weight:'+(on?'700':'400')+'">'
+        +t.label+'</button>';
+    }).join('');
   }
-  if(otherLogs.length){
-    logHtml+=otherLogs.slice(0,5).map(function(e){
-      var ago=Math.round((Date.now()-e.ts)/1000);
-      var agoStr=ago<60?ago+"秒前":Math.round(ago/60)+"分前";
-      return'<div style="display:flex;align-items:center;gap:6px;padding:4px 8px;border-radius:5px;background:var(--sf2);border:.5px solid var(--bd);margin-top:4px;font-size:12px">'
-        +'<span style="color:var(--tx3)">'+typeLabel(e.type,e.idx)+'</span>'
-        +(e.tile?'<span style="font-size:18px">'+te(e.tile)+'</span>':"")
-        +(e.self?'<span style="font-size:10px;color:var(--b);margin-left:auto">自分</span>'
-                :'<span style="font-size:10px;color:var(--tx3);margin-left:auto">'+agoStr+'</span>')
+
+  var WJseats = ["東家","南家","西家","北家"];
+  var sm = state.seatMap||{};
+  var allP = Object.values(PLAYERS_MASTER).flat();
+
+  // 他者確定データかどうかの判定（rtLogにselfフラグがある）
+  function isSelfEntry(e){ return e.self === true; }
+
+  // 座席ラベル+選手名
+  function seatName(seatKey){
+    var idx = WE.indexOf(seatKey);
+    var label = WJseats[idx]||seatKey;
+    var pid = sm[seatKey];
+    var p = pid ? allP.find(function(x){return x.id===pid;}) : null;
+    return label + (p?' '+p.name:'');
+  }
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // 各タブのHTML生成
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  var html = '';
+
+  if(tab === 'haipai'){
+    // 配牌: 自分の入力 + 他者からのログ
+    var seats = WE;
+    html = seats.map(function(w){
+      var isMe = (w === state.seat);
+      var sn = seatName(w);
+      // 自分の入力はstateから直接取得
+      var tiles = isMe ? state.haipai : [];
+      // 他者のログから配牌情報を収集
+      if(!isMe){
+        state.rtLog.forEach(function(e){
+          if(e.seat===WJseats[WE.indexOf(w)]&&e.type==='haipai'&&e.tile){
+            tiles = e.tiles||tiles;
+          }
+        });
+      }
+      var tileHtml = tiles.length
+        ? '<div style="font-size:20px;letter-spacing:1px;line-height:1.3">'+tiles.map(teHtml).join('')+'</div>'
+        : '<span style="font-size:11px;color:var(--tx3)">未入力</span>';
+      var borderStyle = isMe ? 'border:.5px solid var(--bd)' : 'border:2px solid var(--b)';
+      var bgStyle = isMe ? 'background:var(--sf)' : 'background:var(--b-bg)';
+      return '<div style="'+borderStyle+';'+bgStyle+';border-radius:var(--ra);padding:8px 10px;margin-bottom:8px">'
+        +'<div style="font-size:11px;font-weight:'+(isMe?'400':'700')+';color:'+(isMe?'var(--tx3)':'var(--b)')+';margin-bottom:4px">'
+        +sn+(isMe?' (自分)':'')+'</div>'
+        +tileHtml
         +'</div>';
-    }).join("");
+    }).join('');
+    if(!html) html = '<p style="font-size:12px;color:var(--tx3)">データなし</p>';
   }
-  if(!logHtml) logHtml='<div style="font-size:12px;color:var(--tx3);padding:8px 0">このタブの入力はまだありません</div>';
 
+  else if(tab === 'turns'){
+    // ツモ・捨て: 全座席のミニグリッド
+    var maxShow = Math.max(
+      state.draws.filter(Boolean).length,
+      state.discards.filter(Boolean).length,
+      1
+    );
+    html = WE.map(function(w){
+      var isMe = (w === state.seat);
+      var sn = seatName(w);
+      // 自分: stateから / 他者: rtLogから
+      var draws = isMe ? state.draws : [];
+      var discs  = isMe ? state.discards : [];
+      if(!isMe){
+        state.rtLog.forEach(function(e){
+          var seat = WJseats[WE.indexOf(w)];
+          if(e.seat===seat){
+            if(e.type==='draw')    draws[e.idx]=e.tile;
+            if(e.type==='discard') discs[e.idx]=e.tile;
+          }
+        });
+      }
+      var anyData = draws.some(Boolean)||discs.some(Boolean);
+      var borderStyle = isMe ? 'border:.5px solid var(--bd)' : 'border:2px solid var(--b)';
+      var bgStyle = isMe ? 'background:var(--sf)' : 'background:var(--b-bg)';
+      var gridHtml = '';
+      if(anyData){
+        var maxIdx = 0;
+        for(var i=0;i<21;i++){if(draws[i]||discs[i])maxIdx=i;}
+        var drawRow='', discRow='';
+        for(var j=0;j<=maxIdx;j++){
+          var dt=draws[j], di2=discs[j];
+          drawRow += '<span style="display:inline-flex;align-items:center;justify-content:center;'
+            +'width:24px;height:24px;font-size:16px;border-radius:3px;'
+            +'background:'+(dt?'var(--sf)':'var(--sf2)')+';border:.5px solid var(--bd);margin:1px">'
+            +(dt?teHtml(dt):'<span style="font-size:8px;color:var(--tx3)">'+(j+1)+'</span>')+'</span>';
+          discRow += '<span style="display:inline-flex;align-items:center;justify-content:center;'
+            +'width:24px;height:24px;font-size:16px;border-radius:3px;'
+            +'background:'+(di2?'var(--sf)':'var(--sf2)')+';border:.5px solid var(--bd);margin:1px">'
+            +(di2?teHtml(di2):'<span style="font-size:8px;color:var(--tx3)">'+(j+1)+'</span>')+'</span>';
+        }
+        gridHtml = '<div style="font-size:9px;color:var(--tx3);margin-bottom:2px">ツモ</div>'
+          +'<div style="display:flex;flex-wrap:wrap;margin-bottom:4px">'+drawRow+'</div>'
+          +'<div style="font-size:9px;color:var(--tx3);margin-bottom:2px">捨て</div>'
+          +'<div style="display:flex;flex-wrap:wrap">'+discRow+'</div>';
+      } else {
+        gridHtml = '<span style="font-size:11px;color:var(--tx3)">未入力</span>';
+      }
+      return '<div style="'+borderStyle+';'+bgStyle+';border-radius:var(--ra);padding:8px 10px;margin-bottom:8px">'
+        +'<div style="font-size:11px;font-weight:'+(isMe?'400':'700')+';color:'+(isMe?'var(--tx3)':'var(--b)')+';margin-bottom:6px">'
+        +sn+(isMe?' (自分)':'')+'</div>'
+        +gridHtml+'</div>';
+    }).join('');
+  }
 
-  el.innerHTML=
-    // 完成度バー
-    '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;padding:6px 8px;background:var(--sf2);border-radius:var(--ra)">'
-    +'<span style="font-size:11px;color:var(--tx3)">牌譜完成度</span>'
-    +'<div style="display:flex;align-items:center;gap:8px;flex:1;margin:0 10px">'
-    +'<div style="flex:1;height:6px;background:var(--bd);border-radius:3px;overflow:hidden">'
-    +'<div style="height:100%;background:'+pctColor+';border-radius:3px;transition:width .4s;width:'+pct+'%"></div>'
-    +'</div>'
-    +'<span style="font-size:13px;font-weight:700;color:'+pctColor+';min-width:32px;text-align:right">'+pct+'%</span>'
-    +'</div>'
-    +(pct===100?'<span style="font-size:11px;color:var(--g);font-weight:600">✓ 完成</span>':'')
-    +'</div>'
-    // 座席タブ
-    +'<div style="display:flex;margin-bottom:8px;border-bottom:.5px solid var(--bd)">'+tabBtns+'</div>'
-    // ログ
-    +logHtml;
+  else if(tab === 'final'){
+    // 最終手牌・待ち・副露
+    html = WE.map(function(w){
+      var isMe = (w === state.seat);
+      var sn = seatName(w);
+      var finalTiles = isMe ? state.finalHand : [];
+      var waitTiles  = isMe ? state.waitTiles.filter(Boolean) : [];
+      var melds      = isMe ? state.melds : [];
+      var borderStyle = isMe ? 'border:.5px solid var(--bd)' : 'border:2px solid var(--b)';
+      var bgStyle = isMe ? 'background:var(--sf)' : 'background:var(--b-bg)';
+      var finalHtml = finalTiles.length
+        ? finalTiles.map(teHtml).join('')
+        : '<span style="font-size:11px;color:var(--tx3)">未入力</span>';
+      var waitHtml = waitTiles.length
+        ? waitTiles.map(teHtml).join('')
+        : '<span style="font-size:11px;color:var(--tx3)">なし</span>';
+      var meldHtml = melds&&melds.length
+        ? melds.map(function(m){return m.label||JSON.stringify(m);}).join(' / ')
+        : '<span style="font-size:11px;color:var(--tx3)">なし</span>';
+      return '<div style="'+borderStyle+';'+bgStyle+';border-radius:var(--ra);padding:8px 10px;margin-bottom:8px">'
+        +'<div style="font-size:11px;font-weight:'+(isMe?'400':'700')+';color:'+(isMe?'var(--tx3)':'var(--b)')+';margin-bottom:4px">'+sn+(isMe?' (自分)':'')+'</div>'
+        +'<div style="font-size:10px;color:var(--tx3)">最終手牌</div>'
+        +'<div style="font-size:20px;letter-spacing:1px;line-height:1.4;margin-bottom:4px">'+finalHtml+'</div>'
+        +'<div style="font-size:10px;color:var(--tx3)">待ち</div>'
+        +'<div style="font-size:20px;letter-spacing:1px;line-height:1.4;margin-bottom:4px">'+waitHtml+'</div>'
+        +'<div style="font-size:10px;color:var(--tx3)">副露</div>'
+        +'<div style="font-size:12px;margin-top:2px">'+meldHtml+'</div>'
+        +'</div>';
+    }).join('');
+  }
+
+  else if(tab === 'agari'){
+    // アガリ・点数
+    var ag = state.agari;
+    var mySummary = (ag.who||ag.type||ag.score)
+      ? '<div style="background:var(--g-bg);border:.5px solid var(--g);border-radius:var(--ra);padding:8px 12px;margin-bottom:8px">'
+        +'<div style="font-size:11px;color:var(--g);font-weight:600;margin-bottom:4px">自分の入力</div>'
+        +'<div style="font-size:14px;font-weight:600">'
+        +(ag.who?ag.who+' ':'' )+(ag.type?ag.type+' ':'')+(ag.from?ag.from+'から ':'' )
+        +(ag.score?'<span style="color:var(--g);font-size:18px">'+ag.score+'</span>':'')
+        +'</div>'
+        +(ag.yaku?'<div style="font-size:12px;color:var(--tx2);margin-top:2px">'+ag.yaku+'</div>':'')
+        +'</div>'
+      : '<div style="font-size:11px;color:var(--tx3);margin-bottom:8px">未入力</div>';
+
+    // 他者のアガリログ
+    var otherAgari = '';
+    state.rtLog.forEach(function(e){
+      if(e.type==='agari'&&!e.self){
+        otherAgari += '<div style="border:2px solid var(--b);background:var(--b-bg);border-radius:var(--ra);padding:8px 10px;margin-bottom:8px">'
+          +'<div style="font-size:11px;font-weight:700;color:var(--b);margin-bottom:4px">'+e.seat+'（確定済み）</div>'
+          +'<div style="font-size:14px">'+( e.data?JSON.stringify(e.data):'(データ)')+'</div>'
+          +'</div>';
+      }
+    });
+
+    html = mySummary + (otherAgari||'<div style="font-size:11px;color:var(--tx3)">他者のデータ待ち</div>');
+  }
+
+  inner.innerHTML = html || '<p style="font-size:12px;color:var(--tx3)">データなし</p>';
 }
+
 
 function correctDispute(type,idx,tile){
   if(type==="draw")state.draws[idx]=tile;
@@ -1881,9 +2286,14 @@ function kanOptions(tile){
 
 // 鳴いた牌にバッジをつけて表示
 function tilesWithNakiHTML(tiles,nakiIdx){
+  // 下家から(nakiIdx=2 かつ 4枚=カン) の場合、鳴バッジは最右端の牌につける
+  var effectiveNakiIdx=nakiIdx;
+  if(tiles.length===4&&nakiIdx===2){
+    effectiveNakiIdx=3; // 一番右
+  }
   return tiles.map(function(t,i){
     var e=te(t);
-    if(i===nakiIdx){
+    if(i===effectiveNakiIdx){
       return'<span style="position:relative;display:inline-block">'
         +e
         +'<span style="position:absolute;top:-5px;right:-3px;font-size:8px;font-weight:700;'
@@ -1972,13 +2382,9 @@ function renderMeldSection(){
 
   var body="";
 
-  // STEP1: 他家から鳴いた牌をテキスト/キーボードで直接入力
+  // STEP1: 鳴いた牌をスロット方式で入力
   if(d.step===1){
-    body='<div style="font-size:11px;color:var(--tx3);margin-bottom:8px">'
-      +'他家から鳴いた牌を入力してください<br>'
-      +'<span style="font-size:10px;opacity:.7">（他家の捨て牌は未入力の場合があるので直接入力）</span>'
-      +'</div>'
-      +kbdHTML("meldPickNakiTileDirect");
+    body=nakiSlotRow(d.nakiTile);
   }
 
 
@@ -2019,44 +2425,36 @@ function renderMeldSection(){
   }
 
 
-  // STEP3: 嶺上牌（カンのみ）
+  // STEP3: 嶺上牌（カンのみ）- スロット方式
   else if(d.step===3){
-    body='<div style="font-size:11px;color:var(--tx3);margin-bottom:8px">嶺上牌を選んでください</div>'
-      +'<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;padding:8px 10px;background:var(--a-bg);border-radius:var(--ra)">'
-      +'<span style="font-size:20px">'+tilesWithNakiHTML(d.tiles,d.nakiIdx)+'</span>'
-      +'<span style="font-size:13px;color:var(--a-t)">→ 嶺上牌: ?</span>'
-      +'</div>'
-      +kbdHTML("meldPickRinshan");
+    body=kanSlotRow('rinshan','嶺上牌',d.rinshanTile,'meldPickRinshan');
   }
 
-  // STEP4: 副露後の自分の捨て牌を巡目付きで選択
+  // STEP4: 副露後の捨て牌
   else if(d.step===4){
     var discBtns2=myDiscards.length
       ? myDiscards.map(function(t,i){
-          return'<button onclick="meldPickDisc(\''+t+'\','+i+')"'
+          return'<div onclick="meldPickDisc(\''+t+'\','+i+')"'
             +' style="display:flex;flex-direction:column;align-items:center;gap:1px;'
             +'padding:4px 6px;border-radius:6px;border:.5px solid var(--bd2);'
             +'background:var(--sf);cursor:pointer;min-width:40px">'
             +'<span style="font-size:22px;line-height:1">'+te(t)+'</span>'
             +'<span style="font-size:9px;color:var(--tx3)">'+(i+1)+'巡目</span>'
-            +'</button>';
+            +'</div>';
         }).join("")
-      :'<span style="font-size:12px;color:var(--tx3)">まだ捨て牌が入力されていません</span>';
-    body='<div style="font-size:11px;color:var(--tx3);margin-bottom:8px">'
-      +'副露後に自分が捨てた牌を選んでください（何巡目か確認できます）'
-      +'</div>'
-      +(d.rinshanTile?'<div style="font-size:12px;color:var(--a-t);margin-bottom:8px">嶺上: '+te(d.rinshanTile)+' → 捨て?</div>':"")
-      +'<div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:10px">'+discBtns2+'</div>'
-      +'<div style="font-size:10px;color:var(--tx3);margin-bottom:6px">未入力の場合は直接入力:</div>'
-      +kbdHTML("meldPickDiscDirect");
+      :"";
+    body='<div style="font-size:11px;color:var(--tx3);margin-bottom:8px">副露後の捨て牌</div>'
+      +(d.rinshanTile?'<div style="font-size:11px;color:var(--a-t);margin-bottom:6px">嶺上: '+te(d.rinshanTile)+'</div>':"")
+      +(myDiscards.length?'<div style="font-size:10px;color:var(--tx3);margin-bottom:4px">入力済みの捨て牌から:</div>'
+        +'<div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:8px">'+discBtns2+'</div>':"")
+      +kanSlotRow('disc','直接入力',d.discTile,'meldPickDiscDirect');
   }
 
-
-  // STEP5: カンドラ（カンのみ）
+  // STEP5: カンドラ（カンのみ）- スロット方式
   else if(d.step===5){
-    body='<div style="font-size:11px;color:var(--tx3);margin-bottom:8px">カンドラ表示牌を選んでください（任意）</div>'
-      +kbdHTML("meldPickKandora")
-      +'<button onclick="meldPickKandora(null)" style="margin-top:8px;padding:6px 14px;border-radius:var(--ra);border:.5px solid var(--bd2);background:var(--sf);cursor:pointer;font-size:12px;color:var(--tx3)">スキップ（不明）</button>';
+    body=kanSlotRow('kandora','カンドラ表示牌',d.kanDoraTile,'meldPickKandora')
+      +'<button onclick="meldPickKandora(null)" style="margin-top:8px;padding:5px 14px;'
+      +'border-radius:var(--ra);border:.5px solid var(--bd2);background:var(--sf);cursor:pointer;font-size:12px;color:var(--tx3)">スキップ（不明）</button>';
   }
 
   var backBtn=d.step>1?'<button onclick="state.meldDraft.step--;renderSection()" style="font-size:12px;padding:4px 10px;border-radius:var(--ra);border:.5px solid var(--bd2);background:var(--sf);cursor:pointer;margin-bottom:10px;color:var(--tx3)">← 戻る</button><br>':"";
@@ -2109,6 +2507,102 @@ function meldPickShape(opt){
   state.meldDraft.step=(state.meldDraft.type==="kan")?3:4;
   renderSection();
 }
+// 鳴き牌1牌スロット（STEP1 ポン・チー・カン共通）
+function nakiSlotRow(currentVal){
+  var iid="kan-naki";
+  var tile=currentVal||null;
+  var previewHtml=tile?'<div style="font-size:42px;min-width:44px;line-height:1">'+teHtml(tile)+'</div>':"";
+  return'<div style="margin-bottom:10px">'
+    +'<div style="font-size:11px;color:var(--tx3);margin-bottom:4px">'
+    +'他家から鳴いた牌を入力<span style="font-size:10px;opacity:.7">（直接入力可）</span>'
+    +'</div>'
+    +'<div style="display:flex;align-items:center;gap:8px">'
+    +'<input id="'+iid+'" type="text" inputmode="text"'
+    +' autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"'
+    +' maxlength="3" placeholder="牌" value=""'
+    +' style="width:56px;height:56px;font-size:16px;font-family:monospace;text-align:center;'
+    +'border:2px solid var(--b);border-radius:10px;background:var(--b-bg);'
+    +'color:var(--tx);padding:0;-webkit-appearance:none;box-sizing:border-box;outline:none;caret-color:var(--b)"'
+    +' onfocus="kanSlotFocused(\'naki\')"'
+    +' oninput="kanSlotTextInput(this,\'meldPickNakiTileDirect\')"'
+    +' onkeydown="kanSlotKeydown(event,this,\'naki\',\'meldPickNakiTileDirect\')">'
+    +previewHtml
+    +'</div></div>';
+}
+
+// カン関連1牌スロット
+var kanActiveField=null;
+
+function kanSlotRow(fieldName, label, currentVal, pickFn){
+  var iid="kan-"+fieldName;
+  var tile=currentVal||null;
+  var previewHtml=tile?'<div style="font-size:42px;min-width:44px;line-height:1">'+teHtml(tile)+'</div>':"";
+  return'<div style="margin-bottom:8px">'
+    +'<div style="font-size:11px;color:var(--tx3);margin-bottom:4px">'+label+'</div>'
+    +'<div style="display:flex;align-items:center;gap:8px">'
+    +'<input id="'+iid+'" type="text" inputmode="text"'
+    +' autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"'
+    +' maxlength="3" placeholder="牌" value=""'
+    +' style="width:56px;height:56px;font-size:16px;font-family:monospace;text-align:center;'
+    +'border:2px solid var(--b);border-radius:10px;background:var(--b-bg);'
+    +'color:var(--tx);padding:0;-webkit-appearance:none;box-sizing:border-box;outline:none;caret-color:var(--b)"'
+    +' onfocus="kanSlotFocused(\''+fieldName+'\')"'
+    +' oninput="kanSlotTextInput(this,\''+pickFn+'\')"'
+    +' onkeydown="kanSlotKeydown(event,this,\''+fieldName+'\',\''+pickFn+'\')">'
+    +previewHtml
+    +'</div></div>';
+}
+
+function kanSlotFocused(f){
+  kanActiveField=f;
+  // renderSection不要・iOSキーボード維持
+}
+
+function kanSlotTextInput(input,pickFn){
+  var v=input.value;
+  if(!v)return;
+  var tiles=parseTileText(v);
+  if(tiles.length!==1)return;
+  if(v.trim().length>=tileInputLen(tiles[0])){
+    var fnMap={
+      "meldPickRinshan":meldPickRinshan,
+      "meldPickDiscDirect":meldPickDiscDirect,
+      "meldPickKandora":meldPickKandora,
+      "meldPickNakiTileDirect":meldPickNakiTileDirect,
+    };
+    if(fnMap[pickFn])fnMap[pickFn](tiles[0]);
+  }
+}
+
+function kanSlotKeydown(e,input,fieldName,pickFn){
+  if(e.key==="Enter"){
+    e.preventDefault();
+    var tiles=parseTileText(input.value);
+    if(tiles.length){
+      var fnMap={
+        "meldPickRinshan":meldPickRinshan,
+        "meldPickDiscDirect":meldPickDiscDirect,
+        "meldPickKandora":meldPickKandora,
+        "meldPickNakiTileDirect":meldPickNakiTileDirect,
+      };
+      if(fnMap[pickFn])fnMap[pickFn](tiles[0]);
+    } else {
+      // 空Enter → 次フィールドへ（カン系のみ）
+      var order=["rinshan","disc","kandora"];
+      var ni=order.indexOf(fieldName);
+      if(ni>=0&&ni+1<order.length){
+        var nextF=order[ni+1];
+        var el=document.getElementById("kan-"+nextF);
+        if(el){el.focus();}
+      }
+    }
+  } else if(e.key==="Escape"){
+    kanActiveField=null;
+  }
+}
+
+
+
 function meldPickRinshan(tile){
   if(!tile){state.meldDraft.step=4;renderSection();return;}
   state.meldDraft.rinshanTile=tile;
@@ -2165,32 +2659,85 @@ function applyTurnsText(){
   renderSection();
 }
 
-function purchaseCash(name, price){
-  if(!confirm('「'+name+'」を円'+Number(price).toLocaleString()+'で購入しますか？（デモ）'))return;
-  if(name.includes("プラン")){
-    state.user.plan="paid";
-    alert("課金プランを有効化しました！PDF・JSONが使い放題になります。");
-    renderShop();
-    renderRepFooter();
-  } else if(name.includes("pt")){
-    var pts=parseInt(name.replace(/[^0-9]/g,""))||0;
-    state.user.pts+=pts;
-    var el=document.getElementById("k-pts-disp");
-    if(el)el.textContent=state.user.pts.toLocaleString()+"pt";
-    alert(pts+"ptを購入しました！（現在:"+state.user.pts+"pt）");
-    renderShop();
-    renderRepFooter();
-  } else {
-    alert("「"+name+"」を購入しました！");
-  }
+
+// ── 再生アプリ互換JSON生成 ──
+function buildKifuJSON(){
+  var gf=state.gameFlow;
+  var org=ORGS.find(function(o){return o.id===gf.org;})||{label:""};
+  var tour=(TOURNAMENTS[gf.org]||[]).find(function(t){return t.id===gf.tournament;})||{label:""};
+  var allP=Object.values(PLAYERS_MASTER).flat();
+  var playersMap={}, initHands={}, discards={}, playerScores={};
+  WE.forEach(function(w,wi){
+    var isMy=(w===(state.seat||""));
+    // seatMapから選手を取得（なければ旧来のgf.players[wi]で）
+    var sm=state.seatMap||{};
+    var pid=sm[w]||(gf.players[wi]);
+    var pInfo=pid?allP.find(function(x){return x.id===pid;}):null;
+    initHands[w] = isMy ? state.haipai.slice() : [];
+    discards[w]  = isMy ? state.discards.filter(Boolean) : [];
+    var fromMap={"上家から":0,"対面から":1,"下家から":2};
+    var myMelds=isMy?state.melds.map(function(m){
+      return{type:m.isAnkan?"ankan":m.type, tiles:m.tiles||[],
+        nakiIdx:m.nakiIdx, nakiIdxFixed:fromMap[m.from]!=null?fromMap[m.from]:null,
+        discTile:m.discTile||null, discTileIdx:m.discTileIdx!=null?m.discTileIdx:null,
+        rinshanTile:m.rinshanTile||null, kanDoraTile:m.kanDoraTile||null,
+        kanTriggerTile:m.nakiTile||null, isAnkan:m.isAnkan||false};
+    }):[];
+    playersMap[w]={
+      hand:  isMy?state.finalHand.slice():[],
+      melds: myMelds,
+      tsumo: isMy?state.draws.filter(Boolean):[],
+      riichiIdx:-1,
+    };
+    playerScores[w]={name:pInfo?pInfo.name:seat, start:null, end:null};
+  });
+  var winnerW=null,loserW=null;
+  if(state.agari.who){var wi=["東家","南家","西家","北家"].indexOf(state.agari.who);if(wi>=0)winnerW=WE[wi];}
+  if(state.agari.from){var fi=["東家","南家","西家","北家"].indexOf(state.agari.from);if(fi>=0)loserW=WE[fi];}
+  var scoreNum=parseInt((state.agari.score||"").replace(/[^0-9]/g,""))||0;
+  if(state.agari.score&&state.agari.score.startsWith("-"))scoreNum=-scoreNum;
+  var gameData={
+    meta:{
+      title:(org.label?org.label+" ":"")+tour.label+(state.gameInfo.round?" "+state.gameInfo.round:""),
+      date:gf.date||"", bakaze:"東", kyoku:1, honba:0,
+      dora_indicators:null, dora_indicator:null, ura_dora_indicators:null,
+      result_type:state.agari.type==="ツモ"?"tsumo":state.agari.type==="ロン"?"ron":"ryukyoku",
+      winner:winnerW, loser:loserW,
+      yaku:state.agari.yaku?state.agari.yaku.split(/[・,，、]/).map(function(s){return s.trim();}).filter(Boolean):[],
+      han:0,fu:0, score:scoreNum||null,
+      confidence:"crowd", ai_notes:"みんなの牌譜から生成", tenpai:{},
+    },
+    players:playersMap, discards:discards,
+    initHands:initHands, playerScores:playerScores,
+  };
+  return{gameData:gameData,steps_meta:{count:0},savedAt:new Date().toISOString(),source:"minnano_paihu",version:"1.0"};
+}
+
+function downloadKifuJSON(){
+  var obj=buildKifuJSON();
+  var gf=state.gameFlow;
+  var tour=(TOURNAMENTS[gf.org]||[]).find(function(t){return t.id===gf.tournament;})||{label:"kifu"};
+  var fname="mahjong_"+(gf.date||"nodate")+"_"+(tour.label||"kifu")+".json";
+  var blob=new Blob([JSON.stringify(obj,null,2)],{type:"application/json"});
+  var url=URL.createObjectURL(blob);
+  var a=document.createElement("a");
+  a.href=url; a.download=fname;
+  document.body.appendChild(a); a.click();
+  document.body.removeChild(a); URL.revokeObjectURL(url);
 }
 
 function submitAll(){
+  var el=document.getElementById("done-json-link");
+  if(el){
+    var pct=calcCompletion();
+    el.innerHTML='<div style="background:var(--b-bg);border-radius:var(--ra);padding:8px 12px;margin-bottom:8px;font-size:12px;color:var(--tx2)">'
+      +'牌譜完成度: <strong style="color:var(--b)">'+pct+'%</strong><br>'
+      +'<span style="color:var(--tx3)">JSONダウンロードや牌譜再生はツモログ プレミアムから</span>'
+      +'</div>';
+  }
   document.getElementById("done-modal").classList.add("open");
 }
-function closeDone(){
-  document.getElementById("done-modal").classList.remove("open");
-}
+function closeDone(){document.getElementById("done-modal").classList.remove("open");}
 
 // ═══════════════════════════════════════════════
 // レポート
@@ -2211,449 +2758,16 @@ function meldHTML(melds){
   }).join("");
 }
 
-function buildReportHTML(){
-  // 実入力データを使用
-  var gf=state.gameFlow;
-  var org=ORGS.find(function(o){return o.id===gf.org;})||{label:""};
-  var tour=(TOURNAMENTS[gf.org]||[]).find(function(t){return t.id===gf.tournament;})||{label:""};
-  var g={
-    title:(org.label?org.label+" ":"")+tour.label,
-    round:state.gameInfo.round||"",
-    date:gf.date||state.gameInfo.date||"",
-    bakaze:"東", honba:0,
-    winner:state.agari.who?(WE[["東家","南家","西家","北家"].indexOf(state.agari.who)]||"east"):"",
-    loser:state.agari.from?(WE[["東家","南家","西家","北家"].indexOf(state.agari.from)]||null):null,
-    winType:state.agari.type==="ツモ"?"tsumo":"ron",
-    score:state.agari.score||"",
-    dora:[], uraDora:[],
-  };
-  var FS="13px",TH="1.3em",BH="9px";
 
-  function singleCell(e){
-    return`<div style="display:inline-flex;flex-direction:column;align-items:center;flex-shrink:0;vertical-align:top;">`
-      +`<div style="font-size:${FS};height:${TH};display:flex;align-items:center;justify-content:center;">${e}</div>`
-      +`<div style="height:${BH}"></div></div>`;
-  }
-  function tsumoHalf(e,dim){
-    if(e===null)return`<div style="font-size:${FS};height:${TH};visibility:hidden;display:flex;align-items:center;justify-content:center;">•</div>`;
-    return`<div style="font-size:${FS};height:${TH};display:flex;align-items:center;justify-content:center;${dim?"opacity:.35;":""}">${e}</div>`;
-  }
-  function discHalf(e,badge,bColor,cut){
-    var tile=cut?`<div style="font-size:${FS};height:${TH};display:flex;align-items:center;justify-content:center;color:#777;">↓</div>`
-                :`<div style="font-size:${FS};height:${TH};display:flex;align-items:center;justify-content:center;">${e}</div>`;
-    var bdg=badge?`<div style="font-size:7px;font-weight:700;color:${bColor};line-height:1;height:${BH};display:flex;align-items:center;justify-content:center;white-space:nowrap;">${badge}</div>`
-                 :`<div style="height:${BH}"></div>`;
-    return tile+bdg;
-  }
-  function tdCol(tH,dH){
-    return`<div style="display:inline-flex;flex-direction:column;align-items:center;flex-shrink:0;vertical-align:top;">${tH}${dH}</div>`;
-  }
-  function rowHtml(label,cells,suf){
-    return`<div style="display:flex;align-items:flex-start;margin-bottom:1px;">`
-      +`<div style="font-size:9px;color:#555;font-weight:600;min-width:22px;flex-shrink:0;text-align:right;padding-right:3px;display:flex;align-items:flex-start;padding-top:1px;">${label}</div>`
-      +`<div style="display:inline-flex;flex-wrap:nowrap;overflow-x:auto;flex:1;align-items:flex-start;font-size:0;white-space:nowrap;">${cells}`
-      +(suf?`<span style="font-size:8px;color:#aaa;white-space:nowrap;padding-left:3px;padding-top:2px;">${suf}</span>`:"")
-      +`</div></div>`;
-  }
-  function tsumoDiscRow(cols,ts,ds){
-    var lT=`<div style="font-size:9px;color:#555;font-weight:600;display:flex;align-items:center;justify-content:flex-end;padding-right:3px;white-space:nowrap;height:${TH};">ツモ</div>`;
-    var lD=`<div style="font-size:9px;color:#555;font-weight:600;display:flex;align-items:center;justify-content:flex-end;padding-right:3px;white-space:nowrap;height:calc(${TH} + ${BH});">捨て</div>`;
-    var lCol=`<div style="display:inline-flex;flex-direction:column;align-items:flex-end;flex-shrink:0;min-width:22px;vertical-align:top;">${lT}${lD}</div>`;
-    var suf=(ts||ds)?`<div style="display:inline-flex;flex-direction:column;align-items:flex-start;flex-shrink:0;padding-left:3px;vertical-align:top;">`
-      +`<div style="font-size:8px;color:#666;white-space:nowrap;height:${TH};display:flex;align-items:flex-end;line-height:1;">${ts||""}</div>`
-      +`<div style="font-size:8px;color:#666;white-space:nowrap;height:calc(${TH} + ${BH});display:flex;align-items:center;line-height:1;">${ds||""}</div>`
-      +`</div>`:"";
-    return`<div style="display:flex;align-items:flex-start;margin-bottom:1px;">${lCol}`
-      +`<div style="display:inline-flex;flex-wrap:nowrap;overflow-x:auto;flex:1;align-items:flex-start;font-size:0;white-space:nowrap;">${cols}${suf}</div></div>`;
-  }
 
-  var playersHtml=WE.map(function(w){
-    var seat=WJ[w]+"家";
-    var selPid=state.gameFlow.players;
-    var allP=Object.values(PLAYERS_MASTER).flat();
-    // 選択済み選手をseat順に割り当て（選んだ順にEast/South/West/Northへ）
-    var pidForW=selPid[WE.indexOf(w)];
-    var pInfo=pidForW?allP.find(function(x){return x.id===pidForW;}):null;
-    var isMySeat=(seat===(state.seat||""));
-    var p={
-      name:pInfo?pInfo.name:"(未入力)",
-      isPro:pInfo?pInfo.isPro:false,
-      isPlayer:false,
-      scoreStart:null, scoreEnd:null,
-      haipai:isMySeat?state.haipai:[],
-      draws:isMySeat?state.draws.filter(Boolean):[],
-      discards:isMySeat?state.discards.filter(Boolean):[],
-      final:isMySeat?state.finalHand:[],
-      wait:isMySeat?state.waitTiles:[],
-      riichiIdx:-1,
-      melds:isMySeat?state.melds:[],
-    };
-    var isWin=g.winner===w, isLoser=g.loser===w;
-    var ic=p.haipai.map(function(t){return singleCell(te(t));}).join("");
-    var fc=p.final.map(function(t){return singleCell(te(t));}).join("");
-    var tsumoCount=0,cols="";
-    p.discards.forEach(function(d,i){
-      var t=p.draws[i]||null;
-      var cut=t&&t!=="?"&&t===d;
-      var badge="",bColor="";
-      if(i===p.riichiIdx){badge="R";bColor="#c0392b";}
-      var tH=(t&&t!=="?")?(tsumoCount++,tsumoHalf(te(t),cut)):tsumoHalf(null,false);
-      cols+=tdCol(tH,discHalf(te(d),badge,bColor,cut));
-    });
-    for(var ti=p.discards.length;ti<p.draws.length;ti++){
-      var t2=p.draws[ti];
-      if(t2&&t2!=="?"){cols+=tdCol(tsumoHalf(te(t2),false),discHalf("","","",false));tsumoCount++;}
-    }
-    var diff=(p.scoreStart!=null&&p.scoreEnd!=null)?(p.scoreEnd-p.scoreStart):null;
-    var diffStr=diff!=null?(diff>=0?"+"+diff.toLocaleString():""+diff.toLocaleString()):"";
-    var diffColor=diff===null?"#888":diff>0?"#3b6d11":diff<0?"#a32d2d":"#888";
-    var scoreCell=(p.scoreStart||p.scoreEnd)?`<div style="text-align:right;font-size:9px;color:#888;line-height:1.5;flex-shrink:0;margin-left:6px;">`
-      +(p.scoreStart?`<div>${p.scoreStart.toLocaleString()}</div>`:"")+`<div style="font-weight:700;color:#333;">${p.scoreEnd.toLocaleString()}</div>`
-      +(diffStr?`<div style="color:${diffColor};font-weight:700;">${diffStr}</div>`:"")+`</div>`:"";
-    var proBadge=p.isPro?` <span style="font-size:10px;padding:1px 6px;border-radius:10px;background:#faeeda;color:#ba7517;font-weight:600;">PRO</span>`:"";
-    
-    var waitHtml=p.wait&&p.wait.length?`<span style="font-size:9px;color:#555;margin-left:5px;">待ち:${p.wait.map(te).join("")}</span>`:"";
-    return`<div style="border:1px solid #ccc;border-radius:4px;padding:3px 6px;margin-bottom:3px;background:${isWin?"#eaf3de":isLoser?"#fcebeb":"#fff"};page-break-inside:avoid;">`
-      +`<div style="display:flex;align-items:center;margin-bottom:1px;">`
-      +`<div style="font-size:11px;font-weight:600;flex:1;">${te(WJ[w])} ${WJ[w]}家`
-      +` <span style="font-size:10px;font-weight:400;color:#555;background:#f0f0ee;border-radius:3px;padding:0 4px;">${p.name}</span>`
-      +proBadge+playerBadge+(isWin?` 🏆${waitHtml}`:"")+(isLoser?" ⚡放銃":"")
-      +`</div>${scoreCell}</div>`
-      +rowHtml("初期",ic,"")
-      +tsumoDiscRow(cols,`（${tsumoCount}枚）`,`（${p.discards.length}枚）`)
-      +rowHtml("最終",fc,"")
-      +(p.melds.length?`<div style="margin-top:2px;display:flex;align-items:center;gap:4px;"><span style="font-size:9px;color:#888;font-weight:600;min-width:20px;text-align:right;">副露</span><div style="font-size:13px;">${meldHTML(p.melds)}</div></div>`:"")
-      +`</div>`;
-  }).join("");
 
-  var doraHtml=(g.dora||[]).map(te).join("")||"なし";
-  var uraHtml=(g.uraDora||[]).length?` <span style="font-size:9px;color:#555;">裏</span>`+(g.uraDora||[]).map(te).join(""):"";
-  var resultText=g.winner?(WJ[g.winner]+"家 "+(g.winType==="tsumo"?"ツモ":"ロン")+"和了 "+g.score+"点"):"流局";
 
-  // コメントページ
-  var commPage=`<div style="page-break-before:always;background:#fff;color:#1a1a18;padding:10px 14px;font-family:-apple-system,BlinkMacSystemFont,sans-serif;max-width:720px;margin:0 auto;">`
-    +`<div style="display:flex;align-items:baseline;gap:8px;margin-bottom:6px;">`
-    +`<h2 style="font-size:13px;margin:0;color:#555;">💬 コメント</h2>`
-    +`<span style="font-size:11px;font-weight:700;">${g.title}</span>`
-    +`<span style="font-size:10px;color:#aaa;">${g.date}</span>`
-    +`</div>`
-    +`<div style="font-size:10px;color:#888;margin-bottom:8px;">👑 対局者本人入力 +200pt　🎖 PRO入力 +80pt</div>`
-    +SAMPLE_COMMENTS.map(function(cm){
-      var bc=cm.isPlayer?"#3b6d11":cm.isPro?"#ba7517":"#ccc";
-      var bg=cm.isPlayer?"#eaf3de":cm.isPro?"#faeeda":"#fff";
-      var proBadge=cm.isPro?` <span style="font-size:9px;padding:1px 5px;border-radius:10px;background:#faeeda;color:#ba7517;font-weight:600;">PRO</span>`:"";
-      var playerBadge=cm.isPlayer?` <span style="font-size:9px;padding:1px 5px;border-radius:10px;background:#eaf3de;color:#3b6d11;font-weight:600;">対局者本人</span>`:"";
-      var ptColor=cm.pts>=100?"#ba7517":cm.pts>=50?"#3b6d11":"#888";
-      return`<div style="padding:8px 10px;border:1px solid ${bc};border-radius:6px;margin-bottom:6px;background:${bg};page-break-inside:avoid;">`
-        +`<div style="display:flex;align-items:center;gap:6px;margin-bottom:5px;">`
-        +`<div style="width:26px;height:26px;border-radius:50%;background:${cm.isPlayer?"#3b6d11":cm.isPro?"#ba7517":"#888"};display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0;">`
-        +(cm.isPlayer?"👑":cm.isPro?"🎖":"🀄")+`</div>`
-        +`<div style="flex:1;"><div style="font-size:11px;font-weight:700;">${cm.user}${proBadge}${playerBadge}</div>`
-        +`<div style="font-size:9px;color:#888;">${cm.handle}　${cm.time}</div></div>`
-        +`<div style="font-size:9px;font-weight:700;color:${ptColor};">+${cm.pts}pt</div>`
-        +`</div><div style="font-size:9px;color:#555;border-bottom:.5px solid #e0e0e0;padding-bottom:4px;margin-bottom:4px;">入力ボーナス</div>`
-        +`<div style="font-size:11px;line-height:1.6;color:#333;">${cm.text}</div></div>`;
-    }).join("")
-    +`</div>`;
 
-  return`<div id="report-inner" style="background:#fff;color:#1a1a18;padding:10px 14px;font-family:-apple-system,BlinkMacSystemFont,sans-serif;max-width:720px;margin:0 auto;">`
-    +`<div style="display:flex;align-items:baseline;gap:8px;margin-bottom:3px;">`
-    +`<h2 style="font-size:13px;margin:0;color:#555;">🀄︎ 麻雀牌譜レポート</h2>`
-    +`<span style="font-size:10px;color:#aaa;">${g.date}</span></div>`
-    +`<div style="font-size:16px;font-weight:700;margin-bottom:5px;">${g.title}　${g.round}</div>`
-    +`<div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:6px;font-size:11px;padding:5px 8px;background:#f5f5f3;border-radius:5px;">`
-    +`<span><span style="color:#555;">場風</span> <b>${g.bakaze}</b></span>`
-    +`<span><span style="color:#555;">本場</span> <b>${g.honba}本場</b></span>`
-    +`<span><span style="color:#555;">ドラ</span> <b>${doraHtml}${uraHtml}</b></span>`
-    +`<span><span style="color:#555;">結果</span> <b>${resultText}</b></span></div>`
-    +playersHtml
-    +`</div>`+commPage;
-}
-
-function openReport(){
-  // info tab
-  var infoEl=document.getElementById("rep-info-content");
-  var gf=state.gameFlow;
-  var org=ORGS.find(function(o){return o.id===gf.org;})||{label:"(未設定)"};
-  var tour=(TOURNAMENTS[gf.org]||[]).find(function(t){return t.id===gf.tournament;})||{label:""};
-  var g={
-    title:(org.label?org.label+" ":"")+tour.label,
-    round:state.gameInfo.round||"",
-    date:gf.date||"",
-    dora:[],uraDora:[],
-    winner:state.agari.who,
-  };
-  var allP=Object.values(PLAYERS_MASTER).flat();
-  infoEl.innerHTML=`<div style="background:var(--gold-bg);border:.5px solid var(--gold);border-radius:var(--ra);padding:10px 14px;margin-bottom:12px;">`
-    +`<div style="font-size:15px;font-weight:700;margin-bottom:2px">${g.title}　${g.round}</div>`
-    +`<div style="font-size:12px;color:var(--tx3)">${g.date}</div></div>`
-    +WE.map(function(w){
-      var seat=WJ[w]+"家";
-      var isMySeat=seat===(state.seat||"");
-      var pidForW=state.gameFlow.players[WE.indexOf(w)];
-      var pInfo=pidForW?allP.find(function(x){return x.id===pidForW;}):null;
-      var isWin=state.agari.who===seat;
-      var haipai=isMySeat?state.haipai:[];
-      var wait=isMySeat?state.waitTiles:[];
-      var agariStr=isMySeat&&state.agari.type?state.agari.type+(state.agari.score?" "+state.agari.score+"点":""):"";
-      return`<div style="border:.5px solid ${isWin?"var(--g)":"var(--bd)"};border-radius:var(--ra);padding:8px 10px;margin-bottom:6px;background:${isWin?"var(--g-bg)":"var(--sf)"};">`
-        +`<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">`
-        +`<div style="font-size:13px;font-weight:600;">${te(WJ[w])} ${WJ[w]}家 ${pInfo?pInfo.name:"(未入力)"}`
-        +(pInfo&&pInfo.isPro?` <span class="badge pro">PRO</span>`:"")
-        +(isWin?" 🏆":"")+`</div>`
-        +(agariStr?`<span style="font-size:13px;color:var(--g);font-weight:600">${agariStr}</span>`:"")
-        +`</div>`
-        +(haipai.length?`<div style="font-size:18px;letter-spacing:1px;">${haipai.map(te).join("")}</div>`:`<div style="font-size:12px;color:var(--tx3)">${isMySeat?"配牌未入力":"他視点"}</div>`)
-        +(wait&&wait.length?`<div style="font-size:12px;color:var(--tx3);margin-top:2px">待ち: ${wait.map(te).join("")}</div>`:"")
-        +`</div>`;
-    }).join("")
-    +`<div style="margin-top:10px"><label style="font-size:12px;color:var(--tx3);display:block;margin-bottom:4px">メモ（印刷に含まれます）</label>`
-    +`<textarea rows="2" placeholder="コメント・役・反省点など" style="font-size:13px"></textarea></div>`;
-
-  // comment tab
-  var commEl=document.getElementById("rep-comment-content");
-  var comments=SAMPLE_COMMENTS; // コメントはまだデモデータ（将来: サーバーから取得）
-  commEl.innerHTML=`<div style="font-size:12px;color:var(--tx3);margin-bottom:10px">💬 ${comments.length}件のコメント　<span style="font-size:11px">👑本人 +200pt　🎖PRO +80pt</span></div>`
-    +comments.map(function(cm){
-      var bc=cm.isPlayer?"var(--g)":cm.isPro?"var(--a)":"var(--bd)";
-      return`<div style="border:.5px solid ${bc};border-radius:var(--ra);padding:10px 12px;margin-bottom:8px;background:var(--sf)">`
-        +`<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">`
-        +`<div style="width:30px;height:30px;border-radius:50%;background:${cm.isPlayer?"var(--g)":cm.isPro?"var(--a)":"var(--tx3)"};display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0">`
-        +(cm.isPlayer?"👑":cm.isPro?"🎖":"🀄")+`</div>`
-        +`<div style="flex:1"><div style="font-size:13px;font-weight:600">${cm.user}`
-        +(cm.isPro?` <span class="badge pro">PRO</span>`:"")
-        +(cm.isPlayer?` <span class="badge player">本人</span>`:"")+`</div>`
-        +`<div style="font-size:11px;color:var(--tx3)">${cm.handle}　${cm.time}</div></div>`
-        +`<div style="font-size:12px;font-weight:700;color:var(--gold)">+${cm.pts}pt</div></div>`
-        +`<div style="font-size:13px;line-height:1.6">${cm.text}</div></div>`;
-    }).join("")
-    +`<div style="border-top:.5px solid var(--bd);padding-top:10px;margin-top:6px">`
-    +`<label style="font-size:12px;color:var(--tx3);display:block;margin-bottom:4px">コメントを投稿 <span style="color:var(--gold)">（+5pt）</span></label>`
-    +`<textarea rows="2" placeholder="この局についてコメントを入力..."></textarea>`
-    +`<button class="pri" style="width:100%;margin-top:6px">投稿する</button></div>`;
-
-  document.getElementById("report-modal").classList.add("open");
-  renderRepFooter();
-}
-function renderRepFooter(){
-  var el=document.getElementById("rep-footer");
-  if(!el)return;
-  var pts=state.user.pts;
-  var isPaid=state.user.plan==="paid";
-  var PDF_COST=100, JSON_COST=50;
-
-  // PDF ダウンロードボタン
-  var pdfBtn;
-  if(isPaid){
-    pdfBtn='<button class="pri" onclick="downloadReport()" style="display:flex;align-items:center;gap:6px">'
-      +'🖨 印刷 / PDFに保存</button>';
-  } else if(pts>=PDF_COST){
-    pdfBtn='<button class="pri" onclick="confirmPtUse('+PDF_COST+',\\x27downloadReport\\x27)" style="display:flex;align-items:center;gap:6px">'
-      +'🖨 PDF保存 <span style="font-size:11px;opacity:.8">('+PDF_COST+'pt)</span></button>';
-  } else {
-    pdfBtn='<button onclick="openShop()" style="display:flex;align-items:center;gap:6px;padding:8px 14px;border-radius:var(--ra);border:.5px solid var(--gold);background:var(--gold-bg);color:var(--gold);cursor:pointer;font-family:inherit">'
-      +'🔒 PDF保存 <span style="font-size:11px">('+PDF_COST+'pt or 課金)</span></button>';
-  }
-
-  // JSON ダウンロードボタン
-  var jsonDlBtn;
-  if(isPaid){
-    jsonDlBtn='<button onclick="downloadJSON()" style="display:flex;align-items:center;gap:6px;padding:8px 14px;border-radius:var(--ra);border:.5px solid var(--bd2);background:var(--sf);cursor:pointer;font-family:inherit;font-size:13px">'
-      +'📦 JSONダウンロード</button>';
-  } else if(pts>=JSON_COST){
-    jsonDlBtn='<button onclick="confirmPtUse('+JSON_COST+',\\x27downloadJSON\\x27)" style="display:flex;align-items:center;gap:6px;padding:8px 14px;border-radius:var(--ra);border:.5px solid var(--bd2);background:var(--sf);cursor:pointer;font-family:inherit;font-size:13px">'
-      +'📦 JSONダウンロード <span style="font-size:11px;color:var(--tx3)">('+JSON_COST+'pt)</span></button>';
-  } else {
-    jsonDlBtn='<button onclick="openShop()" style="display:flex;align-items:center;gap:6px;padding:8px 14px;border-radius:var(--ra);border:.5px solid var(--bd2);background:var(--sf2);cursor:pointer;font-family:inherit;font-size:13px;color:var(--tx3)">'
-      +'🔒 JSONダウンロード <span style="font-size:11px">('+JSON_COST+'pt or 課金)</span></button>';
-  }
-
-  // JSON インポートボタン（課金専用）
-  var jsonImportBtn;
-  if(isPaid){
-    jsonImportBtn='<label style="display:flex;align-items:center;gap:6px;padding:8px 14px;border-radius:var(--ra);border:.5px solid var(--tl);background:var(--tl-bg);color:var(--tl);cursor:pointer;font-size:13px;font-family:inherit">'
-      +'📂 JSON読み込み'
-      +'<input type="file" accept=".json" onchange="importJSON(this)" style="display:none"></label>';
-  } else {
-    jsonImportBtn='<button onclick="openShop()" style="display:flex;align-items:center;gap:6px;padding:8px 14px;border-radius:var(--ra);border:.5px solid var(--bd2);background:var(--sf2);cursor:pointer;font-family:inherit;font-size:13px;color:var(--tx3)">'
-      +'🔒 JSON読み込み <span style="font-size:11px">(課金プランのみ)</span></button>';
-  }
-
-  el.innerHTML='<div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between">'
-    +'<div style="display:flex;flex-wrap:wrap;gap:8px">'+jsonDlBtn+jsonImportBtn+'</div>'
-    +pdfBtn
-    +'</div>'
-    +(isPaid?'':'<div style="margin-top:8px;font-size:11px;color:var(--tx3)">💡 課金プランならPDF・JSONが使い放題</div>');
-}
-
-function confirmPtUse(cost, fn){
-  var pts=state.user.pts;
-  if(pts<cost){openShop();return;}
-  if(!confirm(cost+'ptを消費して実行しますか？（現在:'+pts+'pt）'))return;
-  state.user.pts-=cost;
-  // アカウントページのポイント表示も更新
-  var el=document.getElementById("k-pts-disp");
-  if(el)el.textContent=state.user.pts.toLocaleString();
-  // 関数を実行
-  if(fn==="downloadReport") downloadReport();
-  else if(fn==="downloadJSON") downloadJSON();
-  renderRepFooter();
-}
-
-function downloadJSON(){
-  var gf=state.gameFlow;
-  var org=ORGS.find(function(o){return o.id===gf.org;})||{label:""};
-  var tour=(TOURNAMENTS[gf.org]||[]).find(function(t){return t.id===gf.tournament;})||{label:""};
-  var allP=Object.values(PLAYERS_MASTER).flat();
-  var data={
-    version:"1.0",
-    exportedAt: new Date().toISOString(),
-    game:{
-      org:org.label, tournament:tour.label,
-      date:gf.date, round:state.gameInfo.round,
-    },
-    players: WE.map(function(w,i){
-      var pid=gf.players[i];
-      var p=pid?allP.find(function(x){return x.id===pid;}):null;
-      var isMy=((WJ[w]+"家")===(state.seat||""));
-      return{
-        seat:WJ[w]+"家", name:p?p.name:"(未入力)", isPro:p?p.isPro:false,
-        haipai:isMy?state.haipai:[],
-        draws:isMy?state.draws:[],
-        discards:isMy?state.discards:[],
-        finalHand:isMy?state.finalHand:[],
-        waitTiles:isMy?state.waitTiles:[],
-        melds:isMy?state.melds:[],
-      };
-    }),
-    agari:state.agari,
-    melds:state.melds,
-  };
-  var json=JSON.stringify(data,null,2);
-  var blob=new Blob([json],{type:"application/json"});
-  var url=URL.createObjectURL(blob);
-  var a=document.createElement("a");
-  a.href=url;
-  a.download="kifu_"+(gf.date||"nodate")+"_"+(tour.label||"notour")+".json";
-  document.body.appendChild(a); a.click();
-  document.body.removeChild(a); URL.revokeObjectURL(url);
-}
-
-function importJSON(input){
-  var file=input.files[0];
-  if(!file)return;
-  var reader=new FileReader();
-  reader.onload=function(e){
-    try{
-      var data=JSON.parse(e.target.result);
-      if(!data.version||!data.game)throw new Error("形式が不正です");
-      // ゲーム情報を復元
-      if(data.game.date)state.gameFlow.date=data.game.date;
-      if(data.game.round)state.gameInfo.round=data.game.round;
-      // 自分の視点のデータを復元
-      var mySeatData=data.players.find(function(p){return p.seat===state.seat;});
-      if(mySeatData){
-        if(mySeatData.haipai.length)state.haipai=mySeatData.haipai;
-        if(mySeatData.draws.length) state.draws=mySeatData.draws;
-        if(mySeatData.discards.length)state.discards=mySeatData.discards;
-        if(mySeatData.finalHand.length)state.finalHand=mySeatData.finalHand;
-        if(mySeatData.waitTiles.length)state.waitTiles=mySeatData.waitTiles;
-        if(mySeatData.melds.length)state.melds=mySeatData.melds;
-      }
-      if(data.agari)state.agari=Object.assign(state.agari,data.agari);
-      renderNav();
-      renderSection();
-      renderRepFooter();
-      alert("JSONを読み込みました！");
-    }catch(err){
-      alert("読み込みエラー: "+err.message);
-    }
-  };
-  reader.readAsText(file);
-}
-
-function closeReport(){document.getElementById("report-modal").classList.remove("open");}
-function setRepTab(t){
-  document.getElementById("rep-info-content").style.display=t==="info"?"block":"none";
-  document.getElementById("rep-comment-content").style.display=t==="comment"?"block":"none";
-  document.getElementById("rep-tab-info").classList.toggle("on",t==="info");
-  document.getElementById("rep-tab-comment").classList.toggle("on",t==="comment");
-}
-function downloadReport(){
-  var html=buildReportHTML();
-  var frame=document.getElementById("print-frame");
-  if(frame)frame.remove();
-  frame=document.createElement("div");
-  frame.id="print-frame";
-  frame.style.cssText="position:fixed;inset:0;background:#fff;z-index:9999;padding:20px;overflow:auto;";
-  frame.innerHTML=html;
-  document.body.appendChild(frame);
-  var isIOS=/iphone|ipad|ipod/i.test(navigator.userAgent);
-  if(isIOS)alert("印刷ダイアログが開きます。「PDFに保存」を選んでください。");
-  window.print();
-  setTimeout(function(){var f=document.getElementById("print-frame");if(f)f.remove();},1500);
-}
 
 // ═══════════════════════════════════════════════
 // ショップ
 // ═══════════════════════════════════════════════
 var shopTab="pt";
-function openShop(){
-  renderShop();
-  document.getElementById("shop-modal").classList.add("open");
-}
-function closeShop(){document.getElementById("shop-modal").classList.remove("open");}
-function setShopTab(t){
-  shopTab=t;
-  document.getElementById("shop-pt-content").style.display=t==="pt"?"block":"none";
-  document.getElementById("shop-cash-content").style.display=t==="cash"?"block":"none";
-  document.getElementById("shop-tab-pt").classList.toggle("on",t==="pt");
-  document.getElementById("shop-tab-cash").classList.toggle("on",t==="cash");
-}
-function renderShop(){
-  var myPts=1240;
-  var ptItems=[
-    {name:"PDFダウンロード（1回）",icon:"🖨",  pts:100, desc:"レポートをPDF保存"},
-    {name:"JSONダウンロード（1回）",icon:"📦", pts:50,  desc:"牌譜データをJSON出力"},
-    {name:"牌譜1局閲覧",           icon:"📄",  pts:30,  desc:"完成牌譜の全視点表示"},
-    {name:"月次レポート",           icon:"📊",  pts:300, desc:"月間まとめ分析"},
-  ];
-  var cashItems=[
-    {name:"課金プラン（月額）", icon:"👑",price:480},
-    {name:"課金プラン（年額）", icon:"🌟",price:3800},
-    {name:"PDFダウンロード（都度）",icon:"🖨",price:120},
-    {name:"JSONダウンロード（都度）",icon:"📦",price:60},
-    {name:"ポイント500pt",     icon:"⭐",price:250},
-    {name:"ポイント2,000pt",   icon:"💎",price:800},
-  ];
-  document.getElementById("shop-pt-content").innerHTML=`<div class="shop-grid">`
-    +ptItems.map(function(it){
-      var can=myPts>=it.pts;
-      return`<div class="shop-item">`
-        +`<div class="shop-item-icon">${it.icon}</div>`
-        +`<div style="flex:1"><div class="shop-item-name">${it.name}</div>`
-        +`<div style="font-size:11px;color:var(--tx3)">${it.desc}</div>`
-        +`<div class="shop-item-pts">${it.pts}pt</div></div>`
-        +`<button class="${can?"gold":"ghost"} sml" ${can?"":"disabled"} onclick="alert('${it.name}と交換しました！')">交換</button>`
-        +`</div>`;
-    }).join("")+`</div>`;
-  var isPaid=state.user.plan==="paid";
-  document.getElementById("shop-cash-content").innerHTML=`<div style="font-size:12px;color:var(--b-t);background:var(--b-bg);border-radius:var(--ra);padding:8px 10px;margin-bottom:10px">💳 実際の決済はStripe等と連携（現在はデモ）</div>`
-    +(isPaid?'<div style="font-size:12px;color:var(--g);background:var(--g-bg);border-radius:var(--ra);padding:7px 10px;margin-bottom:10px">✓ 課金プラン加入中 — PDF・JSONは使い放題です</div>':'')
-    +`<div class="shop-grid">`
-    +cashItems.map(function(it){
-      var isPlan=it.name.includes("プラン");
-      var disabled=isPaid&&isPlan;
-      return`<div class="shop-item" style="${isPlan?"border-color:var(--gold);background:var(--gold-bg)":""}">`
-        +`<div class="shop-item-icon">${it.icon}</div>`
-        +`<div style="flex:1"><div class="shop-item-name">${it.name}</div>`
-        +`<div style="font-size:12px;color:var(--b);font-weight:700">¥${it.price.toLocaleString()}</div></div>`
-        +(disabled
-          ?`<span style="font-size:11px;color:var(--g);font-weight:600">加入中</span>`
-          :`<button class="${isPlan?"gold":"pri"} sml" onclick="purchaseCash('${it.name}','${it.price}')">購入</button>`)
-        +`</div>`;
-    }).join("")+`</div>`;
-}
 
 // ═══════════════════════════════════════════════
 // ランキング
@@ -2725,11 +2839,16 @@ var _origRtPanel=renderRtPanel;
 renderRtPanel=function(){_origRtPanel();updateRtCount();};
 
 function initApp(){
-  renderNav();
-  setSection("game");
-  renderRanking();
-  renderAccount();
-  startRtDemo(); // デモ用サンプル受信
+  try {
+    renderNav();
+    setSection("game");
+    renderRanking();
+    renderAccount();
+    startRtDemo();
+  } catch(e) {
+    document.body.innerHTML += '<div style="position:fixed;top:0;left:0;right:0;background:red;color:#fff;padding:10px;z-index:9999;font-size:12px;word-break:break-all">エラー: '+e.message+'<br>'+e.stack+'</div>';
+    console.error(e);
+  }
 }
 
 // CSVを読み込んでから起動
