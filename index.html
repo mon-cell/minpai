@@ -150,6 +150,10 @@ header{
 }
 .badge-main{background:rgba(200,152,58,.15);color:var(--gold);border:1px solid rgba(200,152,58,.3);}
 .badge-new{background:rgba(192,64,64,.15);color:#e06060;border:1px solid rgba(192,64,64,.3);}
+.badge-lock{background:rgba(90,80,64,.3);color:var(--tx3);border:1px solid rgba(90,80,64,.4);}
+.badge-ok{background:rgba(80,160,100,.15);color:#60c080;border:1px solid rgba(80,160,100,.3);}
+.card.locked{opacity:.7;}
+.card.locked:hover{border-color:var(--bd);transform:none;background:var(--sf);}
 
 /* フッター */
 footer{
@@ -203,22 +207,22 @@ footer{animation:fadeUp .5s .35s ease both;opacity:0;}
     <a class="card" href="kifu/">
       <div class="card-icon">✍️</div>
       <div class="card-body">
-        <div class="card-name-en">Minnpai</div>
-        <div class="card-name">みんぱい<span class="badge badge-main">MAIN</span></div>
+        <div class="card-name-en">Kifu Input</div>
+        <div class="card-name">牌譜入力<span class="badge badge-main">MAIN</span></div>
         <div class="card-desc">牌譜を入力してポイントを獲得。配牌・ツモ・捨て牌・副露・アガリを記録します。</div>
       </div>
       <div class="card-arrow">›</div>
     </a>
 
-    <a class="card" href="paihu/">
+    <div class="card" id="card-paihu" onclick="openPaihu()" style="cursor:pointer">
       <div class="card-icon">▶️</div>
       <div class="card-body">
         <div class="card-name-en">Paihu Replay</div>
-        <div class="card-name">牌譜再生</div>
-        <div class="card-desc">収集した牌譜をステップ再生。手牌・捨て牌・副露をビジュアルで確認できます。</div>
+        <div class="card-name">牌譜再生 <span class="badge badge-lock" id="paihu-badge">🔒 プレミアム</span></div>
+        <div class="card-desc" id="paihu-desc">収集した牌譜をステップ再生。月額・年額プランでご利用いただけます。</div>
       </div>
       <div class="card-arrow">›</div>
-    </a>
+    </div>
 
     <a class="card" href="premium/">
       <div class="card-icon">⭐</div>
@@ -261,6 +265,42 @@ try{
   var u=JSON.parse(localStorage.getItem('tsumolog_user')||'null');
   document.getElementById('pts-display').textContent=u?(u.points||0).toLocaleString():'0';
 }catch(e){}
+
+// 牌譜再生アクセス制御
+function hasPremium(){
+  try{
+    var flags=JSON.parse(localStorage.getItem('tsumolog_flags')||'{}');
+    var now=Date.now();
+    return (flags['subscribe_month']&&flags['subscribe_month'].expiresAt>now)
+        || (flags['subscribe_year'] &&flags['subscribe_year'].expiresAt>now);
+  }catch(e){return false;}
+}
+
+function openPaihu(){
+  if(hasPremium()){
+    location.href='paihu/';
+  } else {
+    // ショップへ誘導
+    if(confirm('牌譜再生はプレミアムプランが必要です。
+ポイントショップで購入しますか？')){
+      location.href='premium/';
+    }
+  }
+}
+
+// バッジを課金状態に応じて更新
+(function(){
+  var badge=document.getElementById('paihu-badge');
+  var desc=document.getElementById('paihu-desc');
+  var card=document.getElementById('card-paihu');
+  if(hasPremium()){
+    badge.textContent='✅ 利用可能';
+    badge.className='badge badge-ok';
+    desc.textContent='収集した牌譜をステップ再生。手牌・捨て牌・副露をビジュアルで確認できます。';
+  } else {
+    card.classList.add('locked');
+  }
+})();
 </script>
 </body>
 </html>
