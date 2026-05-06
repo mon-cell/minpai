@@ -229,7 +229,10 @@ select{background:var(--sf);border:.5px solid var(--bd2);border-radius:var(--ra)
         <span id="rt-badge" style="width:8px;height:8px;border-radius:50%;background:var(--g);display:inline-block;animation:rt-blink 2s ease-in-out infinite"></span>
         入力状況
       </div>
-      <button onclick="document.getElementById('rt-window').style.display='none'" style="background:none;border:none;color:var(--tx3);cursor:pointer;font-size:20px;padding:0;line-height:1">✕</button>
+      <div style="display:flex;gap:8px;align-items:center">
+        <button onclick="rtShowUploaded()" style="font-size:11px;padding:3px 8px;border-radius:12px;border:.5px solid var(--bd);background:var(--sf2);cursor:pointer;color:var(--tx2);white-space:nowrap">📥 確定済みを見る</button>
+        <button onclick="document.getElementById('rt-window').style.display='none'" style="background:none;border:none;color:var(--tx3);cursor:pointer;font-size:20px;padding:0;line-height:1">✕</button>
+      </div>
     </div>
     <!-- タブ -->
     <div id="rt-tabs" style="display:flex;border-bottom:.5px solid var(--bd);flex-shrink:0;background:var(--sf2)"></div>
@@ -818,6 +821,7 @@ var state={
   section:"game",
   seat:null,
   seatMap:{east:null,south:null,west:null,north:null},
+  isTenpai:false,
   // ── 対局情報ステップ ──
   gameFlow:{
     step:0,        // 0:日付 1:団体 2:大会 3:選手 4:確認
@@ -946,13 +950,31 @@ function renderNav(){
   }
 }
 
+var DORA_NAMES=['ドラ','裏ドラ','赤ドラ','カンドラ','カン裏ドラ'];
+
 function toggleYaku(name){
   var ag=state.agari;
   var list=ag.yaku?ag.yaku.split(/[・,，、]/).map(function(s){return s.trim();}).filter(Boolean):[];
-  var idx=list.indexOf(name);
+  if(DORA_NAMES.indexOf(name)>=0){
+    // ドラ系は常に追加（重複可）
+    list.push(name);
+  } else {
+    var idx=list.indexOf(name);
+    if(idx>=0) list.splice(idx,1);
+    else list.push(name);
+  }
+  state.agari.yaku=list.join('・');
+  renderNav();
+  renderSection();
+}
+
+// ドラ系の✕: 最後の1個だけ削除
+function removeYakuOne(name){
+  var ag=state.agari;
+  var list=ag.yaku?ag.yaku.split(/[・,，、]/).map(function(s){return s.trim();}).filter(Boolean):[];
+  var idx=list.lastIndexOf(name);
   if(idx>=0) list.splice(idx,1);
-  else list.push(name);
-  state.agari.yaku=list.join("・");
+  state.agari.yaku=list.join('・');
   renderNav();
   renderSection();
 }
@@ -1067,7 +1089,6 @@ function kbdHTML(onSelectFn, extraClass, showTextInput){
       +'color:var(--tx);outline:none;"'
       +' oninput="kbdInpPreview(\''+inputId+'\',\''+prevId+'\')"'
       +' onkeydown="if(event.key===\'Enter\'){kbdInpConfirm(\''+onSelectFn+'\',\''+inputId+'\');event.preventDefault();}">'
-      +'<button class="pri sml" onclick="kbdInpConfirm(\''+onSelectFn+'\',\''+inputId+'\')">確定</button>'
       +'</div>'
       +'<div id="'+prevId+'" style="font-size:22px;min-height:24px;margin-top:4px;letter-spacing:2px;line-height:1.3"></div>'
       +'</div>';
@@ -1786,9 +1807,25 @@ function renderSection(){
       +kbdHTML("finalPick","",true)
       +'</div>'
       +'<div class="card" style="margin-top:8px">'
-      +'<div class="slabel">⏳ 待ち牌 <span style="color:var(--tx3);font-weight:400">(複数可)</span></div>'
-      +'<p style="font-size:11px;color:var(--tx3);margin-bottom:8px">マスをタップして入力</p>'
-      +renderWaitGrid()
+      +'<div class="slabel">⏳ 待ち牌</div>'
+      // テンパイ/ノーテン選択
+      +'<div style="display:flex;gap:8px;margin-bottom:10px">'
+      +'<button onclick="state.isTenpai=false;renderSection()" '
+        +'style="flex:1;padding:8px;border-radius:var(--ra);font-size:13px;font-family:inherit;cursor:pointer;'
+        +'background:'+(state.isTenpai===true?'var(--sf)':'var(--b)')+';'
+        +'border:'+(state.isTenpai===true?'.5px solid var(--bd2)':'1.5px solid var(--b)')+';'
+        +'color:'+(state.isTenpai===true?'var(--tx)':'#e6f1fb')+'">ノーテン</button>'
+      +'<button onclick="state.isTenpai=true;renderSection()" '
+        +'style="flex:1;padding:8px;border-radius:var(--ra);font-size:13px;font-family:inherit;cursor:pointer;'
+        +'background:'+(state.isTenpai===true?'var(--b)':'var(--sf)')+';'
+        +'border:'+(state.isTenpai===true?'1.5px solid var(--b)':'.5px solid var(--bd2)')+';'
+        +'color:'+(state.isTenpai===true?'#e6f1fb':'var(--tx)')+'">テンパイ</button>'
+      +'</div>'
+      +(state.isTenpai===true
+        ?'<p style="font-size:11px;color:var(--tx3);margin-bottom:8px">マスをタップして入力</p>'
+          +renderWaitGrid()
+        :'<p style="font-size:11px;color:var(--tx3)">テンパイの場合は「テンパイ」を選択してください</p>'
+      )
       +'</div>'
       +'<button onclick="confirmSection(\'final\')"'
       +' style="width:100%;margin-top:14px;padding:13px;border-radius:var(--ra);'
@@ -1886,16 +1923,54 @@ function renderSection(){
           }).join('')
           +'</div>'
         :'';
-      // 役ボタン
+      // 役ボタン: 未選択のみ表示、選択済みはバッジで上部表示
+      var selectedYaku=ag.yaku?ag.yaku.split(/[・,，、]/).map(function(s){return s.trim();}).filter(Boolean):[];
+      // 選択済み役バッジ（✕付き）
+      // ドラ系は個数をまとめて表示、非ドラは1個ずつ
+      var yakuSelected=(function(){
+        if(!selectedYaku.length) return '';
+        // ドラ系を集計
+        var doraCounts={};
+        var nonDora=[];
+        selectedYaku.forEach(function(name){
+          if(DORA_NAMES.indexOf(name)>=0){
+            doraCounts[name]=(doraCounts[name]||0)+1;
+          } else {
+            nonDora.push(name);
+          }
+        });
+        var badges='';
+        // 非ドラ
+        nonDora.forEach(function(name){
+          badges+='<span style="display:inline-flex;align-items:center;gap:4px;padding:3px 8px;border-radius:20px;'
+            +'background:var(--tl);color:#fff;font-size:12px">'
+            +name
+            +'<span onclick="removeYakuOne(\''+name+'\');" '
+            +'style="cursor:pointer;font-size:12px;line-height:1;opacity:.8">✕</span>'
+            +'</span>';
+        });
+        // ドラ系（個数付き）
+        Object.keys(doraCounts).forEach(function(name){
+          var n=doraCounts[name];
+          badges+='<span style="display:inline-flex;align-items:center;gap:4px;padding:3px 8px;border-radius:20px;'
+            +'background:var(--gold);color:#fff;font-size:12px">'
+            +name+(n>1?' ×'+n:'')
+            +'<span onclick="toggleYaku(\''+name+'\');" title="+1" '
+            +'style="cursor:pointer;font-size:14px;line-height:1;opacity:.9;margin-left:1px">＋</span>'
+            +'<span onclick="removeYakuOne(\''+name+'\');" title="-1" '
+            +'style="cursor:pointer;font-size:12px;line-height:1;opacity:.8">✕</span>'
+            +'</span>';
+        });
+        return '<div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:8px">'+badges+'</div>';
+      })();
+      // 未選択の役ボタン
       var yakuBtns=YAKU_LIST.length
         ?'<div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:6px">'
-          +YAKU_LIST.map(function(y){
-            var list=ag.yaku?ag.yaku.split(/[・,，、]/).map(function(s){return s.trim();}):[];
-            var on=list.indexOf(y.name)>=0;
+          +YAKU_LIST.filter(function(y){return DORA_NAMES.indexOf(y.name)>=0||selectedYaku.indexOf(y.name)<0;})
+          .map(function(y){
             return'<button onclick="toggleYaku(\''+y.name+'\')"'
               +' style="padding:3px 8px;border-radius:6px;font-size:12px;font-family:inherit;cursor:pointer;'
-              +'background:'+(on?'var(--tl)':'var(--sf)')+';border:'+(on?'1px solid var(--tl)':'.5px solid var(--bd2)')+';'
-              +'color:'+(on?'#fff':'var(--tx)')+'">'+y.name+'</button>';
+              +'background:var(--sf);border:.5px solid var(--bd2);color:var(--tx)">'+y.name+'</button>';
           }).join('')
           +'</div>'
         :'';
@@ -1906,7 +1981,7 @@ function renderSection(){
         +' style="width:100%;font-size:18px;font-weight:700;color:'+scoreColor
         +';background:var(--sf);border:.5px solid var(--bd2);border-radius:var(--ra);'
         +'padding:7px 10px;font-family:inherit;outline:none;box-sizing:border-box;margin-bottom:8px">'
-        +yakuBtns
+        +yakuSelected+yakuBtns
         +'<input type="text" value="'+(ag.yaku||'')+'" oninput="state.agari.yaku=this.value" placeholder="リーチ・平和 など"'
         +' style="width:100%;font-size:13px;background:var(--sf);border:.5px solid var(--bd2);'
         +'border-radius:var(--ra);padding:7px 10px;font-family:inherit;outline:none;box-sizing:border-box">'
@@ -1968,14 +2043,16 @@ var confirmedSections={};  // {haipai:true, turns:true, ...}
 
 function confirmSection(key){
   confirmedSections[key]=true;
+  // rtViewTab を確定したセクションに合わせる
+  var rtTabMap={haipai:'haipai',turns:'turns',final:'final',meld:'final',agari:'agari'};
+  if(rtTabMap[key]) state.rtViewTab=rtTabMap[key];
+  // 入力状況パネルを更新
+  renderRtPanel();
   // 次のタブへ自動移動
   var order=["haipai","turns","final","meld","agari"];
   var ni=order.indexOf(key)+1;
   if(ni<order.length) setSection(order[ni]);
-  else {
-    // 全確定→確認画面へ
-    showConfirmSummary();
-  }
+  else showConfirmSummary();
   renderNav();
 }
 
@@ -3333,6 +3410,71 @@ function renderAccount(){
 // ═══════════════════════════════════════════════
 // 初期化
 // ═══════════════════════════════════════════════
+// 確定済みの入力情報を rt-window 内に表示
+function rtShowUploaded(){
+  var inner=document.getElementById("rt-panel-inner");
+  if(!inner) return;
+
+  var hist=[];
+  try{ hist=JSON.parse(localStorage.getItem('tsumolog_kifu_history')||'[]'); }catch(e){}
+  var last=localStorage.getItem('tsumolog_last_kifu');
+  if(!hist.length&&last){
+    try{
+      var o=JSON.parse(last);
+      hist=[{savedAt:o.savedAt,title:o.gameData.meta.title||'無題',json:o}];
+    }catch(e){}
+  }
+
+  if(!hist.length){
+    inner.innerHTML='<p style="font-size:12px;color:var(--tx3);padding:8px">まだ確定された牌譜はありません</p>';
+    return;
+  }
+
+  var WJseats=['東家','南家','西家','北家'];
+  var html='<div style="font-size:12px;font-weight:600;color:var(--tx2);margin-bottom:10px">📥 確定済みの入力</div>';
+
+  hist.forEach(function(item){
+    var gd=item.json&&item.json.gameData;
+    if(!gd) return;
+    var meta=gd.meta||{};
+    var d=new Date(item.savedAt);
+    var ds=(d.getMonth()+1)+'/'+d.getDate()+' '+('0'+d.getHours()).slice(-2)+':'+('0'+d.getMinutes()).slice(-2);
+
+    // 各座席のデータを表示
+    var seats='';
+    var WE=['east','south','west','north'];
+    WE.forEach(function(w,wi){
+      var pScore=gd.playerScores&&gd.playerScores[w];
+      var pName=pScore?pScore.name:WJseats[wi];
+      var initHand=gd.initHands&&gd.initHands[w]||[];
+      var tsumo=gd.players&&gd.players[w]&&gd.players[w].tsumo||[];
+      var discs=gd.discards&&gd.discards[w]||[];
+      if(!initHand.length&&!tsumo.length) return;
+      seats+='<div style="margin-bottom:6px;padding:6px 8px;background:var(--sf2);border-radius:6px">'
+        +'<div style="font-size:10px;font-weight:600;color:var(--tx2);margin-bottom:3px">'+WJseats[wi]+' '+pName+'</div>'
+        +(initHand.length?'<div style="font-size:9px;color:var(--tx3)">配牌: <span style="font-size:16px">'+initHand.map(teHtml).join('')+'</span></div>':'')
+        +(tsumo.length?'<div style="font-size:9px;color:var(--tx3)">ツモ: '+tsumo.length+'巡 / 捨て: '+discs.length+'巡</div>':'')
+        +'</div>';
+    });
+
+    var resultTxt=meta.result_type==='tsumo'?'ツモ':meta.result_type==='ron'?'ロン':meta.result_type==='ryukyoku'?'流局':'';
+    html+='<div style="border:.5px solid var(--bd);border-radius:var(--ra);padding:10px;margin-bottom:10px">'
+      +'<div style="font-size:12px;font-weight:600;margin-bottom:4px">'+item.title+'</div>'
+      +'<div style="font-size:10px;color:var(--tx3);margin-bottom:6px">'+ds+(resultTxt?' · '+resultTxt:'')+(meta.score?' · '+meta.score+'点':'')+'</div>'
+      +seats
+      +'</div>';
+  });
+
+  inner.innerHTML=html;
+
+  // rtViewTab をリセット
+  state.rtViewTab=null;
+
+  // ウィンドウを表示
+  var w=document.getElementById("rt-window");
+  if(w) w.style.display='flex';
+}
+
 function toggleRtWindow(){
   var w=document.getElementById("rt-window");
   var isOpen=w.style.display==="flex";
