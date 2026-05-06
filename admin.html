@@ -1,0 +1,663 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ツモログ 管理画面</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:#f1f1f1;font-family:-apple-system,BlinkMacSystemFont,'Hiragino Sans','Yu Gothic UI',sans-serif;font-size:13px;color:#1a1a18;}
+
+/* ─── ログイン画面 ─── */
+#login-screen{
+  position:fixed;inset:0;background:#1a1916;
+  display:flex;align-items:center;justify-content:center;z-index:999;
+}
+.login-box{
+  background:#232119;border:1px solid rgba(255,255,255,.1);
+  border-radius:14px;padding:36px 32px;width:320px;text-align:center;
+}
+.login-logo{font-size:28px;color:#e8b84a;font-weight:700;margin-bottom:6px;}
+.login-sub{font-size:11px;color:#7a7060;letter-spacing:.1em;margin-bottom:28px;}
+.login-label{font-size:11px;color:#a89870;text-align:left;margin-bottom:6px;}
+.login-input{
+  width:100%;background:#161410;border:1px solid rgba(255,255,255,.1);
+  border-radius:8px;padding:10px 12px;color:#f0e8d0;font-size:14px;
+  outline:none;font-family:inherit;margin-bottom:16px;letter-spacing:.1em;
+}
+.login-input:focus{border-color:#c8983a;}
+.login-btn{
+  width:100%;background:linear-gradient(135deg,#c8983a,#e8b84a);
+  border:none;border-radius:8px;padding:11px;color:#1a1200;
+  font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;
+}
+.login-btn:hover{opacity:.9;}
+.login-err{font-size:12px;color:#e06060;margin-top:10px;min-height:18px;}
+
+/* ─── 管理画面本体 ─── */
+#admin-screen{display:none;}
+.adm-header{
+  background:#fff;border-bottom:1px solid #ddd;
+  padding:10px 20px;display:flex;align-items:center;justify-content:space-between;
+  position:sticky;top:0;z-index:100;
+}
+.adm-title{font-size:15px;font-weight:700;display:flex;align-items:center;gap:8px;}
+.adm-badge{font-size:10px;background:#fcebeb;color:#a32d2d;border:1px solid #a32d2d;border-radius:4px;padding:1px 6px;font-weight:700;}
+.adm-actions{display:flex;gap:8px;align-items:center;}
+.adm-logout{font-size:11px;color:#888;cursor:pointer;padding:4px 10px;border:1px solid #ddd;border-radius:4px;background:#fff;}
+.adm-logout:hover{background:#f6f7f7;}
+
+.adm-wrap{max-width:1100px;margin:0 auto;padding:20px;}
+
+/* ─── 以下は admin-content.html のスタイルをそのまま ─── */
+#kifu-admin-wrap *,#kifu-admin-wrap *::before,#kifu-admin-wrap *::after{box-sizing:border-box}
+#kifu-admin-wrap{
+  --sf:#fff;--sf2:#f6f7f7;
+  --bd:rgba(0,0,0,.12);--bd2:rgba(0,0,0,.22);
+  --tx:#1a1a18;--tx2:#5f5e5a;--tx3:#888780;
+  --b:#185fa5;--b-bg:#e6f1fb;--b-t:#0c447c;
+  --g:#3b6d11;--g-bg:#eaf3de;
+  --r:#a32d2d;--r-bg:#fcebeb;
+  --gold:#c8920a;--gold-bg:#fdf3dc;
+  --ra:6px;
+  font-family:-apple-system,BlinkMacSystemFont,'Hiragino Sans','Yu Gothic UI',sans-serif;
+  font-size:13px;color:var(--tx);line-height:1.6;
+}
+#kifu-admin-wrap .k-stat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px}
+#kifu-admin-wrap .k-stat-card{background:var(--sf2);border:1px solid var(--bd);border-radius:var(--ra);padding:12px;text-align:center}
+#kifu-admin-wrap .k-stat-val{font-size:22px;font-weight:700;color:var(--b)}
+#kifu-admin-wrap .k-stat-lbl{font-size:11px;color:var(--tx3)}
+#kifu-admin-wrap .k-card{background:var(--sf);border:1px solid var(--bd);border-radius:var(--ra);padding:14px;margin-bottom:12px}
+#kifu-admin-wrap .k-slabel{font-size:11px;color:var(--tx3);font-weight:600;letter-spacing:.06em;text-transform:uppercase;margin-bottom:10px}
+#kifu-admin-wrap .k-tabs{display:flex;gap:0;margin-bottom:16px;border-bottom:1px solid var(--bd)}
+#kifu-admin-wrap .k-tab{padding:7px 16px;font-size:13px;background:transparent;border:none;border-bottom:2px solid transparent;color:var(--tx3);cursor:pointer;font-family:inherit;transition:all .15s}
+#kifu-admin-wrap .k-tab.on{border-bottom-color:var(--b);color:var(--b);font-weight:600}
+#kifu-admin-wrap .k-btn{background:var(--sf);border:1px solid var(--bd2);border-radius:var(--ra);padding:6px 14px;font-size:13px;color:var(--tx);cursor:pointer;font-family:inherit;transition:background .1s}
+#kifu-admin-wrap .k-btn:hover{background:var(--sf2)}
+#kifu-admin-wrap .k-btn.pri{background:var(--b);border-color:var(--b);color:#e6f1fb}
+#kifu-admin-wrap .k-btn.grn{background:var(--g);border-color:var(--g);color:var(--g-bg)}
+#kifu-admin-wrap .k-btn.red{background:var(--r);border-color:var(--r);color:#fff}
+#kifu-admin-wrap .k-btn.sml{font-size:11px;padding:3px 9px}
+#kifu-admin-wrap .k-btn.ghost{background:transparent;border-color:var(--bd);color:var(--tx3)}
+#kifu-admin-wrap .k-filter{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;align-items:center}
+#kifu-admin-wrap .k-filter input[type=text]{margin-bottom:0;font-size:12px;padding:5px 9px;width:180px;background:var(--sf);border:1px solid var(--bd2);border-radius:var(--ra);color:var(--tx);outline:none;font-family:inherit}
+#kifu-admin-wrap .k-filter select{background:var(--sf);border:1px solid var(--bd2);border-radius:var(--ra);padding:5px 9px;font-size:12px;color:var(--tx);outline:none;font-family:inherit}
+#kifu-admin-wrap .k-tbl-wrap{overflow-x:auto}
+#kifu-admin-wrap .k-tbl{width:100%;border-collapse:collapse;font-size:12px}
+#kifu-admin-wrap .k-tbl th{background:var(--sf2);padding:7px 10px;text-align:left;font-weight:600;font-size:11px;color:var(--tx3);border-bottom:1px solid var(--bd2);white-space:nowrap}
+#kifu-admin-wrap .k-tbl td{padding:7px 10px;border-bottom:1px solid var(--bd);vertical-align:middle}
+#kifu-admin-wrap .k-tbl tr:hover td{background:#f0f6fc}
+#kifu-admin-wrap .k-badge{font-size:10px;padding:1px 5px;border-radius:10px;font-weight:600}
+#kifu-admin-wrap .k-badge.pro{background:var(--gold-bg);color:var(--gold)}
+#kifu-admin-wrap .k-badge.player{background:var(--g-bg);color:var(--g)}
+#kifu-admin-wrap .pts-cell{font-weight:700;color:var(--gold)}
+#kifu-admin-wrap .rank-cell{font-weight:700;color:var(--b)}
+#kifu-admin-wrap .k-pts-inp{width:70px;text-align:right;font-size:12px;padding:3px 5px;border:1px solid var(--bd2);border-radius:4px;background:var(--sf);color:var(--tx);font-family:inherit}
+#kifu-admin-wrap .k-log-list{font-size:11px;color:var(--tx3);max-height:240px;overflow-y:auto}
+#kifu-admin-wrap .k-log-item{padding:3px 0;border-bottom:1px solid var(--bd)}
+#kifu-admin-wrap .k-topbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;padding-bottom:10px;border-bottom:1px solid var(--bd)}
+#kifu-admin-wrap .k-topbar-title{font-size:16px;font-weight:600;display:flex;align-items:center;gap:8px}
+#kifu-admin-wrap .k-admin-badge{font-size:10px;background:var(--r-bg);color:var(--r);border:1px solid var(--r);border-radius:4px;padding:1px 6px;font-weight:700}
+</style>
+</head>
+<body>
+
+<!-- ─── ログイン画面 ─── -->
+<div id="login-screen">
+  <div class="login-box">
+    <div class="login-logo">🀄 ツモログ</div>
+    <div class="login-sub">ADMIN PANEL</div>
+    <div class="login-label">パスワード</div>
+    <input class="login-input" type="password" id="pw-input" placeholder="••••••••"
+      onkeydown="if(event.key==='Enter')doLogin()">
+    <button class="login-btn" onclick="doLogin()">ログイン</button>
+    <div class="login-err" id="login-err"></div>
+  </div>
+</div>
+
+<!-- ─── 管理画面 ─── -->
+<div id="admin-screen">
+  <div class="adm-header">
+    <div class="adm-title">
+      🀄 ツモログ 管理画面
+      <span class="adm-badge">ADMIN</span>
+    </div>
+    <div class="adm-actions">
+      <span style="font-size:11px;color:#888" id="k-last-updated"></span>
+      <button class="adm-logout" onclick="doLogout()">ログアウト</button>
+    </div>
+  </div>
+
+  <div class="adm-wrap">
+    <div id="kifu-admin-wrap">
+
+      <div class="k-tabs">
+        <button class="k-tab on" id="k-tab-accounts" onclick="kSetTab('accounts')">👤 ユーザー一覧</button>
+        <button class="k-tab" id="k-tab-points"   onclick="kSetTab('points')">⭐ ポイント設定</button>
+        <button class="k-tab" id="k-tab-json"     onclick="kSetTab('json')">🀄 JSON管理</button>
+        <button class="k-tab" id="k-tab-log"      onclick="kSetTab('log')">📋 更新ログ</button>
+      </div>
+
+      <!-- ═══ ユーザー一覧 ═══ -->
+      <div id="k-pane-accounts">
+        <div class="k-stat-grid">
+          <div class="k-stat-card"><div class="k-stat-val" id="k-st-total">—</div><div class="k-stat-lbl">総ユーザー数</div></div>
+          <div class="k-stat-card"><div class="k-stat-val" id="k-st-active">—</div><div class="k-stat-lbl">今月アクティブ</div></div>
+          <div class="k-stat-card"><div class="k-stat-val" id="k-st-pts">—</div><div class="k-stat-lbl">総付与ポイント</div></div>
+          <div class="k-stat-card"><div class="k-stat-val" id="k-st-inputs">—</div><div class="k-stat-lbl">総入力件数</div></div>
+        </div>
+        <div class="k-card">
+          <div class="k-filter">
+            <input type="text" id="k-search" placeholder="🔍 名前・IDで検索" oninput="kFilterAccounts()">
+            <select id="k-sort" onchange="kFilterAccounts()">
+              <option value="pts_desc">ポイント↓</option>
+              <option value="pts_asc">ポイント↑</option>
+              <option value="name_asc">名前順</option>
+              <option value="joined_desc">登録日↓</option>
+              <option value="inputs_desc">入力数↓</option>
+            </select>
+            <span style="font-size:11px;color:var(--tx3)" id="k-row-count"></span>
+            <div style="margin-left:auto;display:flex;gap:6px">
+              <button class="k-btn sml" onclick="kLoadAccounts()">🔄 再読込</button>
+              <button class="k-btn grn sml" onclick="kDownloadCSV()">📥 CSVダウンロード</button>
+            </div>
+          </div>
+          <div class="k-tbl-wrap">
+            <table class="k-tbl">
+              <thead>
+                <tr>
+                  <th>順位</th><th>ユーザーID</th><th>名前</th>
+                  <th>ポイント</th><th>入力件数</th>
+                  <th>登録日</th><th>最終活動</th><th>操作</th>
+                </tr>
+              </thead>
+              <tbody id="k-accounts-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══ ポイント設定 ═══ -->
+      <div id="k-pane-points" style="display:none">
+        <div class="k-card">
+          <div class="k-slabel">ポイント獲得設定（points.csv と連動）</div>
+          <p style="font-size:12px;color:var(--tx3);margin-bottom:12px">
+            変更後「保存してCSVダウンロード」→ サーバーに上書きアップロードしてください。
+          </p>
+          <table class="k-tbl" style="width:100%">
+            <thead><tr><th>ID</th><th>タスク</th><th style="text-align:right">ポイント</th><th>メモ</th></tr></thead>
+            <tbody id="k-points-tbody"></tbody>
+          </table>
+          <div style="margin-top:12px;display:flex;gap:8px">
+            <button class="k-btn pri" onclick="kSavePointsCSV()">💾 保存してCSVダウンロード</button>
+            <button class="k-btn ghost sml" onclick="kLoadPointsCSV()">↺ 再読込</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══ JSON管理 ═══ -->
+      <div id="k-pane-json" style="display:none">
+        <div class="k-card">
+          <div class="k-slabel">牌譜JSON 生成・編集</div>
+          <p style="font-size:12px;color:var(--tx3);margin-bottom:10px">
+            未完成の牌譜でもJSONを生成できます。テキストエリアで直接編集→ダウンロード可能。<br>
+            <b>保存場所：</b>ブラウザのlocalStorage（tsumolog_last_kifu / tsumolog_kifu_history）<br>
+            ダウンロードしたJSONは牌譜再生アプリで直接読み込めます。
+          </p>
+          <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap">
+            <button class="k-btn pri" onclick="kGenJSON()">🔄 localStorageから読込</button>
+            <button class="k-btn ghost sml" onclick="kFormatJSON()">整形</button>
+            <button class="k-btn ghost sml" onclick="kValidateJSON()">検証</button>
+            <button class="k-btn grn" onclick="kDownloadJSON()">📥 ダウンロード</button>
+            <button class="k-btn ghost sml" onclick="kCopyJSON()">コピー</button>
+          </div>
+          <div id="k-json-status" style="font-size:11px;color:var(--tx3);margin-bottom:6px">localStorageから最新の牌譜を読み込みます</div>
+          <textarea id="k-json-editor"
+            style="width:100%;height:400px;font-family:monospace;font-size:11px;
+              background:#1a1916;color:#e8d8a0;border:1px solid rgba(255,255,255,.15);
+              border-radius:6px;padding:10px;resize:vertical;outline:none;line-height:1.5"
+            placeholder='{"gameData": {...}}'></textarea>
+        </div>
+        <div class="k-card" style="margin-top:10px">
+          <div class="k-slabel">保存済み牌譜一覧</div>
+          <div id="k-json-history"></div>
+        </div>
+      </div>
+
+      <!-- ═══ 更新ログ ═══ -->
+      <div id="k-pane-log" style="display:none">
+        <div class="k-card">
+          <div class="k-slabel">更新ログ（直近50件）</div>
+          <div class="k-log-list" id="k-log-list">
+            <div style="color:var(--tx3);padding:6px 0">まだログはありません</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════════════
+// パスワード認証
+// フェーズ2: WordPress管理者セッションと連携
+// ══════════════════════════════════════════════
+var ADMIN_PW_KEY = 'tsumolog_admin_auth';
+// パスワードはハッシュ化して保存（フェーズ1）
+// 本番は変更してください
+var ADMIN_PW_HASH = 'tsumolog2025admin'; // ← この文字列をそのまま入力するとログインできます
+
+function doLogin(){
+  var pw = document.getElementById('pw-input').value.trim();
+  var err = document.getElementById('login-err');
+  if(pw === ADMIN_PW_HASH){
+    // セッション保存（タブを閉じたら消える）
+    sessionStorage.setItem(ADMIN_PW_KEY, '1');
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('admin-screen').style.display = 'block';
+    init();
+  } else {
+    err.textContent = 'パスワードが正しくありません';
+    document.getElementById('pw-input').value = '';
+    setTimeout(function(){ err.textContent=''; }, 3000);
+  }
+}
+
+function doLogout(){
+  sessionStorage.removeItem(ADMIN_PW_KEY);
+  location.reload();
+}
+
+// 既にログイン済みか確認
+if(sessionStorage.getItem(ADMIN_PW_KEY) === '1'){
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('admin-screen').style.display = 'block';
+}
+
+// ══════════════════════════════════════════════
+// データ: localStorage から全ユーザーを読み込む
+// フェーズ2: REST APIから取得
+// ══════════════════════════════════════════════
+var ACCOUNTS = [];
+var POINTS_DATA = [];
+var UPDATE_LOG = [];
+
+function loadAccountsFromStorage(){
+  // フェーズ1: このブラウザのlocalStorageのみ
+  // フェーズ2: /wp-json/tsumolog/v1/users で全ユーザー取得
+  ACCOUNTS = [];
+  var raw = localStorage.getItem('tsumolog_user');
+  if(raw){
+    try{
+      var u = JSON.parse(raw);
+      // ログから入力件数を計算
+      var inputs = (u.log||[]).filter(function(l){ return l.task==='submit_game'; }).length;
+      var lastActive = (u.log&&u.log[0]) ? new Date(u.log[0].ts).toISOString().slice(0,10) : '—';
+      var joined = u.createdAt ? new Date(u.createdAt).toISOString().slice(0,10) : '—';
+      ACCOUNTS.push({
+        id: u.id||'—',
+        name: u.name||'ゲスト',
+        pts: u.points||0,
+        inputs: inputs,
+        joined: joined,
+        lastActive: lastActive,
+        isPro: false,
+        isPlayer: false,
+        log: u.log||[],
+      });
+    }catch(e){}
+  }
+
+  // 複数ユーザーのデバッグ用ダミー（フェーズ2で削除）
+  if(ACCOUNTS.length === 0 || (ACCOUNTS.length === 1 && ACCOUNTS[0].id.startsWith('local_'))){
+    // ダミーデータを追加して見た目を確認できるように
+    var DUMMY = [
+      {id:'pro_001',name:'鈴木誠一（プロ）', pts:8420,inputs:34,joined:'2025-01-15',lastActive:'2025-05-01',isPro:true, isPlayer:true,log:[]},
+      {id:'pro_002',name:'田中美咲（プロ）', pts:6200,inputs:28,joined:'2025-01-15',lastActive:'2025-04-30',isPro:true, isPlayer:true,log:[]},
+      {id:'u_abc1',  name:'麻雀ファン',      pts:3100,inputs:12,joined:'2025-02-01',lastActive:'2025-04-28',isPro:false,isPlayer:false,log:[]},
+      {id:'u_abc2',  name:'観戦好き',        pts:1240,inputs:6, joined:'2025-03-10',lastActive:'2025-04-20',isPro:false,isPlayer:false,log:[]},
+    ];
+    ACCOUNTS = ACCOUNTS.concat(DUMMY);
+  }
+}
+
+// ══════════════════════════════════════════════
+// 初期化
+// ══════════════════════════════════════════════
+function init(){
+  loadAccountsFromStorage();
+  kLoadAccounts();
+  kLoadPointsCSV();
+  kUpdateTimestamp();
+}
+
+function kUpdateTimestamp(){
+  var el=document.getElementById('k-last-updated');
+  if(el) el.textContent='更新: '+new Date().toLocaleString('ja-JP');
+}
+
+// ══════════════════════════════════════════════
+// タブ
+// ══════════════════════════════════════════════
+window.kSetTab=function(t){
+  ['accounts','points','json','log'].forEach(function(id){
+    document.getElementById('k-pane-'+id).style.display=id===t?'block':'none';
+    document.getElementById('k-tab-'+id).classList.toggle('on',id===t);
+  });
+  if(t==='json') kGenJSON();
+};
+
+// ══════════════════════════════════════════════
+// ユーザー一覧
+// ══════════════════════════════════════════════
+window.kLoadAccounts=function(){
+  loadAccountsFromStorage();
+  var totalPts=ACCOUNTS.reduce(function(s,a){return s+a.pts;},0);
+  var totalInputs=ACCOUNTS.reduce(function(s,a){return s+a.inputs;},0);
+  var now=new Date();
+  var active=ACCOUNTS.filter(function(a){
+    if(!a.lastActive||a.lastActive==='—') return false;
+    var d=new Date(a.lastActive);
+    return d.getFullYear()===now.getFullYear()&&d.getMonth()===now.getMonth();
+  }).length;
+  document.getElementById('k-st-total').textContent=ACCOUNTS.length;
+  document.getElementById('k-st-active').textContent=active;
+  document.getElementById('k-st-pts').textContent=totalPts.toLocaleString();
+  document.getElementById('k-st-inputs').textContent=totalInputs.toLocaleString();
+  kFilterAccounts();
+  kAddLog('ユーザー一覧を読み込みました（'+ACCOUNTS.length+'件）');
+  kUpdateTimestamp();
+};
+
+window.kFilterAccounts=function(){
+  var q=(document.getElementById('k-search').value||'').toLowerCase();
+  var sort=document.getElementById('k-sort').value;
+  var list=ACCOUNTS.filter(function(a){
+    return !q||a.name.toLowerCase().includes(q)||a.id.toLowerCase().includes(q);
+  }).sort(function(a,b){
+    if(sort==='pts_desc')  return b.pts-a.pts;
+    if(sort==='pts_asc')   return a.pts-b.pts;
+    if(sort==='name_asc')  return a.name.localeCompare(b.name,'ja');
+    if(sort==='joined_desc') return b.joined.localeCompare(a.joined);
+    if(sort==='inputs_desc') return b.inputs-a.inputs;
+    return 0;
+  });
+  document.getElementById('k-row-count').textContent=list.length+'件';
+  document.getElementById('k-accounts-tbody').innerHTML=list.map(function(a,i){
+    var badges='';
+    if(a.isPro)    badges+='<span class="k-badge pro">PRO</span> ';
+    if(a.isPlayer) badges+='<span class="k-badge player">本人</span>';
+    return '<tr>'
+      +'<td class="rank-cell">'+(i+1)+'</td>'
+      +'<td><code style="font-size:10px;background:#f6f7f7;padding:1px 4px;border-radius:3px">'+a.id+'</code></td>'
+      +'<td style="font-weight:'+(a.isPro||a.isPlayer?600:400)+'">'
+        +a.name+(badges?' '+badges:'')+'</td>'
+      +'<td class="pts-cell">'
+        +'<input class="k-pts-inp" type="number" min="0" value="'+a.pts+'"'
+        +' onchange="kUpdatePts(\''+a.id+'\',this.value)">'
+      +'</td>'
+      +'<td>'+a.inputs+'</td>'
+      +'<td style="font-size:10px;color:#888">'+a.joined+'</td>'
+      +'<td style="font-size:10px;color:#888">'+a.lastActive+'</td>'
+      +'<td style="white-space:nowrap">'
+        +'<button class="k-btn sml ghost" onclick="kShowLog(\''+a.id+'\')">履歴</button> '
+        +'<button class="k-btn sml red" onclick="kResetUser(\''+a.id+'\')">リセット</button>'
+      +'</td>'
+      +'</tr>';
+  }).join('');
+};
+
+window.kUpdatePts=function(uid, val){
+  var a=ACCOUNTS.find(function(x){return x.id===uid;});
+  if(!a) return;
+  var n=parseInt(val); if(isNaN(n)||n<0) return;
+  var diff=n-a.pts; a.pts=n;
+  // フェーズ1: 自分のlocalStorageのみ更新可能
+  if(uid === (JSON.parse(localStorage.getItem('tsumolog_user')||'{}').id)){
+    var u=JSON.parse(localStorage.getItem('tsumolog_user')||'{}');
+    u.points=n;
+    u.log.unshift({task:'admin_adjust',pts:diff,note:'管理者が手動調整',ts:Date.now()});
+    localStorage.setItem('tsumolog_user',JSON.stringify(u));
+  }
+  kAddLog(a.name+'('+uid+') ポイントを'+n+'ptに変更（差分 '+(diff>=0?'+':'')+diff+'）');
+  kFilterAccounts();
+};
+
+window.kShowLog=function(uid){
+  var a=ACCOUNTS.find(function(x){return x.id===uid;});
+  if(!a) return;
+  var log=a.log||[];
+  if(!log.length){ alert(a.name+'\nログなし'); return; }
+  var LABEL={submit_game:'牌譜入力',haipai:'配牌',turn:'ツモ捨て',meld:'副露',agari:'アガリ',admin_adjust:'管理者調整'};
+  var txt=a.name+' のポイント履歴（直近10件）:\n\n';
+  log.slice(0,10).forEach(function(l){
+    var d=new Date(l.ts);
+    var ds=(d.getMonth()+1)+'/'+d.getDate()+' '+('0'+d.getHours()).slice(-2)+':'+('0'+d.getMinutes()).slice(-2);
+    txt+='['+ds+'] '+(LABEL[l.task]||l.task)+' '+(l.pts>=0?'+':'')+l.pts+'pt'+(l.note?' ('+l.note+')':'')+'\n';
+  });
+  alert(txt);
+};
+
+window.kResetUser=function(uid){
+  if(!confirm('ID: '+uid+' のデータをリセットしますか？\nこの操作は取り消せません。')) return;
+  if(uid === (JSON.parse(localStorage.getItem('tsumolog_user')||'{}').id)){
+    localStorage.removeItem('tsumolog_user');
+    kAddLog(uid+' のデータをリセットしました');
+    kLoadAccounts();
+  } else {
+    alert('フェーズ2（サーバー連携後）に他ユーザーのリセットが可能になります。');
+  }
+};
+
+// ══════════════════════════════════════════════
+// CSV ダウンロード
+// ══════════════════════════════════════════════
+window.kDownloadCSV=function(){
+  var list=ACCOUNTS.slice().sort(function(a,b){return b.pts-a.pts;});
+  var hdr='rank,id,name,pts,inputs,is_pro,is_player,joined,last_active\n';
+  var rows=list.map(function(a,i){
+    return[i+1,a.id,'"'+a.name.replace(/"/g,'""')+'"',
+      a.pts,a.inputs,a.isPro?1:0,a.isPlayer?1:0,a.joined,a.lastActive].join(',');
+  }).join('\n');
+  var blob=new Blob(['\uFEFF'+hdr+rows],{type:'text/csv;charset=utf-8'});
+  var url=URL.createObjectURL(blob);
+  var el=document.createElement('a');
+  el.href=url; el.download='users_'+new Date().toISOString().slice(0,10)+'.csv';
+  document.body.appendChild(el); el.click();
+  document.body.removeChild(el); URL.revokeObjectURL(url);
+  kAddLog('ユーザーCSVをダウンロード（'+list.length+'件）');
+};
+
+// ══════════════════════════════════════════════
+// ポイント設定
+// ══════════════════════════════════════════════
+window.kLoadPointsCSV=function(){
+  fetch('kifu/points.csv')
+    .then(function(r){ if(!r.ok) throw new Error(); return r.text(); })
+    .then(function(txt){ POINTS_DATA=parseCSV(txt); kRenderPointsTable(); })
+    .catch(function(){
+      POINTS_DATA=[
+        {id:'player_pos',task:'プレイヤー・位置情報',pts:'2',cls:'',note:''},
+        {id:'haipai',    task:'配牌入力',            pts:'3',cls:'',note:''},
+        {id:'turn',      task:'ツモ・捨て牌（1巡）', pts:'1',cls:'',note:''},
+        {id:'meld',      task:'副露',                pts:'3',cls:'',note:''},
+        {id:'final_wait',task:'最終形＋待ち',        pts:'3',cls:'',note:''},
+        {id:'agari',     task:'アガり方',            pts:'3',cls:'',note:''},
+        {id:'all_correct',task:'1局まるごと正解',   pts:'20',cls:'hi',note:''},
+        {id:'player_self',task:'対局者本人入力',     pts:'30',cls:'hi',note:''},
+      ];
+      kRenderPointsTable();
+    });
+};
+
+function kRenderPointsTable(){
+  document.getElementById('k-points-tbody').innerHTML=POINTS_DATA.map(function(p,i){
+    var clr=p.cls==='hi'?'var(--gold)':p.cls==='mid'?'var(--g)':'var(--tx)';
+    return '<tr>'
+      +'<td style="font-size:10px;color:var(--tx3)"><code>'+p.id+'</code></td>'
+      +'<td>'+p.task+'</td>'
+      +'<td style="text-align:right">'
+        +'<input class="k-pts-inp" type="number" min="0" value="'+p.pts+'" style="color:'+clr+'"'
+        +' onchange="POINTS_DATA['+i+'].pts=this.value">'
+      +'</td>'
+      +'<td><input type="text" value="'+(p.note||'')+'" placeholder="メモ"'
+        +' style="font-size:11px;padding:2px 5px;width:120px;background:var(--sf);border:1px solid var(--bd2);border-radius:3px;font-family:inherit;color:var(--tx)"'
+        +' onchange="POINTS_DATA['+i+'].note=this.value"></td>'
+      +'</tr>';
+  }).join('');
+}
+
+window.kSavePointsCSV=function(){
+  var hdr='id,task,pts,cls,note\n';
+  var rows=POINTS_DATA.map(function(p){
+    return[p.id,'"'+p.task.replace(/"/g,'""')+'"',p.pts,p.cls||'','"'+(p.note||'').replace(/"/g,'""')+'"'].join(',');
+  }).join('\n');
+  var blob=new Blob([hdr+rows],{type:'text/csv;charset=utf-8'});
+  var url=URL.createObjectURL(blob);
+  var el=document.createElement('a');
+  el.href=url; el.download='points.csv';
+  document.body.appendChild(el); el.click();
+  document.body.removeChild(el); URL.revokeObjectURL(url);
+  kAddLog('points.csv を保存・ダウンロードしました');
+  alert('points.csv をダウンロードしました。\nリポジトリの kifu/ フォルダに上書きアップロードしてください。');
+};
+
+// ══════════════════════════════════════════════
+// 更新ログ
+// ══════════════════════════════════════════════
+function kAddLog(msg){
+  UPDATE_LOG.unshift('['+new Date().toLocaleString('ja-JP')+'] '+msg);
+  if(UPDATE_LOG.length>50) UPDATE_LOG.pop();
+  var el=document.getElementById('k-log-list');
+  if(el) el.innerHTML=UPDATE_LOG.map(function(l){
+    return '<div class="k-log-item">'+l+'</div>';
+  }).join('');
+}
+window.kAddLog=kAddLog;
+
+// ── CSV パーサー ──
+function parseCSV(text){
+  var lines=text.trim().split(/\r?\n/);
+  if(lines.length<2) return[];
+  var headers=lines[0].split(',').map(function(h){return h.trim();});
+  return lines.slice(1).map(function(line){
+    var cols=[],cur='',inQ=false;
+    for(var i=0;i<line.length;i++){
+      var ch=line[i];
+      if(ch==='"'){inQ=!inQ;}
+      else if(ch===','&&!inQ){cols.push(cur.trim());cur='';}
+      else cur+=ch;
+    }
+    cols.push(cur.trim());
+    var obj={};
+    headers.forEach(function(h,i){obj[h]=cols[i]!==undefined?cols[i]:'';});
+    return obj;
+  });
+}
+
+
+// ══════════════════════════════════════════════
+// JSON 管理
+// ══════════════════════════════════════════════
+window.kGenJSON = function(){
+  var raw = localStorage.getItem('tsumolog_last_kifu');
+  var st  = document.getElementById('k-json-status');
+  var ed  = document.getElementById('k-json-editor');
+  if(raw){
+    try{
+      var obj = JSON.parse(raw);
+      ed.value = JSON.stringify(obj, null, 2);
+      st.textContent = '✅ 読み込みました（' + new Date(obj.savedAt).toLocaleString('ja-JP') + '）';
+      st.style.color = '#3b6d11';
+      kLoadJSONHistory();
+    }catch(e){ st.textContent = '⚠ 解析失敗: ' + e.message; st.style.color = '#a32d2d'; }
+  } else {
+    var tmpl = {gameData:{meta:{title:'無題',date:new Date().toISOString().slice(0,10),
+        bakaze:'東',kyoku:1,honba:0,dora_indicators:null,result_type:'ron',winner:null,loser:null,
+        yaku:[],han:0,fu:0,score:null,confidence:'crowd',ai_notes:'adminが手動生成',tenpai:{}},
+      players:{east:{hand:[],melds:[],tsumo:[],riichiIdx:-1},south:{hand:[],melds:[],tsumo:[],riichiIdx:-1},
+               west:{hand:[],melds:[],tsumo:[],riichiIdx:-1},north:{hand:[],melds:[],tsumo:[],riichiIdx:-1}},
+      discards:{east:[],south:[],west:[],north:[]},initHands:{east:[],south:[],west:[],north:[]},
+      playerScores:{east:{name:'',start:null,end:null},south:{name:'',start:null,end:null},
+                    west:{name:'',start:null,end:null},north:{name:'',start:null,end:null}}},
+      steps_meta:{count:0},savedAt:new Date().toISOString(),source:'tsumolog_admin',version:'1.1'};
+    ed.value = JSON.stringify(tmpl, null, 2);
+    st.textContent = '⚠ データなし。空テンプレートを表示しています。';
+    st.style.color = '#c8920a';
+  }
+};
+window.kFormatJSON = function(){
+  var ed = document.getElementById('k-json-editor');
+  try{ ed.value = JSON.stringify(JSON.parse(ed.value), null, 2); }
+  catch(e){ alert('JSON形式エラー: ' + e.message); }
+};
+window.kValidateJSON = function(){
+  var ed = document.getElementById('k-json-editor');
+  var st = document.getElementById('k-json-status');
+  try{
+    var obj = JSON.parse(ed.value);
+    var ok  = obj.gameData && obj.gameData.meta && obj.gameData.initHands;
+    st.textContent = ok ? '✅ 有効なJSONです。再生アプリで読み込めます。' : '⚠ 一部フィールドが不足しています。';
+    st.style.color = ok ? '#3b6d11' : '#c8920a';
+  }catch(e){ st.textContent = '❌ ' + e.message; st.style.color = '#a32d2d'; }
+};
+window.kDownloadJSON = function(){
+  var ed = document.getElementById('k-json-editor');
+  var st = document.getElementById('k-json-status');
+  try{
+    var obj   = JSON.parse(ed.value);
+    var date  = (obj.gameData && obj.gameData.meta && obj.gameData.meta.date) || new Date().toISOString().slice(0,10);
+    var title = (obj.gameData && obj.gameData.meta && obj.gameData.meta.title) || 'kifu';
+    var fname = 'kifu_' + date + '_' + title.replace(/[\s/\\:*?"<>|]/g,'_') + '.json';
+    var blob  = new Blob([JSON.stringify(obj,null,2)], {type:'application/json'});
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob); a.download = fname;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    kAddLog('JSONダウンロード: ' + fname);
+    st.textContent = '✅ ダウンロード: ' + fname; st.style.color = '#3b6d11';
+  }catch(e){ alert('エラー: ' + e.message); }
+};
+window.kCopyJSON = function(){
+  navigator.clipboard.writeText(document.getElementById('k-json-editor').value)
+    .then(function(){ kAddLog('JSONをクリップボードにコピー'); });
+};
+function kLoadJSONHistory(){
+  var hist = [];
+  try{ hist = JSON.parse(localStorage.getItem('tsumolog_kifu_history') || '[]'); }catch(e){}
+  var el = document.getElementById('k-json-history');
+  if(!el) return;
+  if(!hist.length){ el.innerHTML = '<div style="font-size:12px;color:var(--tx3)">保存済みなし</div>'; return; }
+  el.innerHTML = hist.map(function(item, i){
+    return '<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--bd)">'
+      + '<div><div style="font-size:12px;font-weight:600">' + item.title + '</div>'
+      + '<div style="font-size:10px;color:var(--tx3)">' + new Date(item.savedAt).toLocaleString('ja-JP') + '</div></div>'
+      + '<div style="display:flex;gap:6px">'
+      + '<button class="k-btn sml" onclick="kLoadHist(' + i + ')">編集</button>'
+      + '<button class="k-btn grn sml" onclick="kDLHist(' + i + ')">DL</button>'
+      + '</div></div>';
+  }).join('');
+}
+window.kLoadHist = function(i){
+  var hist = JSON.parse(localStorage.getItem('tsumolog_kifu_history') || '[]');
+  if(!hist[i]) return;
+  document.getElementById('k-json-editor').value = JSON.stringify(hist[i].json, null, 2);
+  var st = document.getElementById('k-json-status');
+  st.textContent = '✅ 履歴 ' + i + ' を読込: ' + hist[i].title; st.style.color = '#3b6d11';
+};
+window.kDLHist = function(i){
+  var hist = JSON.parse(localStorage.getItem('tsumolog_kifu_history') || '[]');
+  if(!hist[i]) return;
+  var fname = 'kifu_' + hist[i].savedAt.slice(0,10) + '_' + hist[i].title.replace(/[\s/\\:*?"<>|]/g,'_') + '.json';
+  var blob  = new Blob([JSON.stringify(hist[i].json,null,2)], {type:'application/json'});
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(blob); a.download = fname;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  kAddLog('履歴 ' + i + ' DL: ' + fname);
+};
+
+// ページ読み込み時にすでにログイン済みなら初期化
+if(sessionStorage.getItem(ADMIN_PW_KEY)==='1') init();
+</script>
+</body>
+</html>
