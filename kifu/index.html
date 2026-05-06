@@ -822,6 +822,7 @@ var state={
   seat:null,
   seatMap:{east:null,south:null,west:null,north:null},
   isTenpai:false,
+  yakumanOpen:false,
   // ── 対局情報ステップ ──
   gameFlow:{
     step:0,        // 0:日付 1:団体 2:大会 3:選手 4:確認
@@ -1773,11 +1774,12 @@ function renderSection(){
   }
 
   else if(s==="haipai"){
+    var haipaiDone=!!confirmedSections['haipai'];
     var haipaiConfirmBtn='<button onclick="confirmSection(\'haipai\')"'
       +' style="width:100%;margin-top:14px;padding:13px;border-radius:var(--ra);'
-      +'background:var(--b);border:none;color:#e6f1fb;font-size:15px;'
+      +'background:'+(haipaiDone?'var(--g)':'var(--b)')+';border:none;color:#e6f1fb;font-size:15px;'
       +'font-weight:600;font-family:inherit;cursor:pointer">'
-      +'✓ 配牌を確定</button>';
+      +(haipaiDone?'✅ 配牌 確定済み':'✓ 配牌を確定')+'</button>';
     h='<div class="card">'
       +'<div class="slabel">🃏 配牌 <span style="color:var(--tx3);font-weight:400">(13枚)</span></div>'
       +'<div class="hand-prev">'+handPreview(state.haipai)+'</div>'
@@ -1787,11 +1789,12 @@ function renderSection(){
   }
 
   else if(s==="turns"){
+    var turnsDone=!!confirmedSections['turns'];
     var turnsConfirmBtn='<button onclick="confirmSection(\'turns\')"'
       +' style="width:100%;margin-top:14px;padding:13px;border-radius:var(--ra);'
-      +'background:var(--b);border:none;color:#e6f1fb;font-size:15px;'
+      +'background:'+(turnsDone?'var(--g)':'var(--b)')+';border:none;color:#e6f1fb;font-size:15px;'
       +'font-weight:600;font-family:inherit;cursor:pointer">'
-      +'✓ ツモ・捨て牌を確定</button>';
+      +(turnsDone?'✅ ツモ・捨て牌 確定済み':'✓ ツモ・捨て牌を確定')+'</button>';
     h='<div class="card">'
       +'<div class="slabel">♻️ ツモ牌・捨て牌</div>'
       +'<p style="font-size:11px;color:var(--tx3);margin-bottom:8px">マスをタップして入力 → 次へ自動移動</p>'
@@ -1829,9 +1832,9 @@ function renderSection(){
       +'</div>'
       +'<button onclick="confirmSection(\'final\')"'
       +' style="width:100%;margin-top:14px;padding:13px;border-radius:var(--ra);'
-      +'background:var(--b);border:none;color:#e6f1fb;font-size:15px;'
+      +'background:'+(confirmedSections["final"]?"var(--g)":"var(--b)")+';border:none;color:#e6f1fb;font-size:15px;'
       +'font-weight:600;font-family:inherit;cursor:pointer">'
-      +'✓ 最終手牌・待ちを確定</button>';
+      +(confirmedSections["final"]?"✅ 最終手牌・待ち 確定済み":"✓ 最終手牌・待ちを確定")+'</button>';
   }
 
   else if(s==="meld"){
@@ -1923,6 +1926,13 @@ function renderSection(){
           }).join('')
           +'</div>'
         :'';
+      // 役満リストを分離
+      var YAKUMAN_SET=['国士無双','九蓮宝燈','四暗刻','大三元','小四喜','大四喜',
+        '字一色','緑一色','清老頭','四槓子','天和','地和',
+        '国士無双十三面','純正九蓮宝燈','四暗刻単騎','大車輪','小三元','混老頭'];
+      function isYakuman(y){
+        return (y.cls&&y.cls.indexOf('yakuman')>=0)||YAKUMAN_SET.indexOf(y.name)>=0;
+      }
       // 役ボタン: 未選択のみ表示、選択済みはバッジで上部表示
       var selectedYaku=ag.yaku?ag.yaku.split(/[・,，、]/).map(function(s){return s.trim();}).filter(Boolean):[];
       // 選択済み役バッジ（✕付き）
@@ -1963,16 +1973,35 @@ function renderSection(){
         });
         return '<div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:8px">'+badges+'</div>';
       })();
-      // 未選択の役ボタン
+      // 未選択の役ボタン（役満は折りたたむ）
+      var normalYaku=YAKU_LIST.filter(function(y){return !isYakuman(y)&&(DORA_NAMES.indexOf(y.name)>=0||selectedYaku.indexOf(y.name)<0);});
+      var yakumanYaku=YAKU_LIST.filter(function(y){return isYakuman(y)&&selectedYaku.indexOf(y.name)<0;});
+      var isYakumanOpen=!!(state.yakumanOpen);
       var yakuBtns=YAKU_LIST.length
         ?'<div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:6px">'
-          +YAKU_LIST.filter(function(y){return DORA_NAMES.indexOf(y.name)>=0||selectedYaku.indexOf(y.name)<0;})
-          .map(function(y){
+          +normalYaku.map(function(y){
             return'<button onclick="toggleYaku(\''+y.name+'\')"'
               +' style="padding:3px 8px;border-radius:6px;font-size:12px;font-family:inherit;cursor:pointer;'
               +'background:var(--sf);border:.5px solid var(--bd2);color:var(--tx)">'+y.name+'</button>';
           }).join('')
+          // 役満トグルボタン
+          +'<button onclick="state.yakumanOpen=!state.yakumanOpen;renderSection()"'
+          +' style="padding:3px 8px;border-radius:6px;font-size:12px;font-family:inherit;cursor:pointer;'
+          +'background:'+(isYakumanOpen?'var(--gold)':'var(--sf)')+';'
+          +'border:1px solid '+(isYakumanOpen?'var(--gold)':'var(--bd2)')+';'
+          +'color:'+(isYakumanOpen?'#fff':'var(--tx)')+'">役満 '+(isYakumanOpen?'▲':'▼')+'</button>'
           +'</div>'
+          // 役満プルダウン
+          +(isYakumanOpen&&yakumanYaku.length
+            ?'<div style="background:var(--gold-bg);border:1px solid var(--gold);border-radius:var(--ra);padding:8px;margin-bottom:6px;display:flex;flex-wrap:wrap;gap:4px">'
+              +yakumanYaku.map(function(y){
+                return'<button onclick="toggleYaku(\''+y.name+'\');state.yakumanOpen=false;renderSection()"'
+                  +' style="padding:3px 10px;border-radius:6px;font-size:12px;font-family:inherit;cursor:pointer;'
+                  +'background:#fff;border:1px solid var(--gold);color:var(--gold)">'+y.name+'</button>';
+              }).join('')
+              +(yakumanYaku.length===0?'<span style="font-size:11px;color:var(--tx3)">全て選択済み</span>':'')
+              +'</div>'
+            :'')
         :'';
       scoreSection='<div style="margin-top:12px;padding-top:12px;border-top:.5px solid var(--bd)">'
         +'<div style="font-size:11px;color:var(--tx3);margin-bottom:5px">④ 点数 / 役</div>'
@@ -2005,11 +2034,12 @@ function renderSection(){
     }
 
     // 確定ボタン
+    var agariDone=!!confirmedSections['agari'];
     var confirmBtn='<button onclick="confirmSection(\'agari\')"'
       +' style="width:100%;margin-top:14px;padding:13px;border-radius:var(--ra);'
-      +'background:var(--b);border:none;color:#e6f1fb;font-size:15px;'
+      +'background:'+(agariDone?'var(--g)':'var(--b)')+';border:none;color:#e6f1fb;font-size:15px;'
       +'font-weight:600;font-family:inherit;cursor:pointer">'
-      +'✓ アガリ情報を確定</button>';
+      +(agariDone?'✅ アガリ情報 確定済み':'✓ アガリ情報を確定')+'</button>';
 
     h='<div class="card">'
       +'<div class="slabel">🏆 アガリ・点数</div>'
