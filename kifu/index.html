@@ -214,6 +214,20 @@ select{background:var(--sf);border:.5px solid var(--bd2);border-radius:var(--ra)
 <body>
 
 <!-- ── リアルタイム小窓 ── -->
+<!-- 確認モーダル -->
+<div id="confirm-modal" style="position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:500;display:none;align-items:center;justify-content:center;padding:20px">
+  <div style="background:var(--sf);border-radius:var(--ral);width:min(400px,100%);max-height:80vh;overflow-y:auto;padding:24px;box-shadow:0 8px 32px rgba(0,0,0,.25)">
+    <div style="font-size:16px;font-weight:700;margin-bottom:12px">✅ 入力内容の確認</div>
+    <div id="confirm-modal-body"></div>
+    <div style="display:flex;gap:8px;margin-top:16px">
+      <button onclick="document.getElementById('confirm-modal').style.display='none'"
+        style="flex:1;padding:11px;border-radius:var(--ra);border:.5px solid var(--bd2);background:var(--sf2);font-family:inherit;font-size:14px;cursor:pointer;color:var(--tx2)">戻って修正</button>
+      <button onclick="document.getElementById('confirm-modal').style.display='none';submitAll()"
+        style="flex:2;padding:11px;border-radius:var(--ra);border:none;background:linear-gradient(135deg,var(--gold),var(--a));font-family:inherit;font-size:14px;font-weight:700;cursor:pointer;color:#fff">送信する ›</button>
+    </div>
+  </div>
+</div>
+
 <div id="rt-window" style="
   position:fixed;top:0;left:0;right:0;bottom:0;z-index:500;
   display:none;align-items:flex-start;justify-content:center;
@@ -456,7 +470,6 @@ const WE=["east","south","west","north"];
 
 const SECTIONS=[
   {key:"game",   label:"対局情報",      icon:"🀄"},
-  {key:"player", label:"プレイヤー",    icon:"👤"},
   {key:"haipai", label:"配牌",          icon:"🃏"},
   {key:"turns",  label:"ツモ・捨て",    icon:"♻️"},
   {key:"final",  label:"最終手牌・待ち",icon:"🖐"},
@@ -879,7 +892,7 @@ function setView(v){
 // ═══════════════════════════════════════════════
 function sectionDone(key){
   if(key==="game")return state.gameFlow.matched;
-  if(key==="player")return!!state.seat&&Object.values(state.seatMap||{}).some(Boolean);
+
   if(key==="haipai")return state.haipai.length>=13;
   if(key==="turns")return state.draws.some(Boolean)||state.discards.some(Boolean);
   if(key==="final")return state.finalHand.length>0;
@@ -906,22 +919,25 @@ function renderNav(){
   });
   nav.innerHTML=visibleSections.map(function(s){
     // seat未設定のとき haipai/turns/final/meld/agari はロック
-    var locked=!state.seat && s.key!=="player";
+    var locked=false; // 対局情報で座席設定済みのためロック不要
     var cls="sec-btn"+(state.section===s.key?" on":sectionDone(s.key)?" done":locked?" locked":"");
     var label=s.key==="player"?("👤 "+mySeatLabel):(s.icon+" "+s.label);
     return'<button class="'+cls+'"'
       +(locked?' style="opacity:.35;pointer-events:none" title="プレイヤー設定後に入力できます"':'')
       +' onclick="setSection(\''+s.key+'\')">'+label+'</button>';
   }).join("");
-  // マッチング後: 「← 対局情報に戻る」ボタン
+  // マッチング後: 「← 対局情報」+ 「送信」ボタン
   if(matched){
-    nav.innerHTML+='<button class="sec-btn" onclick="backToGameInfo()" style="border-color:var(--tx3);color:var(--tx3)">← 対局情報</button>';
+    nav.innerHTML+=''
+      +'<button class="sec-btn" onclick="backToGameInfo()" style="border-color:var(--tx3);color:var(--tx3);white-space:nowrap">← 対局情報</button>'
+      +'<button class="sec-btn" onclick="showConfirmSummary()" '
+        +'style="border-color:var(--gold);color:var(--gold);background:var(--gold-bg);font-weight:700;white-space:nowrap">送信 ›</button>';
   }
   document.getElementById("prog-fill").style.width=completion()+"%";
   var fab=document.getElementById("fab-wrap");
   if(fab)fab.style.display="none";
   var topBtns=document.getElementById("top-action-btns");
-  if(topBtns)topBtns.style.display=state.gameFlow.matched&&state.seat?"flex":"none";
+  if(topBtns)topBtns.style.display="none"; // sec-nav内の送信ボタンに統合
 
   // 入力担当座席インジケーター
   var si=document.getElementById("seat-indicator");
@@ -1832,114 +1848,6 @@ function renderSection(){
     h=renderGameFlow();
   }
 
-  else if(s==="player"){
-    var allP=Object.values(PLAYERS_MASTER).flat();
-    var gfP=state.gameFlow.players;
-    var sm=state.seatMap;
-    var WJseats=["東家","南家","西家","北家"];
-    var selPid=state.playerDragSel||null;
-
-    // 割り当て済みIDのセット
-    var assignedIds={};
-    WE.forEach(function(w){if(sm[w])assignedIds[sm[w]]=w;});
-
-    // 選手リスト（割り当て済みはストックから除外）
-    var playerList=gfP.filter(function(pid){
-      return !assignedIds[pid]; // 未割り当てのみ表示
-    }).map(function(pid){
-      var p=allP.find(function(x){return x.id===pid;});
-      if(!p)return "";
-      var isSel=(selPid===pid);
-      return'<div data-pid2="'+pid+'" onclick="gfSelPlayer(this.dataset.pid2)" '
-        +'style="display:inline-flex;align-items:center;gap:6px;'
-        +'padding:8px 14px;border-radius:20px;cursor:pointer;font-size:13px;'
-        +'background:'+(isSel?"var(--b)":"var(--sf)")+';'
-        +'border:'+(isSel?"2px solid var(--b)":".5px solid var(--bd2)")+';'
-        +'color:'+(isSel?"#e6f1fb":"var(--tx)")+';'
-        +'box-shadow:0 1px 4px rgba(0,0,0,.08);transition:all .15s;margin:3px">'
-        +(p.isPro?'<span style="font-size:10px;background:rgba(255,255,255,.2);padding:1px 5px;border-radius:3px">PRO</span>':'')+p.name
-        +(isSel?'<span style="font-size:11px;margin-left:2px">✓</span>':"")
-        +'</div>';
-    }).join("");
-
-    // 全員割り当て済みの場合のメッセージ
-    if(!playerList) playerList='<span style="font-size:12px;color:var(--tx3)">全員配置済み</span>';
-
-    // 座席ボックス
-    var seatBoxes=WE.map(function(w,wi){
-      var seat=WJseats[wi];
-      var assignedId=sm[w];
-      var assignedP=assignedId?allP.find(function(p){return p.id===assignedId;}):null;
-      var isMe=(state.seat===w);
-      var rowBd=isMe?"var(--g)":selPid?"var(--b)":"var(--bd)";
-      var rowBg=isMe?"var(--g-bg)":"var(--sf)";
-
-      var content="";
-      if(assignedP){
-        // 割り当て済み: 名前 + 解除ボタン + 「〇家の情報を入力」ボタン
-        var meBg=isMe?"var(--g)":"var(--sf2)";
-        var meBd=isMe?"1px solid var(--g)":".5px solid var(--bd2)";
-        var meCol=isMe?"var(--g-bg)":"var(--tx3)";
-        content='<div style="display:flex;align-items:center;gap:8px;flex:1">'
-          +'<span style="font-size:14px;font-weight:500">'+assignedP.name+'</span>'
-          +'<button onclick="event.stopPropagation();gfAssignSeat(\''+w+'\',null)" '
-            +'style="font-size:11px;padding:2px 8px;border-radius:4px;'
-            +'background:none;border:.5px solid var(--bd2);cursor:pointer;color:var(--tx3)">← 外す</button>'
-          +'</div>'
-          +'<button onclick="gfSetMyseat(\''+w+'\')" '
-            +'style="font-size:11px;padding:3px 8px;border-radius:6px;font-family:inherit;cursor:pointer;'
-            +'background:'+meBg+';border:'+meBd+';color:'+meCol+'">'
-            +seat+'の情報を入力</button>';
-      } else if(selPid){
-        var selP=allP.find(function(x){return x.id===selPid;});
-        content='<button data-seatw="'+w+'" onclick="gfDropToSeat(this.dataset.seatw)" '
-          +'style="font-size:12px;padding:4px 12px;border-radius:6px;font-family:inherit;cursor:pointer;'
-          +'background:var(--b);border:none;color:#e6f1fb;font-weight:600">'
-          +(selP?selP.name:"選手")+'をここに配置</button>';
-      } else {
-        content='<span style="font-size:12px;color:var(--tx3)">↑ 選手を選んでタップ</span>';
-      }
-
-      return'<div style="border:.5px solid '+rowBd+';border-radius:var(--ra);'
-        +'background:'+rowBg+';padding:10px 12px;margin-bottom:6px;'
-        +'min-height:52px;transition:all .15s">'
-        +'<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">'
-        +'<div style="font-size:13px;font-weight:600;color:var(--tx2);min-width:32px">'+seat+'</div>'
-        +content
-        +'</div>'
-        +'</div>';
-    }).join("");
-
-    var myChosen=!!state.seat;
-    var mySeatLabel2=myChosen?WJseats[WE.indexOf(state.seat)]:"";
-
-    h='<div class="card">'
-      +'<div class="slabel">👤 座席割り当て</div>'
-      +(selPid
-        ?'<div style="background:var(--b-bg);border:.5px solid var(--b);border-radius:var(--ra);padding:8px 12px;margin-bottom:10px;font-size:13px;color:var(--b)">'
-          +'✓ '+(allP.find(function(x){return x.id===selPid;})||{name:"?"}).name+'を選択中 — 座席をタップして配置'
-          +'<button onclick="state.playerDragSel=null;renderSection()" '
-            +'style="margin-left:8px;font-size:11px;padding:2px 8px;border-radius:4px;background:none;border:.5px solid var(--b);color:var(--b);cursor:pointer">キャンセル</button>'
-          +'</div>'
-        :'<p style="font-size:12px;color:var(--tx3);margin-bottom:10px">①選手名をタップして選択 → ②座席をタップして配置<br>「外す」で再配置、別の座席への移動も可能</p>')
-      +'<div style="display:flex;flex-wrap:wrap;gap:0;margin-bottom:12px;padding:10px;background:var(--sf2);border-radius:var(--ra)">'
-      +'<div style="font-size:11px;color:var(--tx3);width:100%;margin-bottom:6px">未配置の選手</div>'
-      +playerList
-      +'</div>'
-      +seatBoxes
-      +(myChosen
-        ?'<div style="background:var(--g-bg);border:.5px solid var(--g);border-radius:var(--ra);'
-          +'padding:8px 12px;font-size:13px;color:var(--g);font-weight:600;margin-top:8px">'
-          +'✓ '+mySeatLabel2+'の情報を入力します</div>'
-          +'<button onclick="setSection(\'haipai\')"'
-          +' style="width:100%;margin-top:10px;padding:12px;border-radius:var(--ra);'
-          +'background:var(--b);border:none;color:#e6f1fb;font-size:15px;'
-          +'font-weight:600;font-family:inherit;cursor:pointer">'
-          +'📝 '+mySeatLabel2+'の情報を入力する</button>'
-        :'<div style="font-size:12px;color:var(--tx3);margin-top:8px">'
-          +'※「〇家の情報を入力」を押して担当座席を決めてください</div>')
-      +'</div>';
-  }
 
   else if(s==="haipai"){
     var haipaiDone=!!confirmedSections['haipai'];
@@ -2255,9 +2163,10 @@ function confirmSection(key){
 }
 
 function showConfirmSummary(){
-  // 確認モーダル
   var modal=document.getElementById('confirm-modal');
-  if(modal){modal.style.display='flex';renderConfirmSummary();}
+  if(!modal){ submitAll(); return; }  // フォールバック
+  modal.style.display='flex';
+  renderConfirmSummary();
 }
 function renderConfirmSummary(){
   var el=document.getElementById('confirm-modal-body');
@@ -2421,9 +2330,68 @@ function renderGameFlow(){
       <!-- 選手リスト -->
       <div style="display:flex;flex-direction:column;gap:5px;margin-bottom:14px">${playerBtns}</div>
 
-      ${gf.players.length>=2
-        ?`<button class="pri" style="width:100%;padding:11px" onclick="gfNext()">次へ：確認 →</button>`
-        :`<div style="font-size:12px;color:var(--tx3);text-align:center;padding:6px">2名以上選択してください</div>`}
+      ${gf.players.length>=2 ? `
+      <div class="slabel" style="margin-top:14px">東一局の初期配置</div>
+      <p style="font-size:11px;color:var(--tx3);margin-bottom:10px">①選手名をタップ → ②座席をタップして配置</p>
+      ${(function(){
+        var IS=gf.initSeats||{};
+        var WE=['east','south','west','north'];
+        var WJ=['東家','南家','西家','北家'];
+        var allP=Object.values(PLAYERS_MASTER).flat();
+        var selPid=gf.initSelPid||null;
+        var assignedIds={};
+        WE.forEach(function(w){if(IS[w])assignedIds[IS[w]]=w;});
+
+        // 未配置選手ストック
+        var stock=gf.players.filter(function(pid){return !assignedIds[pid];}).map(function(pid){
+          var p=allP.find(function(x){return x.id===pid;}); if(!p)return'';
+          var isSel=(selPid===pid);
+          return'<div onclick="gfInitSelPlayer(\''+pid+'\')" '
+            +'style="padding:7px 12px;border-radius:20px;cursor:pointer;font-size:13px;'
+            +'background:'+(isSel?'var(--b)':'var(--sf)')+';'
+            +'border:'+(isSel?'2px solid var(--b)':'.5px solid var(--bd2)')+';'
+            +'color:'+(isSel?'#e6f1fb':'var(--tx)')+';margin:2px">'+p.name+'</div>';
+        }).join('');
+
+        var stockHtml='<div style="display:flex;flex-wrap:wrap;gap:4px;min-height:36px;'
+          +'padding:8px;background:var(--sf2);border-radius:var(--ra);margin-bottom:10px">'
+          +'<div style="font-size:10px;color:var(--tx3);width:100%;margin-bottom:4px">未配置の選手</div>'
+          +(stock||'<span style="font-size:11px;color:var(--g)">全員配置済み ✓</span>')
+          +'</div>';
+
+        // 座席ボックス
+        var seatBoxes=WE.map(function(w,wi){
+          var pid=IS[w];
+          var p=pid?allP.find(function(x){return x.id===pid;}):null;
+          var content='';
+          if(p){
+            content='<div style="display:flex;align-items:center;gap:8px;flex:1">'
+              +'<span style="font-size:14px;font-weight:600">'+p.name+'</span>'
+              +'<button onclick="event.stopPropagation();gfSetInitSeat(\''+w+'\',null)" '
+                +'style="font-size:11px;padding:2px 8px;border-radius:4px;background:none;border:.5px solid var(--bd2);cursor:pointer;color:var(--tx3)">← 外す</button>'
+              +'</div>';
+          } else if(selPid){
+            var selP=allP.find(function(x){return x.id===selPid;});
+            content='<button data-w="'+w+'" onclick="gfInitDropToSeat(this.dataset.w)" '
+              +'style="font-size:12px;padding:4px 12px;border-radius:6px;font-family:inherit;cursor:pointer;'
+              +'background:var(--b);border:none;color:#e6f1fb;font-weight:600">'
+              +(selP?selP.name:'選手')+'をここに配置</button>';
+          } else {
+            content='<span style="font-size:12px;color:var(--tx3)">↑ 選手を選んでタップ</span>';
+          }
+          return'<div style="border:.5px solid '+(p?'var(--g)':'var(--bd)')+';border-radius:var(--ra);'
+            +'background:'+(p?'var(--g-bg)':'var(--sf)')+';padding:9px 12px;margin-bottom:5px;'
+            +'display:flex;align-items:center;gap:8px">'
+            +'<div style="font-size:13px;font-weight:700;min-width:36px">'+WJ[wi]+'</div>'
+            +content+'</div>';
+        }).join('');
+
+        return stockHtml+seatBoxes;
+      })()}
+      ${gfInitSeatsComplete()
+        ?'<button class="pri" style="width:100%;padding:11px" onclick="gfNext()">次へ：確認 →</button>'
+        :'<div style="font-size:12px;color:var(--tx3);text-align:center;padding:6px">全員の座席を割り当ててください</div>'}
+      ` : '<div style="font-size:12px;color:var(--tx3);text-align:center;padding:6px">2名以上選択してください</div>'}
     </div>`;
   }
 
@@ -2467,7 +2435,8 @@ function renderGameFlow(){
               <div style="font-size:12px;color:var(--g)">この対局の牌譜ファイルへの入力が可能になりました。</div>
             </div>
           </div>
-          <button class="pri" style="width:100%;padding:11px;font-size:15px" onclick="gfStartInput()">🀄 牌譜入力を開始する</button>`
+          <div id="kyoku-list-area">${renderKyokuList(gf)}</div>
+          <button class="pri" style="width:100%;padding:11px;font-size:15px;margin-top:10px" onclick="gfStartInput()">🀄 選択した局の入力を開始する</button>`
         :`<div style="background:var(--b-bg);border:.5px solid var(--b);border-radius:var(--ra);padding:12px 14px;margin-bottom:12px;font-size:12px;color:var(--b-t)">
             ⚡ 同じ日付・団体・大会・選手を入力した他のユーザーとマッチングします。<br>
             一致した場合、同じ牌譜ファイルへの入力が可能になります。
@@ -2483,19 +2452,31 @@ function renderGameFlow(){
   try{if(localStorage.getItem('tsumolog_draft'))_dc2++;}catch(e){}
   try{_dc2+=JSON.parse(localStorage.getItem('tsumolog_kifu_history')||'[]').length;}catch(e){}
   var draftListBtn='<button onclick="showDraftListModal()" '
-    +'style="width:100%;padding:9px 12px;margin-bottom:10px;border-radius:var(--ra);'
-    +'background:var(--sf2);border:.5px solid var(--bd2);color:var(--tx2);'
-    +'font-size:12px;font-family:inherit;cursor:pointer;'
-    +'display:flex;align-items:center;gap:8px;box-sizing:border-box">'
-    +'<span style="font-size:15px">📋</span>'
-    +'<div style="flex:1;text-align:left"><div style="font-weight:600">編集途中・完成牌譜一覧</div>'
-    +'<div style="font-size:10px;color:var(--tx3)">'+_dc2+'件 / 絞り込み検索</div></div>'
-    +'<span style="color:var(--tx3)">›</span>'
+    +'style="width:100%;padding:11px 14px;margin-bottom:10px;border-radius:var(--ra);'
+    +'background:linear-gradient(135deg,var(--b-bg),rgba(74,143,212,.12));'
+    +'border:1.5px solid var(--b);color:var(--b);'
+    +'font-size:13px;font-family:inherit;cursor:pointer;'
+    +'display:flex;align-items:center;gap:10px;box-sizing:border-box;'
+    +'box-shadow:0 2px 8px rgba(74,143,212,.15)">'
+    +'<span style="font-size:18px">📋</span>'
+    +'<div style="flex:1;text-align:left">'
+    +'<div style="font-weight:700">編集途中・完成牌譜一覧</div>'
+    +'<div style="font-size:11px;color:var(--b);opacity:.75">'+_dc2+'件 / 絞り込み検索</div></div>'
+    +'<span style="font-size:16px;color:var(--b)">›</span>'
     +'</button>';
+
+  var newKifuBanner='<div style="margin-bottom:12px;padding:10px 14px;border-radius:var(--ra);'
+    +'background:var(--g-bg);border:.5px solid var(--g);display:flex;align-items:center;gap:10px">'
+    +'<span style="font-size:18px">✨</span>'
+    +'<div>'
+    +'<div style="font-size:13px;font-weight:700;color:var(--g)">新しい牌譜を作成する</div>'
+    +'<div style="font-size:11px;color:var(--g);opacity:.8">新しい牌譜入力を開始するとボーナスポイントがもらえます</div>'
+    +'</div>'
+    +'</div>';
 
   return`<div class="card">
     <div class="slabel">🀄 対局情報</div>
-    ${draftListBtn}${indicator}${backBtn}${body}
+    ${draftListBtn}${newKifuBanner}${indicator}${backBtn}${body}
   </div>`;
 }
 
@@ -2506,11 +2487,136 @@ function gfNext(){
   if(gf.step===1&&!gf.org)return;
   if(gf.step===2&&!gf.tournament)return;
   if(gf.step===3&&gf.players.length<2)return;
+  if(gf.step===3&&!gfInitSeatsComplete())return;
   state.gameFlow.step++;
   renderSection();
 }
 function gfBack(){
   if(state.gameFlow.step>0){state.gameFlow.step--;renderSection();}
+}
+function gfInitSelPlayer(pid){
+  state.gameFlow.initSelPid=(state.gameFlow.initSelPid===pid)?null:pid;
+  renderSection();
+}
+function gfInitDropToSeat(w){
+  var pid=state.gameFlow.initSelPid; if(!pid)return;
+  gfSetInitSeat(w, pid);
+}
+function gfSetInitSeat(w, pid){
+  if(!state.gameFlow.initSeats) state.gameFlow.initSeats={};
+  // 既存の配置を解除（同じpidを別の座席に割り当て直す）
+  var WE=['east','south','west','north'];
+  if(pid) WE.forEach(function(ow){if(ow!==w&&state.gameFlow.initSeats[ow]===pid)state.gameFlow.initSeats[ow]=null;});
+  state.gameFlow.initSeats[w] = pid||null;
+  state.gameFlow.initSelPid = null; // 選択をクリア
+  renderSection();
+}
+function gfInitSeatsComplete(){
+  var gf=state.gameFlow;
+  if(!gf.initSeats) return false;
+  var WE=['east','south','west','north'];
+  var assigned=WE.filter(function(w){return gf.initSeats[w];});
+  var unique=[];
+  assigned.forEach(function(w){if(unique.indexOf(gf.initSeats[w])<0)unique.push(gf.initSeats[w]);});
+  // 選手数分の座席が割り当てられ、重複なし
+  return assigned.length===gf.players.length && unique.length===assigned.length;
+}
+
+// 局一覧を生成（東1〜南4 + 本場）
+function renderKyokuList(gf){
+  var WE=['east','south','west','north'];
+  var WJ=['東家','南家','西家','北家'];
+  var allP=Object.values(PLAYERS_MASTER).flat();
+  var initSeats=gf.initSeats||{};
+  var players=gf.players||[];
+  var n=players.length; // 4人 or 3人
+
+  // 局リスト生成
+  var kyokus=[];
+  var rounds=n===3?['東','南']:['東','南'];
+  rounds.forEach(function(ba){
+    for(var k=1;k<=n;k++){
+      for(var h=0;h<=3;h++){
+        kyokus.push({ba:ba,kyoku:k,honba:h});
+      }
+    }
+  });
+  // 通常は本場0のみ表示、1本場以降は折りたたみ
+  var basKyokus=kyokus.filter(function(k){return k.honba===0;});
+
+  var sel=gf.selectedKyoku||basKyokus[0];
+
+  return '<div style="margin-bottom:8px">'
+    +'<div style="font-size:11px;color:var(--tx3);margin-bottom:6px">入力する局を選択してください</div>'
+    +'<div style="display:flex;flex-wrap:wrap;gap:4px">'
+    +basKyokus.map(function(ky){
+      var isSel=sel&&sel.ba===ky.ba&&sel.kyoku===ky.kyoku&&sel.honba===ky.honba;
+      // 親の計算: 東一局の東家から順に回る
+      var kyokuIdx=(ky.ba==='東'?0:n)+ky.kyoku-1;
+      var oyaWIdx=kyokuIdx%n;
+      var oyaW=WE[oyaWIdx];
+      var oyaPid=initSeats[oyaW];
+      var oyaP=oyaPid?allP.find(function(x){return x.id===oyaPid;}):null;
+      return '<button onclick="gfSelectKyoku(\''+ky.ba+'\','+ky.kyoku+','+ky.honba+')" '
+        +'style="padding:6px 10px;border-radius:6px;font-size:12px;font-family:inherit;cursor:pointer;'
+        +'background:'+(isSel?'var(--b)':'var(--sf)')+';'
+        +'border:'+(isSel?'1.5px solid var(--b)':'.5px solid var(--bd2)')+';'
+        +'color:'+(isSel?'#e6f1fb':'var(--tx)')+'">'
+        +ky.ba+ky.kyoku+'局'
+        +(oyaP?'<br><span style="font-size:9px;opacity:.8">親:'+oyaP.name+'</span>':'')
+        +'</button>';
+    }).join('')
+    +'</div>'
+    +'</div>';
+}
+
+function gfSelectKyoku(ba, kyoku, honba){
+  var WE=['east','south','west','north'];
+  state.gameFlow.selectedKyoku={ba:ba,kyoku:kyoku,honba:honba};
+  // 座席を自動計算
+  var gf=state.gameFlow;
+  var initSeats=gf.initSeats||{};
+  var players=gf.players||[];
+  var n=players.length;
+  var kyokuIdx=(ba==='東'?0:n)+kyoku-1;
+  // 各プレイヤーの局時点での座席を計算
+  // 東一局からkyokuIdx局分ローテーション
+  var newSeats={};
+  WE.forEach(function(w,wi){
+    var pid=initSeats[w];
+    if(pid){
+      // wiから kyokuIdx 分逆回転（上家に進む）
+      var newWi=(wi - kyokuIdx % n + n*10) % n;
+      newSeats[WE[newWi]] = pid;
+    }
+  });
+  // state.seatMap に設定
+  state.gameFlow.computedSeats=newSeats;
+  renderSection();
+}
+
+function gfStartInput(){
+  // 選択済み局と座席を state に反映
+  var gf=state.gameFlow;
+  var ky=gf.selectedKyoku||{ba:'東',kyoku:1,honba:0};
+  var seats=gf.computedSeats||gf.initSeats||{};
+  state.seatMap=Object.assign({east:null,south:null,west:null,north:null}, seats);
+  state.gameInfo=state.gameInfo||{};
+  state.gameInfo.bakaze=ky.ba;
+  state.gameInfo.kyoku=ky.kyoku;
+  state.gameInfo.honba=ky.honba;
+  // 自分の座席: initSeats から自分が入力しているものを選ぶ（後でseat選択）
+  state.seat = state.seat || null;
+  // ポイント付与
+  var existDraft=localStorage.getItem('tsumolog_draft');
+  var isResume=false;
+  try{if(existDraft){var ed=JSON.parse(existDraft);isResume=!!(ed.state&&ed.state.gameFlow&&ed.state.gameFlow.matched);}}catch(e){}
+  if(!isResume){
+    TsumologPoints.grant('new_kifu_start',5,'新規牌譜入力開始').then(function(){TsumologPoints.refreshDisplay();});
+  }
+  state.section='haipai';  // 最初から配牌タブを表示
+  renderNav();
+  renderSection();
 }
 function gfSelectOrg(id){
   state.gameFlow.org=id;
@@ -2553,24 +2659,6 @@ function gfDoMatch(){
   state.gameInfo.title=(org?org.label:"")+" "+(tour?tour.label:"");
   renderNav();
   renderSection();
-}
-function gfStartInput(){
-  // 新規牌譜開始ボーナス
-  var existDraft = localStorage.getItem('tsumolog_draft');
-  var isResume = false;
-  try{
-    if(existDraft){
-      var ed = JSON.parse(existDraft);
-      isResume = !!(ed.state && ed.state.gameFlow && ed.state.gameFlow.matched);
-    }
-  }catch(e){}
-  if(!isResume){
-    TsumologPoints.grant('new_kifu_start', 5, '新規牌譜入力開始').then(function(){
-      TsumologPoints.refreshDisplay();
-    });
-  }
-  renderNav();
-  setSection("player");
 }
 
 // タップ選択方式（iOS/Android対応）
