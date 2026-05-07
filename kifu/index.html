@@ -892,6 +892,7 @@ function completion(){
   var done=SECTIONS.filter(function(s){return sectionDone(s.key);}).length;
   return Math.round(done/SECTIONS.length*100);
 }
+function calcCompletion(){ return completion(); }
 function renderNav(){
   var nav=document.getElementById("sec-nav");
   var matched=state.gameFlow.matched;
@@ -993,6 +994,173 @@ function setSection(key){
   state.section=key;
   renderNav();
   renderSection();
+  autoSaveDraft();
+}
+
+// 編集中の状態を localStorage に自動保存
+function autoSaveDraft(){
+  try{
+    var draft={
+      state: {
+        section:    state.section,
+        gameFlow:   state.gameFlow,
+        gameInfo:   state.gameInfo,
+        seat:       state.seat,
+        seatMap:    state.seatMap,
+        haipai:     state.haipai,
+        draws:      state.draws,
+        discards:   state.discards,
+        finalHand:  state.finalHand,
+        waitTiles:  state.waitTiles,
+        melds:      state.melds,
+        agari:      state.agari,
+        isTenpai:   state.isTenpai,
+      },
+      confirmedSections: confirmedSections,
+      savedAt: Date.now(),
+      completion: calcCompletion(),
+    };
+    localStorage.setItem('tsumolog_draft', JSON.stringify(draft));
+  }catch(e){}
+}
+
+// ドラフトを復元
+function showDraftListModal(){
+  var drafts=[];
+  try{var raw=localStorage.getItem('tsumolog_draft');if(raw){var d=JSON.parse(raw);d._isDraft=true;drafts.push(d);}}catch(e){}
+  try{
+    JSON.parse(localStorage.getItem('tsumolog_kifu_history')||'[]').forEach(function(h,hi){
+      var meta=(h.json&&h.json.gameData&&h.json.gameData.meta)||{};
+      drafts.push({state:{gameFlow:{date:meta.date||'',org:'',tournament:meta.title||'',players:[],matched:true}},
+        confirmedSections:{},savedAt:new Date(h.savedAt).getTime(),completion:100,
+        _isHistory:true,_histIdx:hi,_title:h.title});
+    });
+  }catch(e){}
+  _draftListAll=drafts;
+  _buildDraftModal(drafts);
+}
+var _draftListAll=[];
+
+function closeDraftModal(){
+  var m=document.getElementById('draft-list-modal');
+  if(m)m.remove();
+}
+function _buildDraftModal(list){
+  var old=document.getElementById('draft-list-modal'); if(old) old.remove();
+  // ユニーク値収集
+  var years=[],months=[],orgs=[],tourns=[];
+  list.forEach(function(d){
+    var gf=d.state&&d.state.gameFlow||{},dt=gf.date||'';
+    if(dt.slice(0,4)&&years.indexOf(dt.slice(0,4))<0)  years.push(dt.slice(0,4));
+    if(dt.slice(5,7)&&months.indexOf(dt.slice(5,7))<0) months.push(dt.slice(5,7));
+    // 団体名
+    if(gf.org){
+      var orgObj=ORGS.find(function(o){return o.id===gf.org;});
+      var orgLabel=orgObj?orgObj.label:gf.org;
+      if(orgs.indexOf(orgLabel)<0) orgs.push(orgLabel);
+    }
+    var tt=gf.tournament||d._title||'';
+    if(tt&&tourns.indexOf(tt)<0) tourns.push(tt);
+  });
+  function fsel(id,lbl,opts){
+    if(!opts.length)return'';
+    return'<select id="'+id+'" style="font-size:12px;padding:4px 7px;border:.5px solid var(--bd2);border-radius:6px;background:var(--sf2);color:var(--tx);outline:none;font-family:inherit">'
+      +'<option value="">'+lbl+'（全て）</option>'
+      +opts.map(function(o){return'<option>'+o+'</option>';}).join('')+'</select>';
+  }
+  var overlay=document.createElement('div');
+  overlay.id='draft-list-modal';
+  overlay.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:600;display:flex;align-items:flex-start;justify-content:center;padding-top:56px;overflow-y:auto';
+  var box=document.createElement('div');
+  box.style.cssText='width:min(520px,calc(100vw - 24px));background:var(--sf);border-radius:var(--ral);box-shadow:0 8px 32px rgba(0,0,0,.25);overflow:hidden;margin-bottom:24px';
+  box.innerHTML=
+    '<div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:.5px solid var(--bd)">'
+    +'<div style="font-size:14px;font-weight:700">📋 牌譜一覧　<span id="dl-cnt" style="font-size:12px;color:var(--tx3)">'+list.length+'件</span></div>'
+    +'<button onclick="closeDraftModal()" style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--tx3)">✕</button>'
+    +'</div>'
+    +'<div style="padding:10px 16px;border-bottom:.5px solid var(--bd);display:flex;flex-wrap:wrap;gap:6px;align-items:center">'
+    +fsel('dl-f-year','年',years)+fsel('dl-f-month','月',months)+fsel('dl-f-org','団体',orgs)+fsel('dl-f-tourn','大会',tourns)
+    +'<input id="dl-f-player" type="text" placeholder="対局者名" style="font-size:12px;padding:4px 7px;border:.5px solid var(--bd2);border-radius:6px;background:var(--sf2);color:var(--tx);outline:none;width:90px;font-family:inherit">'
+    +'<button onclick="_applyDL()" style="padding:4px 10px;border-radius:6px;background:var(--b);border:none;color:#e6f1fb;font-size:12px;font-family:inherit;cursor:pointer">絞り込み</button>'
+    +'<button onclick="_clearDL()" style="padding:4px 8px;border-radius:6px;background:var(--sf2);border:.5px solid var(--bd2);color:var(--tx3);font-size:12px;font-family:inherit;cursor:pointer">クリア</button>'
+    +'</div>'
+    +'<div id="dl-list" style="padding:12px 16px;max-height:55vh;overflow-y:auto"></div>';
+  overlay.appendChild(box);
+  document.body.appendChild(overlay);
+  overlay.addEventListener('click',function(e){if(e.target===overlay)overlay.remove();});
+  _renderDL(list);
+}
+function _applyDL(){
+  var yr=(document.getElementById('dl-f-year') ||{value:''}).value;
+  var mo=(document.getElementById('dl-f-month')||{value:''}).value;
+  var og=(document.getElementById('dl-f-org')  ||{value:''}).value;
+  var tt=(document.getElementById('dl-f-tourn')||{value:''}).value;
+  var pl=(document.getElementById('dl-f-player')||{value:''}).value.trim();
+  var allP=Object.values(PLAYERS_MASTER).flat();
+  _renderDL(_draftListAll.filter(function(d){
+    var gf=d.state&&d.state.gameFlow||{},dt=gf.date||'';
+    if(yr&&!dt.startsWith(yr))return false;
+    if(mo&&dt.slice(5,7)!==mo)return false;
+    if(og){
+      var orgObj=ORGS.find(function(o){return o.id===gf.org;});
+      var orgLabel=orgObj?orgObj.label:(gf.org||'');
+      if(orgLabel.indexOf(og)<0)return false;
+    }
+    if(tt&&(gf.tournament||d._title||'').indexOf(tt)<0)return false;
+    if(pl){var ns=(gf.players||[]).map(function(pid){var p=allP.find(function(x){return x.id===pid;});return p?p.name:'';});
+      if(!ns.some(function(n){return n.indexOf(pl)>=0;}))return false;}
+    return true;
+  }));
+}
+function _clearDL(){
+  ['dl-f-year','dl-f-month','dl-f-org','dl-f-tourn'].forEach(function(id){var el=document.getElementById(id);if(el)el.value='';});
+  var el=document.getElementById('dl-f-player');if(el)el.value='';
+  _renderDL(_draftListAll);
+}
+function _renderDL(list){
+  var cnt=document.getElementById('dl-cnt'); if(cnt)cnt.textContent=list.length+'件';
+  var el=document.getElementById('dl-list'); if(!el)return;
+  if(!list.length){el.innerHTML='<div style="text-align:center;padding:20px;color:var(--tx3);font-size:13px">該当なし</div>';return;}
+  var allP=Object.values(PLAYERS_MASTER).flat();
+  el.innerHTML=list.map(function(d,i){
+    var gf=d.state&&d.state.gameFlow||{};
+    var dt=gf.date||'—', tourn=gf.tournament||d._title||'タイトル未設定';
+    var pnames=(gf.players||[]).map(function(pid){var p=allP.find(function(x){return x.id===pid;});return p?p.name:pid;});
+    var age=Math.floor((Date.now()-d.savedAt)/60000);
+    var ageStr=age<60?age+'分前':age<1440?Math.floor(age/60)+'時間前':Math.floor(age/1440)+'日前';
+    var tag=d._isDraft
+      ?'<span style="font-size:9px;background:var(--b-bg);color:var(--b);border:.5px solid var(--b);border-radius:4px;padding:1px 5px">編集中</span>'
+      :'<span style="font-size:9px;background:var(--g-bg);color:var(--g);border:.5px solid var(--g);border-radius:4px;padding:1px 5px">完成</span>';
+    return'<div style="border:.5px solid var(--bd);border-radius:var(--ra);padding:12px;margin-bottom:8px">'
+      +'<div style="display:flex;align-items:flex-start;gap:8px;margin-bottom:8px">'+tag
+      +'<div style="flex:1"><div style="font-size:13px;font-weight:600">'+dt+'　'+tourn+'</div>'
+      +(pnames.length?'<div style="font-size:11px;color:var(--tx3)">'+pnames.join('・')+'</div>':'')
+      +'<div style="font-size:10px;color:var(--tx3)">完成度 '+d.completion+'%　'+ageStr+'</div>'
+      +'</div></div>'
+      +'<button onclick="_loadDL('+i+')" style="width:100%;padding:8px;border-radius:var(--ra);background:var(--b);border:none;color:#e6f1fb;font-size:13px;font-weight:600;font-family:inherit;cursor:pointer">'
+      +(d._isDraft?'続きを入力':'再読み込み（フェーズ2）')+'</button>'
+      +'</div>';
+  }).join('');
+}
+function _loadDL(i){
+  var d=_draftListAll[i]; if(!d)return;
+  document.getElementById('draft-list-modal').remove();
+  if(d._isDraft) loadDraft(d);
+  else alert('完成牌譜の再編集はフェーズ2で対応予定です。');
+}
+
+function loadDraft(draft){
+  var s = draft.state;
+  Object.assign(state, s);
+  Object.assign(confirmedSections, draft.confirmedSections||{});
+  state.activeSlot = null;
+  renderNav();
+  setSection(s.section||'game');
+}
+
+// ドラフトを削除
+function clearDraft(){
+  localStorage.removeItem('tsumolog_draft');
 }
 
 // ═══════════════════════════════════════════════
@@ -2141,13 +2309,17 @@ function renderGameFlow(){
   // ── STEP 0: 対局日 ──
   if(step===0){
     var today=new Date().toISOString().slice(0,10);
-    body=`<div>
-      <div class="slabel">対局日を選択</div>
-      <input type="date" id="gf-date" value="${gf.date||today}"
-        style="background:var(--sf);border:.5px solid var(--bd2);border-radius:var(--ra);padding:10px 12px;font-size:16px;color:var(--tx);width:100%;outline:none;font-family:inherit;margin-bottom:14px"
-        oninput="state.gameFlow.date=this.value">
-      <button class="pri" style="width:100%;padding:11px" onclick="gfNext()">次へ：団体を選ぶ →</button>
-    </div>`;
+    // ドラフト件数を取得
+    var _dc=0;
+    try{if(localStorage.getItem('tsumolog_draft'))_dc++;}catch(e){}
+    try{_dc+=JSON.parse(localStorage.getItem('tsumolog_kifu_history')||'[]').length;}catch(e){}
+    body='<div>'
+      +'<div class="slabel">対局日を選択</div>'
+      +'<input type="date" id="gf-date" value="'+(gf.date||today)+'"'
+        +' style="background:var(--sf);border:.5px solid var(--bd2);border-radius:var(--ra);padding:10px 12px;font-size:16px;color:var(--tx);width:100%;outline:none;font-family:inherit;margin-bottom:10px"'
+        +' oninput="state.gameFlow.date=this.value">'
+      +'<button class="pri" style="width:100%;padding:11px;margin-bottom:10px" onclick="gfNext()">次へ：団体を選ぶ →</button>'
+      +'</div>';
     // 今日の日付をデフォルト
     if(!gf.date) state.gameFlow.date=today;
   }
@@ -2306,9 +2478,24 @@ function renderGameFlow(){
     </div>`;
   }
 
+  // ドラフト一覧ボタン（常に「対局情報」の直下に表示）
+  var _dc2=0;
+  try{if(localStorage.getItem('tsumolog_draft'))_dc2++;}catch(e){}
+  try{_dc2+=JSON.parse(localStorage.getItem('tsumolog_kifu_history')||'[]').length;}catch(e){}
+  var draftListBtn='<button onclick="showDraftListModal()" '
+    +'style="width:100%;padding:9px 12px;margin-bottom:10px;border-radius:var(--ra);'
+    +'background:var(--sf2);border:.5px solid var(--bd2);color:var(--tx2);'
+    +'font-size:12px;font-family:inherit;cursor:pointer;'
+    +'display:flex;align-items:center;gap:8px;box-sizing:border-box">'
+    +'<span style="font-size:15px">📋</span>'
+    +'<div style="flex:1;text-align:left"><div style="font-weight:600">編集途中・完成牌譜一覧</div>'
+    +'<div style="font-size:10px;color:var(--tx3)">'+_dc2+'件 / 絞り込み検索</div></div>'
+    +'<span style="color:var(--tx3)">›</span>'
+    +'</button>';
+
   return`<div class="card">
     <div class="slabel">🀄 対局情報</div>
-    ${indicator}${backBtn}${body}
+    ${draftListBtn}${indicator}${backBtn}${body}
   </div>`;
 }
 
@@ -2368,6 +2555,20 @@ function gfDoMatch(){
   renderSection();
 }
 function gfStartInput(){
+  // 新規牌譜開始ボーナス
+  var existDraft = localStorage.getItem('tsumolog_draft');
+  var isResume = false;
+  try{
+    if(existDraft){
+      var ed = JSON.parse(existDraft);
+      isResume = !!(ed.state && ed.state.gameFlow && ed.state.gameFlow.matched);
+    }
+  }catch(e){}
+  if(!isResume){
+    TsumologPoints.grant('new_kifu_start', 5, '新規牌譜入力開始').then(function(){
+      TsumologPoints.refreshDisplay();
+    });
+  }
   renderNav();
   setSection("player");
 }
@@ -3319,6 +3520,7 @@ function submitAll(){
       hist.unshift({savedAt: kifuObj.savedAt, title: kifuObj.gameData.meta.title||'無題', json: kifuObj});
       if(hist.length>20) hist=hist.slice(0,20);
       localStorage.setItem('tsumolog_kifu_history', JSON.stringify(hist));
+    clearDraft(); // 送信完了したらドラフトを削除
     }catch(e){}
     document.getElementById("done-modal").classList.add("open");
   });
