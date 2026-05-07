@@ -276,14 +276,40 @@ var TsumologPoints=(function(){
 // ══════════════════════════════════════════════
 // ショップ商品定義
 // ══════════════════════════════════════════════
-var SHOP_ITEMS=[
-  {id:'download_1',  icon:'📄', name:'牌譜DL（1局）',  desc:'入力した牌譜をJSONでダウンロード。再生アプリで使用可能。', price:30,  action:'download'},
-  {id:'sub_month',   icon:'⭐', name:'月額プラン',      desc:'30日間、牌譜DL・再生し放題。ポイント還元率1.5倍。',       price:300, action:'subscribe_month'},
-  {id:'sub_year',    icon:'🏆', name:'年額プラン',      desc:'365日間、全機能使い放題。ポイント還元率2倍。',             price:2200,action:'subscribe_year'},
-  {id:'comment_like',icon:'💬', name:'コメント枠拡張',  desc:'1局あたりのコメント投稿数を5件→20件に拡張（30日間）。',   price:50,  action:'expand_comment'},
-  {id:'profile_icon',icon:'🀄', name:'プロフィール牌柄',desc:'プロフィールに特別な牌柄アイコンを設定できます。',          price:100, action:'profile_icon'},
-  {id:'bonus_pts',   icon:'🎁', name:'ポイント2倍デー', desc:'翌日1日間、全ての牌譜入力ポイントが2倍になります。',        price:80,  action:'pts_double'},
-];
+// shop.csv から動的に読み込む
+var SHOP_ITEMS=[];
+
+function loadShopCSV(){
+  return fetch('../kifu/shop.csv')
+    .then(function(r){ if(!r.ok) throw new Error('shop.csv not found'); return r.text(); })
+    .then(function(txt){
+      var lines=txt.trim().split(/\r?\n/);
+      var headers=lines[0].split(',').map(function(h){return h.trim();});
+      SHOP_ITEMS=lines.slice(1).map(function(line){
+        var cols=[],cur='',inQ=false;
+        for(var i=0;i<line.length;i++){
+          var ch=line[i];
+          if(ch==='"'){inQ=!inQ;}
+          else if(ch===','&&!inQ){cols.push(cur.trim());cur='';}
+          else cur+=ch;
+        }
+        cols.push(cur.trim());
+        var obj={};
+        headers.forEach(function(h,i){obj[h]=cols[i]!==undefined?cols[i]:'';});
+        obj.price=parseInt(obj.price)||0;
+        return obj;
+      });
+    })
+    .catch(function(){
+      // フォールバック（CSVが読めない場合）
+      SHOP_ITEMS=[
+        {id:'download_1',icon:'📄',name:'牌譜DL（1局）',
+         desc:'入力した牌譜をJSONでダウンロード。再生アプリで使用可能。',price:30,action:'download'},
+        {id:'sub_month',icon:'⭐',name:'月額プラン',
+         desc:'30日間・牌譜DL無制限＋再生し放題。',price:300,action:'subscribe_month'},
+      ];
+    });
+}
 
 var currentItem=null;
 var currentTab='shop';
@@ -292,6 +318,7 @@ var currentTab='shop';
 // 初期化
 // ══════════════════════════════════════════════
 function init(){
+  loadShopCSV().then(function(){
   TsumologPoints.getUser().then(function(u){
     document.getElementById('pts-disp').textContent=u.points.toLocaleString();
     document.getElementById('summary-pts').textContent=u.points.toLocaleString();
@@ -307,6 +334,7 @@ function init(){
     TsumologPoints.setName(this.value);
     showToast('名前を保存しました');
   });
+  }); // loadShopCSV end
 }
 
 function renderShop(pts){
