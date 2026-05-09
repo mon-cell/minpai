@@ -224,7 +224,7 @@ footer{animation:fadeUp .5s .35s ease both;opacity:0;}
       <div class="card-arrow">›</div>
     </div>
 
-    <a class="card" href="premium/">
+    <div class="card" onclick="openShopModal()" style="cursor:pointer">
       <div class="card-icon">⭐</div>
       <div class="card-body">
         <div class="card-name-en">Premium Shop</div>
@@ -232,7 +232,7 @@ footer{animation:fadeUp .5s .35s ease both;opacity:0;}
         <div class="card-desc">貯めたポイントで牌譜DLや月額プランを購入。獲得ポイントの履歴も確認できます。</div>
       </div>
       <div class="card-arrow">›</div>
-    </a>
+    </div>
 
   </div>
 
@@ -281,8 +281,7 @@ function openPaihu(){
     location.href='paihu/';
   } else {
     // ショップへ誘導
-    if(confirm('牌譜再生はプレミアムプランが必要です。
-ポイントショップで購入しますか？')){
+    if(confirm('牌譜再生はプレミアムプランが必要です。\nポイントショップで購入しますか？')){
       location.href='premium/';
     }
   }
@@ -302,5 +301,438 @@ function openPaihu(){
   }
 })();
 </script>
+
+<!-- ═══════════════════════════════════════════
+     ポイントショップ モーダル
+════════════════════════════════════════════ -->
+<div id="shop-modal" style="display:none;position:fixed;inset:0;z-index:100;
+  background:rgba(0,0,0,.75);align-items:flex-start;justify-content:center;
+  padding:16px;overflow-y:auto;">
+  <div style="background:#161410;border:1px solid rgba(255,255,255,.1);border-radius:16px;
+    max-width:520px;width:100%;margin:auto;padding:0;
+    box-shadow:0 16px 64px rgba(0,0,0,.6);">
+
+    <!-- ヘッダー -->
+    <div style="display:flex;align-items:center;gap:10px;padding:20px 20px 14px;
+      border-bottom:1px solid rgba(255,255,255,.07);">
+      <div style="font-size:18px;font-weight:700;flex:1;color:#e8b84a;
+        font-family:'Shippori Mincho',serif;letter-spacing:.05em;">⭐ ポイントショップ</div>
+      <div id="shop-pts-badge" style="font-size:12px;padding:4px 12px;
+        background:rgba(200,152,58,.15);border:1px solid rgba(200,152,58,.3);
+        border-radius:20px;color:#c8983a;font-family:'DM Mono',monospace;">
+        ― pt
+      </div>
+      <button onclick="closeShopModal()" style="background:transparent;border:none;
+        font-size:20px;color:#5a5040;cursor:pointer;padding:0 4px;line-height:1;">×</button>
+    </div>
+
+    <!-- 検索 -->
+    <div style="padding:12px 20px 0;">
+      <input id="shop-search" type="text" placeholder="タイトル・局・プレイヤー名で検索…"
+        oninput="renderShopList()"
+        style="width:100%;background:#0c0b09;border:1px solid rgba(255,255,255,.1);
+          border-radius:8px;padding:8px 12px;font-size:13px;color:#f0e8d0;
+          font-family:'Shippori Mincho',serif;outline:none;">
+    </div>
+
+    <!-- リスト -->
+    <div id="shop-list" style="padding:8px 20px 20px;max-height:60vh;overflow-y:auto;
+      scrollbar-width:thin;scrollbar-color:rgba(200,152,58,.3) transparent;">
+      <div style="color:#5a5040;font-size:13px;padding:24px 0;text-align:center;">
+        読み込み中…
+      </div>
+    </div>
+
+    <!-- フッター -->
+    <div style="padding:12px 20px;border-top:1px solid rgba(255,255,255,.07);
+      font-size:11px;color:#5a5040;font-family:'DM Mono',monospace;text-align:center;">
+      ポイントは牌譜入力で獲得できます
+    </div>
+  </div>
+</div>
+
+<!-- 購入確認モーダル -->
+<div id="buy-modal" style="display:none;position:fixed;inset:0;z-index:200;
+  background:rgba(0,0,0,.8);align-items:center;justify-content:center;padding:16px;">
+  <div style="background:#161410;border:1px solid rgba(200,152,58,.3);border-radius:14px;
+    max-width:360px;width:100%;padding:24px;box-shadow:0 8px 40px rgba(0,0,0,.5);">
+    <div style="font-size:15px;font-weight:700;color:#e8b84a;margin-bottom:6px;
+      font-family:'Shippori Mincho',serif;" id="buy-title">牌譜名</div>
+    <div style="font-size:12px;color:#a89870;margin-bottom:16px;" id="buy-desc">説明</div>
+    <div style="font-size:13px;color:#f0e8d0;margin-bottom:16px;">
+      <span id="buy-cost" style="font-size:22px;font-weight:700;color:#c8983a;">100</span>
+      <span style="color:#a89870;"> pt 消費します。よろしいですか？</span>
+    </div>
+    <div style="display:flex;gap:8px;">
+      <button onclick="closeBuyModal()" style="flex:1;padding:10px;background:transparent;
+        border:1px solid rgba(255,255,255,.1);border-radius:8px;color:#a89870;cursor:pointer;
+        font-family:'Shippori Mincho',serif;">キャンセル</button>
+      <button onclick="confirmBuy()" id="buy-confirm-btn"
+        style="flex:2;padding:10px;background:linear-gradient(135deg,#c8983a,#e8b84a);
+        border:none;border-radius:8px;color:#0c0b09;font-weight:700;cursor:pointer;
+        font-family:'Shippori Mincho',serif;">⭐ 購入して再生する</button>
+    </div>
+  </div>
+</div>
+
+
+<script>
+// ══════════════════════════════════════════════════════════════
+//  top.html — ポイントショップ + TsumologLibrary 連携
+// ══════════════════════════════════════════════════════════════
+// ══════════════════════════════════════════════════════════════
+//  TsumologLibrary — 共有IndexedDB + BroadcastChannel 連携モジュール
+//  両アプリ共通。同一オリジン上に配置することでIDBを共有する。
+// ══════════════════════════════════════════════════════════════
+var TsumologLibrary = (function(){
+  var DB_NAME  = 'tsumolog_shared';
+  var DB_VER   = 1;
+  var STORE    = 'library';
+  var _db      = null;
+  var _bc      = null; // BroadcastChannel
+
+  // ── BroadcastChannel（タブ間同期） ──────────────────────
+  try{
+    _bc = new BroadcastChannel('tsumolog_library');
+  }catch(e){ _bc = null; }
+
+  function _broadcast(type, data){
+    if(_bc) try{ _bc.postMessage({type:type, data:data}); }catch(e){}
+  }
+
+  // ── IDB オープン ────────────────────────────────────────
+  function _open(cb){
+    if(_db){ cb(_db); return; }
+    var req = indexedDB.open(DB_NAME, DB_VER);
+    req.onupgradeneeded = function(e){
+      var db = e.target.result;
+      if(!db.objectStoreNames.contains(STORE)){
+        var s = db.createObjectStore(STORE, {keyPath:'id', autoIncrement:true});
+        s.createIndex('source',  'source',  {unique:false});
+        s.createIndex('userId',  'userId',  {unique:false});
+        s.createIndex('savedAt', 'savedAt', {unique:false});
+      }
+    };
+    req.onsuccess  = function(e){ _db = e.target.result; cb(_db); };
+    req.onerror    = function(){ console.warn('[TsumologLibrary] IDB open failed'); cb(null); };
+  }
+
+  // ── 現在のユーザーID取得 ─────────────────────────────────
+  function _userId(){
+    try{
+      var u = JSON.parse(localStorage.getItem('tsumolog_user')||'null');
+      return (u && u.id) ? u.id : null;
+    }catch(e){ return null; }
+  }
+
+  // ── レコード追加 ─────────────────────────────────────────
+  // source: 'input' | 'replay' | 'variant'
+  // permissions: [userId, ...] — 再生を許可するユーザーIDの配列
+  function add(gameDataObj, opts, cb){
+    // opts: { source, label, filename, permissions }
+    var uid   = _userId();
+    var meta  = (gameDataObj.gameData||gameDataObj).meta || {};
+    var label = opts.label || meta.title || (meta.bakaze||'')+(meta.kyoku||'')+'局';
+    var perms = opts.permissions || (uid ? [uid] : []);
+
+    var record = {
+      source:      opts.source || 'replay',
+      label:       label,
+      filename:    opts.filename || '',
+      userId:      uid,
+      permissions: perms,
+      savedAt:     new Date().toISOString(),
+      savedAtDisp: new Date().toLocaleString('ja-JP'),
+      data:        JSON.stringify(gameDataObj),
+    };
+
+    _open(function(db){
+      if(!db){ cb && cb(null); return; }
+      var tx  = db.transaction(STORE, 'readwrite');
+      var req = tx.objectStore(STORE).add(record);
+      req.onsuccess = function(){
+        _broadcast('added', {id: req.result, source: record.source, label: label});
+        cb && cb(req.result);
+      };
+      req.onerror = function(){ cb && cb(null); };
+    });
+  }
+
+  // ── 全件取得（権限チェック付き） ─────────────────────────
+  // onlyMine=true: 自分が権限を持つものだけ返す
+  function getAll(opts, cb){
+    // opts: { onlyMine, source }
+    var uid = _userId();
+    _open(function(db){
+      if(!db){ cb([]); return; }
+      var req = db.transaction(STORE,'readonly').objectStore(STORE).getAll();
+      req.onsuccess = function(){
+        var all = req.result || [];
+        if(opts && opts.source) all = all.filter(function(r){ return r.source === opts.source; });
+        if(opts && opts.onlyMine){
+          all = all.filter(function(r){
+            if(!uid) return false;
+            // 所有者 or permissions に含まれる
+            return r.userId === uid || (r.permissions && r.permissions.indexOf(uid) >= 0);
+          });
+        }
+        cb(all.reverse()); // 新しい順
+      };
+      req.onerror = function(){ cb([]); };
+    });
+  }
+
+  // ── 1件取得（権限チェック付き） ──────────────────────────
+  function get(id, cb){
+    var uid = _userId();
+    _open(function(db){
+      if(!db){ cb(null, 'db_error'); return; }
+      var req = db.transaction(STORE,'readonly').objectStore(STORE).get(id);
+      req.onsuccess = function(){
+        var r = req.result;
+        if(!r){ cb(null, 'not_found'); return; }
+        // 権限チェック
+        var hasPermission = !uid
+          ? false
+          : (r.userId === uid || (r.permissions && r.permissions.indexOf(uid) >= 0));
+        if(!hasPermission){ cb(null, 'no_permission'); return; }
+        cb(r, null);
+      };
+      req.onerror = function(){ cb(null, 'db_error'); };
+    });
+  }
+
+  // ── 権限付与（購入時などに呼ぶ） ─────────────────────────
+  function grantPermission(id, targetUserId, cb){
+    _open(function(db){
+      if(!db){ cb && cb(false); return; }
+      var tx    = db.transaction(STORE,'readwrite');
+      var store = tx.objectStore(STORE);
+      var req   = store.get(id);
+      req.onsuccess = function(){
+        var r = req.result;
+        if(!r){ cb && cb(false); return; }
+        if(!r.permissions) r.permissions = [];
+        if(r.permissions.indexOf(targetUserId) < 0) r.permissions.push(targetUserId);
+        var upd = store.put(r);
+        upd.onsuccess = function(){
+          _broadcast('permission_granted', {id:id, userId:targetUserId});
+          cb && cb(true);
+        };
+        upd.onerror = function(){ cb && cb(false); };
+      };
+    });
+  }
+
+  // ── 削除 ─────────────────────────────────────────────────
+  function remove(id, cb){
+    _open(function(db){
+      if(!db){ cb && cb(); return; }
+      var tx = db.transaction(STORE,'readwrite');
+      tx.objectStore(STORE).delete(id);
+      tx.oncomplete = function(){
+        _broadcast('deleted', {id:id});
+        cb && cb();
+      };
+    });
+  }
+
+  // ── BroadcastChannel 受信ハンドラ登録 ────────────────────
+  function onUpdate(fn){
+    if(_bc) _bc.onmessage = function(e){ fn(e.data); };
+  }
+
+
+  // ── 公開一覧取得（ショップ用: source='input'の全件, 権限チェックなし）──
+  function getPublic(cb){
+    _open(function(db){
+      if(!db){ cb([]); return; }
+      var req = db.transaction(STORE,'readonly').objectStore(STORE).index('source').getAll('input');
+      req.onsuccess = function(){
+        var all = req.result || [];
+        cb(all.reverse()); // 新しい順
+      };
+      req.onerror = function(){ cb([]); };
+    });
+  }
+
+  return { add:add, getAll:getAll, get:get, getPublic:getPublic, grantPermission:grantPermission, remove:remove, onUpdate:onUpdate, userId:_userId };
+})();
+
+
+// ── ポイント取得 ──────────────────────────────────────────
+function _getPoints(){
+  try{
+    var u=JSON.parse(localStorage.getItem('tsumolog_user')||'null');
+    return u?(u.points||0):0;
+  }catch(e){return 0;}
+}
+function _spendPoints(cost){
+  try{
+    var u=JSON.parse(localStorage.getItem('tsumolog_user')||'null')||{points:0,log:[]};
+    if(u.points<cost) return false;
+    u.points-=cost;
+    u.log=(u.log||[]);
+    u.log.unshift({task:'purchase',pts:-cost,note:'牌譜購入',ts:Date.now()});
+    localStorage.setItem('tsumolog_user',JSON.stringify(u));
+    document.getElementById('pts-display').textContent=u.points.toLocaleString();
+    document.getElementById('shop-pts-badge').textContent=u.points.toLocaleString()+' pt';
+    return true;
+  }catch(e){return false;}
+}
+
+// ── 購入済みチェック ──────────────────────────────────────
+// 購入済みレコードIDはlocalStorageで管理（フェーズ1）
+// フェーズ2ではIDB permissions に移行
+function _getPurchased(){
+  try{return JSON.parse(localStorage.getItem('tsumolog_purchased')||'[]');}catch(e){return[];}
+}
+function _addPurchased(id){
+  var arr=_getPurchased();
+  if(arr.indexOf(id)<0) arr.push(id);
+  localStorage.setItem('tsumolog_purchased',JSON.stringify(arr));
+}
+function isPurchased(id){
+  // 自分のuserIdがpermissionsに含まれているかIDBで確認 → 非同期なのでlocalStorageも併用
+  return _getPurchased().indexOf(id)>=0;
+}
+
+// ── ショップモーダル ──────────────────────────────────────
+var _buyTarget=null; // {id, label, description, cost}
+
+function openShopModal(){
+  var el=document.getElementById('shop-modal');
+  el.style.display='flex';
+  document.getElementById('shop-pts-badge').textContent=_getPoints().toLocaleString()+' pt';
+  document.getElementById('shop-search').value='';
+  renderShopList();
+}
+function closeShopModal(){
+  document.getElementById('shop-modal').style.display='none';
+}
+
+function renderShopList(){
+  var q=(document.getElementById('shop-search').value||'').trim().toLowerCase();
+  var list=document.getElementById('shop-list');
+  list.innerHTML='<div style="color:#5a5040;font-size:13px;padding:24px 0;text-align:center;">読み込み中…</div>';
+
+  TsumologLibrary.getPublic(function(records){
+    if(!records.length){
+      list.innerHTML='<div style="color:#5a5040;font-size:13px;padding:32px 0;text-align:center;">'+
+        '現在購入できる牌譜はありません。<br>牌譜入力で追加されるとここに表示されます。</div>';
+      return;
+    }
+
+    // 検索フィルタ
+    if(q) records=records.filter(function(r){
+      return (r.label||'').toLowerCase().includes(q)||
+             (r.description||'').toLowerCase().includes(q);
+    });
+    if(!records.length){
+      list.innerHTML='<div style="color:#5a5040;font-size:13px;padding:24px 0;text-align:center;">該当なし</div>';
+      return;
+    }
+
+    var myId=TsumologLibrary.userId();
+    var purchased=_getPurchased();
+    var COST=100; // pt/件（固定。将来はレコードにcostフィールドを持たせる）
+
+    list.innerHTML=records.map(function(r){
+      var isOwner=(r.userId && r.userId===myId);
+      var isBought=isPurchased(r.id);
+      var canPlay=isOwner||isBought;
+      var disp=new Date(r.savedAt).toLocaleString("ja-JP",{month:"numeric",day:"numeric",hour:"2-digit",minute:"2-digit"});
+      var desc=r.description||(r.filename||"");
+      var titleHtml=_esc(r.label);
+      var descHtml=desc?"<div style=\"font-size:11px;color:#a89870;margin-bottom:5px;line-height:1.5\">"+_esc(desc)+"</div>":"";
+      var btn=canPlay
+        ?"<button onclick=\"goPlay("+r.id+")\" style=\"flex-shrink:0;padding:8px 16px;background:rgba(80,160,100,.15);border:1px solid rgba(80,160,100,.4);border-radius:8px;color:#60c080;font-size:12px;cursor:pointer;white-space:nowrap\">▶ 再生</button>"
+        :"<button onclick=\"startBuy("+r.id+",this)\" data-label=\""+_esc(r.label)+"\" data-desc=\""+_esc(desc)+"\" data-cost=\""+COST+"\" style=\"flex-shrink:0;padding:8px 16px;background:rgba(200,152,58,.15);border:1px solid rgba(200,152,58,.4);border-radius:8px;color:#c8983a;font-size:12px;cursor:pointer;white-space:nowrap\">⭐ "+COST+"pt 購入</button>";
+      return "<div style=\"padding:14px 0;border-bottom:1px solid rgba(255,255,255,.06);display:flex;gap:12px;align-items:flex-start\">"
+        +"<div style=\"flex:1;min-width:0\">"
+        +"<div style=\"font-size:14px;font-weight:700;color:#f0e8d0;margin-bottom:4px;line-height:1.4\">"+titleHtml+"</div>"
+        +descHtml
+        +"<div style=\"font-size:10px;color:#5a5040\">"+disp+"</div>"
+        +"</div>"
+        +btn
+        +"</div>";
+    }).join("");
+  });
+}
+
+function _esc(s){
+  return String(s||'')
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
+// 再生ページへ（IDBのidをlocalStorageで引き渡し、paihu側で読む）
+function goPlay(libId){
+  localStorage.setItem('tsumolog_play_id', String(libId));
+  location.href='paihu/';
+}
+
+// ── 購入フロー ────────────────────────────────────────────
+function startBuy(id, btn){
+  var label=btn.dataset.label||'';
+  var desc=btn.dataset.desc||'';
+  var cost=parseInt(btn.dataset.cost)||100;
+  _buyTarget={id:id, label:label, description:desc, cost:cost};
+  document.getElementById('buy-title').textContent=label;
+  document.getElementById('buy-desc').textContent=desc;
+  document.getElementById('buy-cost').textContent=cost;
+  document.getElementById('buy-modal').style.display='flex';
+}
+function closeBuyModal(){
+  document.getElementById('buy-modal').style.display='none';
+  _buyTarget=null;
+}
+function confirmBuy(){
+  if(!_buyTarget) return;
+  var t=_buyTarget;
+  var myId=TsumologLibrary.userId();
+
+  // ポイント残高チェック
+  if(_getPoints()<t.cost){
+    alert('ポイントが不足しています。牌譜入力でポイントを獲得してください。');
+    return;
+  }
+
+  // ポイント消費
+  if(!_spendPoints(t.cost)){
+    alert('ポイントの消費に失敗しました。');
+    return;
+  }
+
+  // IDB権限付与
+  if(myId){
+    TsumologLibrary.grantPermission(t.id, myId, function(ok){
+      if(!ok) console.warn('[Shop] grantPermission failed (will retry via localStorage)');
+    });
+  }
+
+  // localStorageにも記録（オフライン対応・フェーズ1）
+  _addPurchased(t.id);
+
+  closeBuyModal();
+
+  // リストを即更新
+  renderShopList();
+
+  // 購入完了後すぐ再生へ
+  if(confirm('購入しました！　今すぐ再生しますか？')){
+    goPlay(t.id);
+  }
+}
+
+// ── BroadcastChannel: 入力アプリが保存したら自動リフレッシュ ──
+TsumologLibrary.onUpdate(function(msg){
+  if(msg && msg.type==='added' && msg.data && msg.data.source==='input'){
+    var modal=document.getElementById('shop-modal');
+    if(modal && modal.style.display==='flex') renderShopList();
+  }
+});
+</script>
+
 </body>
 </html>
