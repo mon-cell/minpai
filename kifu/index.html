@@ -4455,6 +4455,233 @@ function initApp(){
 
 // CSVを読み込んでから起動
 loadAllCSV();
+// ══════════════════════════════════════════════════════════════
+//  TsumologLibrary — 共有IndexedDB + BroadcastChannel 連携モジュール
+//  両アプリ共通。同一オリジン上に配置することでIDBを共有する。
+// ══════════════════════════════════════════════════════════════
+var TsumologLibrary = (function(){
+  var DB_NAME  = 'tsumolog_shared';
+  var DB_VER   = 1;
+  var STORE    = 'library';
+  var _db      = null;
+  var _bc      = null; // BroadcastChannel
+
+  // ── BroadcastChannel（タブ間同期） ──────────────────────
+  try{
+    _bc = new BroadcastChannel('tsumolog_library');
+  }catch(e){ _bc = null; }
+
+  function _broadcast(type, data){
+    if(_bc) try{ _bc.postMessage({type:type, data:data}); }catch(e){}
+  }
+
+  // ── IDB オープン ────────────────────────────────────────
+  function _open(cb){
+    if(_db){ cb(_db); return; }
+    var req = indexedDB.open(DB_NAME, DB_VER);
+    req.onupgradeneeded = function(e){
+      var db = e.target.result;
+      if(!db.objectStoreNames.contains(STORE)){
+        var s = db.createObjectStore(STORE, {keyPath:'id', autoIncrement:true});
+        s.createIndex('source',  'source',  {unique:false});
+        s.createIndex('userId',  'userId',  {unique:false});
+        s.createIndex('savedAt', 'savedAt', {unique:false});
+      }
+    };
+    req.onsuccess  = function(e){ _db = e.target.result; cb(_db); };
+    req.onerror    = function(){ console.warn('[TsumologLibrary] IDB open failed'); cb(null); };
+  }
+
+  // ── 現在のユーザーID取得 ─────────────────────────────────
+  function _userId(){
+    try{
+      var u = JSON.parse(localStorage.getItem('tsumolog_user')||'null');
+      return (u && u.id) ? u.id : null;
+    }catch(e){ return null; }
+  }
+
+  // ── レコード追加 ─────────────────────────────────────────
+  // source: 'input' | 'replay' | 'variant'
+  // permissions: [userId, ...] — 再生を許可するユーザーIDの配列
+  function add(gameDataObj, opts, cb){
+    // opts: { source, label, filename, permissions }
+    var uid   = _userId();
+    var meta  = (gameDataObj.gameData||gameDataObj).meta || {};
+    var label = opts.label || meta.title || (meta.bakaze||'')+(meta.kyoku||'')+'局';
+    var perms = opts.permissions || (uid ? [uid] : []);
+
+    var record = {
+      source:      opts.source || 'replay',
+      label:       label,
+      filename:    opts.filename || '',
+      userId:      uid,
+      permissions: perms,
+      savedAt:     new Date().toISOString(),
+      savedAtDisp: new Date().toLocaleString('ja-JP'),
+      data:        JSON.stringify(gameDataObj),
+    };
+
+    _open(function(db){
+      if(!db){ cb && cb(null); return; }
+      var tx  = db.transaction(STORE, 'readwrite');
+      var req = tx.objectStore(STORE).add(record);
+      req.onsuccess = function(){
+        _broadcast('added', {id: req.result, source: record.source, label: label});
+        cb && cb(req.result);
+      };
+      req.onerror = function(){ cb && cb(null); };
+    });
+  }
+
+  // ── 全件取得（権限チェック付き） ─────────────────────────
+  // onlyMine=true: 自分が権限を持つものだけ返す
+  function getAll(opts, cb){
+    // opts: { onlyMine, source }
+    var uid = _userId();
+    _open(function(db){
+      if(!db){ cb([]); return; }
+      var req = db.transaction(STORE,'readonly').objectStore(STORE).getAll();
+      req.onsuccess = function(){
+        var all = req.result || [];
+        if(opts && opts.source) all = all.filter(function(r){ return r.source === opts.source; });
+        if(opts && opts.onlyMine){
+          all = all.filter(function(r){
+            if(!uid) return false;
+            // 所有者 or permissions に含まれる
+            return r.userId === uid || (r.permissions && r.permissions.indexOf(uid) >= 0);
+          });
+        }
+        cb(all.reverse()); // 新しい順
+      };
+      req.onerror = function(){ cb([]); };
+    });
+  }
+
+  // ── 1件取得（権限チェック付き） ──────────────────────────
+  function get(id, cb){
+    var uid = _userId();
+    _open(function(db){
+      if(!db){ cb(null, 'db_error'); return; }
+      var req = db.transaction(STORE,'readonly').objectStore(STORE).get(id);
+      req.onsuccess = function(){
+        var r = req.result;
+        if(!r){ cb(null, 'not_found'); return; }
+        // 権限チェック
+        var hasPermission = !uid
+          ? false
+          : (r.userId === uid || (r.permissions && r.permissions.indexOf(uid) >= 0));
+        if(!hasPermission){ cb(null, 'no_permission'); return; }
+        cb(r, null);
+      };
+      req.onerror = function(){ cb(null, 'db_error'); };
+    });
+  }
+
+  // ── 権限付与（購入時などに呼ぶ） ─────────────────────────
+  function grantPermission(id, targetUserId, cb){
+    _open(function(db){
+      if(!db){ cb && cb(false); return; }
+      var tx    = db.transaction(STORE,'readwrite');
+      var store = tx.objectStore(STORE);
+      var req   = store.get(id);
+      req.onsuccess = function(){
+        var r = req.result;
+        if(!r){ cb && cb(false); return; }
+        if(!r.permissions) r.permissions = [];
+        if(r.permissions.indexOf(targetUserId) < 0) r.permissions.push(targetUserId);
+        var upd = store.put(r);
+        upd.onsuccess = function(){
+          _broadcast('permission_granted', {id:id, userId:targetUserId});
+          cb && cb(true);
+        };
+        upd.onerror = function(){ cb && cb(false); };
+      };
+    });
+  }
+
+  // ── 削除 ─────────────────────────────────────────────────
+  function remove(id, cb){
+    _open(function(db){
+      if(!db){ cb && cb(); return; }
+      var tx = db.transaction(STORE,'readwrite');
+      tx.objectStore(STORE).delete(id);
+      tx.oncomplete = function(){
+        _broadcast('deleted', {id:id});
+        cb && cb();
+      };
+    });
+  }
+
+  // ── BroadcastChannel 受信ハンドラ登録 ────────────────────
+  function onUpdate(fn){
+    if(_bc) _bc.onmessage = function(e){ fn(e.data); };
+  }
+
+
+  // ── 公開一覧取得（ショップ用: source='input'の全件, 権限チェックなし）──
+  function getPublic(cb){
+    _open(function(db){
+      if(!db){ cb([]); return; }
+      var req = db.transaction(STORE,'readonly').objectStore(STORE).index('source').getAll('input');
+      req.onsuccess = function(){
+        var all = req.result || [];
+        cb(all.reverse()); // 新しい順
+      };
+      req.onerror = function(){ cb([]); };
+    });
+  }
+
+  return { add:add, getAll:getAll, get:get, getPublic:getPublic, grantPermission:grantPermission, remove:remove, onUpdate:onUpdate, userId:_userId };
+})();
+
+
+
+// ══════════════════════════════════════════════
+// 【入力アプリ連携】submitAll 後に共有IDBへ保存
+// ══════════════════════════════════════════════
+(function(){
+  // submitAll をラップして IDB 保存を追加
+  var _origSubmitAll = typeof submitAll === 'function' ? submitAll : null;
+  function _patchSubmitAll(){
+    var orig = window.submitAll;
+    window.submitAll = function(){
+      orig.apply(this, arguments);
+      // 少し待ってから buildKifuJSON を呼ぶ（非同期処理後に値が確定するため）
+      setTimeout(function(){
+        try{
+          var obj = buildKifuJSON();
+          if(!obj || !obj.gameData) return;
+          var _m = obj.gameData.meta||{};
+          var _ps = obj.gameData.playerScores||{};
+          var _we = ['east','south','west','north'];
+          var _names = _we.map(function(w){return _ps[w]&&_ps[w].name?_ps[w].name:'';}).filter(Boolean);
+          var _res = _m.result_type==='tsumo'?'ツモ':_m.result_type==='ron'?'ロン':_m.result_type==='ryukyoku'?'流局':'';
+          var _desc = (_m.date?_m.date+' ':'')
+            +(_m.bakaze||'')+(_m.kyoku||'')+'局'
+            +(_m.honba?' '+_m.honba+'本場':'')
+            +(_res?' '+_res:'')
+            +(_m.score?' '+_m.score+'点':'')
+            +(_names.length?' · '+_names.join(' / '):'');
+          TsumologLibrary.add(obj, {
+            source: 'input',
+            label:  _m.title || ((_m.bakaze||'')+(_m.kyoku||'')+'局'),
+            description: _desc,
+          }, function(id){
+            if(id) console.log('[TsumologLibrary] 入力牌譜を保存 id='+id);
+          });
+        }catch(e){ console.warn('[TsumologLibrary] 保存エラー', e); }
+      }, 300);
+    };
+  }
+  // DOMContentLoaded後に実行（submitAllが定義された後）
+  if(document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded', _patchSubmitAll);
+  } else {
+    // すでにロード済みならタグ後の実行を待つ
+    setTimeout(_patchSubmitAll, 0);
+  }
+})();
+
 </script>
 </body>
 </html>
