@@ -34,6 +34,8 @@ body{background:var(--bg);color:var(--tx);font-family:-apple-system,BlinkMacSyst
 
 /* ── カード ── */
 .card{background:var(--sf);border:.5px solid var(--bd);border-radius:var(--ral);padding:14px 16px;margin-bottom:10px}
+#sec-content.input-active{background:rgba(60,190,90,.04);border-radius:var(--ral);}
+#sec-content.input-active .card{background:rgba(60,190,90,.055);border-color:rgba(60,190,90,.2);}
 .slabel{font-size:11px;color:var(--tx3);letter-spacing:.06em;text-transform:uppercase;margin-bottom:8px;font-weight:600}
 
 /* ── ボタン ── */
@@ -302,7 +304,7 @@ select{background:var(--sf);border:.5px solid var(--bd2);border-radius:var(--ra)
     <div class="prog-wrap"><div class="prog-fill" id="prog-fill" style="width:0%"></div></div>
 
     <!-- セクションナビ -->
-    <div id="seat-indicator" style="display:none;padding:4px 14px 0;font-size:11px;color:var(--tx3)"></div>
+    <div id="seat-indicator" style="display:none;position:sticky;top:0;z-index:110;"></div>
     <div style="display:flex;align-items:center;gap:0">
       <div class="sec-nav" id="sec-nav" style="flex:1;overflow-x:auto"></div>
       <div id="top-action-btns" style="display:none;flex-shrink:0;padding:4px 8px;display:flex;gap:6px;align-items:center">
@@ -346,7 +348,7 @@ select{background:var(--sf);border:.5px solid var(--bd2);border-radius:var(--ra)
         <div style="width:52px;height:52px;border-radius:50%;background:var(--gold-bg);border:1.5px solid var(--gold);display:flex;align-items:center;justify-content:center;font-size:26px;flex-shrink:0">🀄</div>
         <div>
           <div style="font-size:17px;font-weight:600" id="acct-name">あなた</div>
-          <div style="font-size:12px;color:var(--tx3)" id="acct-handle">ローカルユーザー</div>
+          <div style="font-size:12px;color:var(--tx3)" id="acct-handle">@user_1234　全体12位</div>
         </div>
       </div>
       <div style="background:var(--sf2);border-radius:var(--ra);padding:12px 14px;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between">
@@ -357,19 +359,23 @@ select{background:var(--sf);border:.5px solid var(--bd2);border-radius:var(--ra)
         <button class="gold sml" onclick="openShop()">🛒 使う</button>
       </div>
       <div style="font-size:11px;color:var(--tx3);display:flex;justify-content:space-between;margin-bottom:3px">
-        <span>次の報酬まで</span><span id="acct-pts-bar-label">—</span>
+        <span>次の報酬まで</span><span>1,240 / 2,000 pt</span>
       </div>
-      <div class="pt-bar-wrap"><div class="pt-bar" id="acct-pts-bar" style="width:0%"></div></div>
+      <div class="pt-bar-wrap"><div class="pt-bar" style="width:62%"></div></div>
     </div>
 
     <!-- 統計 -->
-    <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:12px">
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px">
       <div class="card" style="text-align:center;padding:10px">
-        <div style="font-size:22px;font-weight:700"><span id="acct-games">0</span><span style="font-size:12px">局</span></div>
+        <div style="font-size:22px;font-weight:700">8<span style="font-size:12px">局</span></div>
         <div style="font-size:11px;color:var(--tx3)">入力対局数</div>
       </div>
       <div class="card" style="text-align:center;padding:10px">
-        <div style="font-size:22px;font-weight:700;color:var(--gold)">+<span id="acct-month-pts">0</span><span style="font-size:12px">pt</span></div>
+        <div style="font-size:22px;font-weight:700">89.5<span style="font-size:12px">%</span></div>
+        <div style="font-size:11px;color:var(--tx3)">正解率</div>
+      </div>
+      <div class="card" style="text-align:center;padding:10px">
+        <div style="font-size:22px;font-weight:700;color:var(--gold)">+260<span style="font-size:12px">pt</span></div>
         <div style="font-size:11px;color:var(--tx3)">今月獲得</div>
       </div>
     </div>
@@ -424,6 +430,39 @@ function te(t){
 }
 // teHtml = te（HTMLで赤丸付き）
 function teHtml(t){ return te(t); }
+
+// ドラ表示牌 → ドラ本体に変換
+function doraFromIndicator(t){
+  if(!t) return null;
+  var order = {
+    '1m':'2m','2m':'3m','3m':'4m','4m':'5m','5m':'6m','6m':'7m','7m':'8m','8m':'9m','9m':'1m',
+    'r5m':'6m',
+    '1p':'2p','2p':'3p','3p':'4p','4p':'5p','5p':'6p','6p':'7p','7p':'8p','8p':'9p','9p':'1p',
+    'r5p':'6p',
+    '1s':'2s','2s':'3s','3s':'4s','4s':'5s','5s':'6s','6s':'7s','7s':'8s','8s':'9s','9s':'1s',
+    'r5s':'6s',
+    '1z':'2z','2z':'3z','3z':'4z','4z':'1z', // 風牌: 東→南→西→北→東
+    '5z':'6z','6z':'7z','7z':'5z',           // 三元牌: 白→発→中→白
+  };
+  return order[t] || t;
+}
+
+// ドラ表示牌 + ドラ本体をセットで表示するHTML
+function doraIndicatorHtml(t){
+  if(!t) return '';
+  var ind = teHtml(t);
+  var actual = doraFromIndicator(t);
+  var act = teHtml(actual);
+  return '<span style="display:inline-flex;flex-direction:column;align-items:center;margin:2px 3px;">'
+    + '<span style="font-size:22px;line-height:1">' + ind + '</span>'
+    + '<span style="display:flex;align-items:center;gap:2px;margin-top:1px">'
+    + '<span style="font-size:9px;color:var(--tx3)">→</span>'
+    + '<span style="font-size:16px;line-height:1;background:var(--gold-bg);border-radius:3px;padding:0 2px">' + act + '</span>'
+    + '</span>'
+    + '<span style="font-size:8px;color:var(--tx3);margin-top:1px">ドラ</span>'
+    + '</span>';
+}
+
 // teVal = 絵文字のみ（input.value用）
 function teVal(t){ return TE[t]||t; }
 
@@ -466,10 +505,10 @@ const WE=["east","south","west","north"];
 
 const SECTIONS=[
   {key:"game",   label:"対局情報",      icon:"🀄"},
+  {key:"dora",   label:"ドラ",           icon:"🌟"},
   {key:"haipai", label:"配牌",          icon:"🃏"},
   {key:"turns",  label:"ツモ・捨て",    icon:"♻️"},
-  {key:"final",  label:"最終手牌・待ち",icon:"🖐"},
-  {key:"meld",   label:"副露",          icon:"🔗"},
+  {key:"final",  label:"最終・副露・待ち",icon:"🖐"},
   {key:"agari",  label:"アガリ・点数",  icon:"🏆"},
 ];
 
@@ -602,9 +641,20 @@ var POINT_TABLE_FALLBACK=[
   {task:"月間100局入力達成",                      pts:50, cls:"hi"},
 ];
 
-// ランキング・履歴はフェーズ2でサーバーから取得
-// フェーズ1: localStorage の実データを使用
-var RANKINGS=[];  // renderRanking() で動的生成
+const RANKINGS=[
+  {rank:1, name:"雷神ケンイチ",  pts:8420,badge:"🏆",games:34,acc:97.2,me:false},
+  {rank:2, name:"桜花散る",      pts:7150,badge:"🥈",games:29,acc:95.8,me:false},
+  {rank:3, name:"東風荘の鬼",    pts:6830,badge:"🥉",games:31,acc:94.1,me:false},
+  {rank:4, name:"麻雀修行中",    pts:5240,badge:"",  games:22,acc:91.3,me:false},
+  {rank:5, name:"天和待ち",      pts:4980,badge:"",  games:19,acc:93.7,me:false},
+  {rank:12,name:"あなた",        pts:1240,badge:"",  games:8, acc:89.5,me:true},
+];
+
+const HISTORY=[
+  {date:"04/28",game:"東1局",pts:150,status:"正解"},
+  {date:"04/27",game:"東3局",pts:80, status:"正解"},
+  {date:"04/27",game:"東2局",pts:30, status:"確認中"},
+];
 
 const SAMPLE_GAME={
   title:"第14回天鳳名人戦",round:"東1局",date:"2025-04-28",
@@ -866,13 +916,16 @@ var state={
   },
   gameInfo:{title:"",round:"",date:""},
   haipai:[],
+  dora:[],      // ドラ表示牌（最大4）
+  uraDora:[],   // 裏ドラ表示牌（最大4）
+  doraSlot:{row:"dora",idx:0}, // アクティブなドラスロット
   draws:new Array(18).fill(null),
   discards:new Array(18).fill(null),
   finalHand:[],
   waitTiles:[],
   agari:{type:"",yaku:"",score:"",who:"",from:""},
   rtLog:[], // リアルタイムログ [{seat,type,idx,tile,ts,self}]
-  // user情報は TsumologPoints.getUser() で取得
+  user:{ pts:1240, plan:"free" }, // free | paid  (本番: WordPress WP_USERから取得)
   rtTab:null,   // リアルタイム小窓の選択タブ（null=自分の座席）
   melds:[],     // [{type,tiles,nakiIdx,from,rinshanTile,discTile,kanDoraTile,巡目}]
   meldDraft:null,
@@ -950,8 +1003,10 @@ function renderNav(){
   if(matched){
     nav.innerHTML+=''
       +'<button class="sec-btn" onclick="backToGameInfo()" style="border-color:var(--tx3);color:var(--tx3);white-space:nowrap">← 対局情報</button>'
-      +'<button class="sec-btn" onclick="showConfirmSummary()" '
-        +'style="border-color:var(--gold);color:var(--gold);background:var(--gold-bg);font-weight:700;white-space:nowrap">送信 ›</button>';
+      +'<button onclick="showConfirmSummary()" '
+        +'style="padding:8px 18px;border-radius:var(--ra);border:none;white-space:nowrap;cursor:pointer;font-family:inherit;'
+        +'background:linear-gradient(135deg,var(--gold),var(--a));color:#fff;font-size:13px;font-weight:700;'
+        +'box-shadow:0 2px 10px rgba(200,152,58,.45);letter-spacing:.03em">🀄 送信する</button>';
   }
   document.getElementById("prog-fill").style.width=completion()+"%";
   var fab=document.getElementById("fab-wrap");
@@ -959,7 +1014,7 @@ function renderNav(){
   var topBtns=document.getElementById("top-action-btns");
   if(topBtns)topBtns.style.display="none"; // sec-nav内の送信ボタンに統合
 
-  // 入力担当座席インジケーター
+  // 入力担当座席インジケーター（固定バナー）
   var si=document.getElementById("seat-indicator");
   if(si){
     if(state.seat&&state.gameFlow.matched){
@@ -970,17 +1025,24 @@ function renderNav(){
       var mySeatLabel=WJseats[mySeatIdx]||"";
       var myPid=sm[state.seat];
       var myP=myPid?allP.find(function(x){return x.id===myPid;}):null;
-      // 全4座席の簡易表示
-      var allSeats=WE.map(function(w,wi){
-        var pid=sm[w];
-        var p=pid?allP.find(function(x){return x.id===pid;}):null;
-        var isMe=w===state.seat;
-        return'<span style="'+(isMe?'font-weight:700;color:var(--g);':'opacity:.6;')+'margin-right:10px">'
-          +WJseats[wi]+': '+(p?p.name:"未設定")
-          +(isMe?' ◀':'')
-          +'</span>';
+      var _gf=state.gameFlow;
+      var _ky=_gf.selectedKyoku||{};
+      var kyLabel=_ky.ba&&_ky.kyoku?(_ky.ba+_ky.kyoku+"局"+(_ky.honba?" "+_ky.honba+"本場":"")):""
+      var mainLabel=(myP?myP.name:"—")+"（"+mySeatLabel+"）の情報を入力中";
+      var otherBadges=WE.filter(function(w){return w!==state.seat;}).map(function(w){
+        var wi2=WE.indexOf(w);
+        var pid2=sm[w];
+        var p2=pid2?allP.find(function(x){return x.id===pid2;}):null;
+        return'<span style="opacity:.8;margin-right:6px;font-size:10px">'+WJseats[wi2]+": "+(p2?p2.name:"—")+"</span>";
       }).join("");
-      si.innerHTML=allSeats;
+      si.innerHTML='<div style="background:var(--g);color:#fff;padding:7px 14px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;">'
+        +'<span style="font-size:13px;font-weight:700;">✍️ '+mainLabel+'</span>'
+        +(kyLabel?'<span style="font-size:10px;background:rgba(0,0,0,.18);border-radius:10px;padding:1px 8px">'+kyLabel+'</span>':'')
+        +'<span style="margin-left:auto;display:flex;flex-wrap:wrap;">'+otherBadges+'</span>'
+        +'</div>';
+      si.style.display="block";
+    } else if(state.gameFlow.matched&&!state.seat){
+      si.innerHTML='<div style="background:var(--a);color:#fff;padding:7px 14px;font-size:12px;font-weight:600;">入力開始前に「現在の点数」からプレイヤーを選んでください</div>';
       si.style.display="block";
     } else {
       si.style.display="none";
@@ -1018,16 +1080,32 @@ function removeYakuOne(name){
 }
 
 function backToGameInfo(){
-  // マッチングを解除して対局情報に戻る
-  if(!confirm("対局情報の修正画面に戻りますか？（マッチング状態はリセットされます）"))return;
-  state.gameFlow.matched=false;
-  state.gameFlow.matchKey=null;
-  state.section="game";
-  renderNav();
-  renderSection();
+  // カスタム確認モーダルを表示
+  var ov=document.createElement('div');
+  ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:700;display:flex;align-items:center;justify-content:center;padding:20px';
+  ov.innerHTML='<div style="background:var(--sf);border-radius:var(--ral);padding:22px 20px;max-width:340px;width:100%;box-shadow:0 8px 32px rgba(0,0,0,.3)">'
+    +'<div style="font-size:15px;font-weight:700;margin-bottom:8px">対局情報を修正しますか？</div>'
+    +'<div style="font-size:13px;color:var(--tx2);margin-bottom:18px;line-height:1.6">マッチングが解除され、対局情報の入力画面に戻ります。<br>入力済みの牌譜データは保持されます。</div>'
+    +'<div style="display:flex;gap:8px">'
+    +'<button id="btg-cancel" style="flex:1;padding:10px;border-radius:var(--ra);border:.5px solid var(--bd2);background:var(--sf2);font-family:inherit;font-size:14px;cursor:pointer">キャンセル</button>'
+    +'<button id="btg-ok" style="flex:2;padding:10px;border-radius:var(--ra);border:none;background:var(--r);color:#fff;font-family:inherit;font-size:14px;font-weight:600;cursor:pointer">修正する</button>'
+    +'</div>'
+    +'</div>';
+  document.body.appendChild(ov);
+  document.getElementById('btg-cancel').onclick=function(){ document.body.removeChild(ov); };
+  document.getElementById('btg-ok').onclick=function(){
+    document.body.removeChild(ov);
+    document.body.classList.remove('is-input');
+    state.gameFlow.matched=false;
+    state.gameFlow.matchKey=null;
+    state.section="game";
+    renderNav();
+    renderSection();
+  };
 }
 function setSection(key){
   state.section=key;
+  state.kbdOpen={};  // タブ切り替え時に牌ボタンパネルを閉じる
   renderNav();
   renderSection();
   autoSaveDraft();
@@ -1038,21 +1116,27 @@ function autoSaveDraft(){
   try{
     var draft={
       state: {
-        section:    state.section,
-        gameFlow:   state.gameFlow,
-        gameInfo:   state.gameInfo,
-        seat:       state.seat,
-        seatMap:    state.seatMap,
-        haipai:     state.haipai,
-        draws:      state.draws,
-        discards:   state.discards,
-        finalHand:  state.finalHand,
-        waitTiles:  state.waitTiles,
-        melds:      state.melds,
-        agari:      state.agari,
-        isTenpai:   state.isTenpai,
+        section:       state.section,
+        gameFlow:      state.gameFlow,
+        gameInfo:      state.gameInfo,
+        seat:          state.seat,
+        seatMap:       state.seatMap,
+        haipai:        state.haipai,
+        dora:          state.dora,
+        uraDora:       state.uraDora,
+        doraSlot:      state.doraSlot,
+        draws:         state.draws,
+        discards:      state.discards,
+        riichiDiscIdx: state.riichiDiscIdx,
+        finalHand:     state.finalHand,
+        waitTiles:     state.waitTiles,
+        melds:         state.melds,
+        agari:         state.agari,
+        isTenpai:      state.isTenpai,
+        kbdOpen:       state.kbdOpen,
+        kbdTab:        state.kbdTab,
       },
-      confirmedSections: confirmedSections,
+      confirmedSections: confirmedSections, // _haipai/_draws/_discards等のスナップショットを含む
       savedAt: Date.now(),
       completion: calcCompletion(),
     };
@@ -1101,7 +1185,7 @@ function showRiichiSelect(){
       +'</div>';
   }).filter(Boolean).join('');
   box.innerHTML=''
-    +'<div style="font-size:14px;font-weight:700;margin-bottom:4px">⛩️ リーチ宣言牌を選択</div>'
+    +'<div style="font-size:14px;font-weight:700;margin-bottom:4px">リーチ宣言牌を選択</div>'
     +'<div style="font-size:11px;color:var(--tx3);margin-bottom:12px">リーチを宣言した時に捨てた牌を選んでください</div>'
     +'<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px">'+cells+'</div>'
     +'<button onclick="closeRiichiModal()" '
@@ -1330,6 +1414,7 @@ function kbdHTML(onSelectFn, extraClass, showTextInput){
       +'color:var(--tx);outline:none;"'
       +' oninput="kbdInpPreview(\''+inputId+'\',\''+prevId+'\')"'
       +' onkeydown="if(event.key===\'Enter\'){kbdInpConfirm(\''+onSelectFn+'\',\''+inputId+'\');event.preventDefault();}">'
+      +'<button onclick="kbdInpConfirm(\''+onSelectFn+'\',\''+inputId+'\')" style="padding:8px 14px;border-radius:var(--ra);background:var(--b);border:none;color:#e6f1fb;font-size:13px;font-weight:600;font-family:inherit;cursor:pointer;white-space:nowrap">追加 →</button>'
       +'</div>'
       +'<div id="'+prevId+'" style="font-size:22px;min-height:24px;margin-top:4px;letter-spacing:2px;line-height:1.3"></div>'
       +'</div>';
@@ -1337,7 +1422,7 @@ function kbdHTML(onSelectFn, extraClass, showTextInput){
 
   // 「牌ボタンで選ぶ」トグル
   var toggleBtn='<button class="kbd-toggle-btn" onclick="toggleKbd(\''+onSelectFn+'\')">'
-    +(isOpen?'▲ 牌ボタンを閉じる':'▼ 牌ボタンで選ぶ')+'</button>';
+    +(isOpen?'▲ 牌ボタンを閉じる':'▼ 牌ボタンで入力する')+'</button>';
 
   // 牌ボタンパネル（フロート）
   var tilePanel="";
@@ -1386,10 +1471,14 @@ function kbdInpConfirm(fn, inputId){
   if(!inp)return;
   var tiles=parseTileText(inp.value);
   if(!tiles.length)return;
+  // haipai/final は上限なしで追加（削除で修正できる）
   tiles.forEach(function(t){
-    if(fn==="haipaiPick")          haipaiPick(t);
-    else if(fn==="finalPick")      finalPick(t);
-    else if(fn==="waitGridPick")   waitGridPick(t);
+    if(fn==="haipaiPick"){
+      // 上限なし: 超過分はrenderSectionで13枚表示し、削除で修正
+      state.haipai.push(t);
+    } else if(fn==="finalPick"){
+      state.finalHand.push(t);
+    } else if(fn==="waitGridPick")   waitGridPick(t);
     else if(fn==="meldPickNakiTileDirect") meldPickNakiTileDirect(t);
     else if(fn==="meldPickDiscDirect")     meldPickDiscDirect(t);
     else if(fn==="meldPickRinshan")        meldPickRinshan(t);
@@ -1449,13 +1538,17 @@ function applyTileText(fn){
 // ═══════════════════════════════════════════════
 function handPreview(tiles){
   if(!tiles.length)return'<span style="color:var(--tx3);font-size:13px">牌を選んでください</span>';
-  return tiles.map(teHtml).join('')+'<span style="font-size:12px;color:var(--tx3);margin-left:4px">'+tiles.length+'枚</span>';
+  var n=tiles.length;
+  var warn=(n>13)?'<span style="font-size:11px;color:var(--r);margin-left:6px;font-weight:600">⚠ '+n+'枚（13枚になるまで削除してください）</span>':
+           (n<13)?'<span style="font-size:11px;color:var(--gold);margin-left:6px">'+n+'/13枚</span>':
+                  '<span style="font-size:11px;color:var(--g);margin-left:6px">✓ 13枚</span>';
+  return tiles.map(teHtml).join('')+warn;
 }
 
 // ═══════════════════════════════════════════════
 // グリッド（ツモ/捨て 18マス）
 // ═══════════════════════════════════════════════
-function renderGrid(){
+function renderGrid(riichiHtml){
   var MAX=18;
   if(!state.activeSlot){
     for(var ri=0;ri<MAX;ri++){
@@ -1525,11 +1618,140 @@ function renderGrid(){
     // ─ 入力済み牌配列（下部）
     +miniRow('draw','ツモ牌')
     +miniRow('discard','捨て牌')
+    +(riichiHtml||'')
     +'<div id="grid-kbd-area">'+kbdHTML("gridTilePick","grid-kbd")+'</div>'
     +'</div>';
 }
 function slotJump(type,idx){
   slotSwitch(type,idx);
+}
+
+// ══════════════════════════════════════════════
+// ドラスロット操作
+// ══════════════════════════════════════════════
+var DORA_MAX = 4;
+
+function doraSlotSwitch(row, idx){
+  state.doraSlot = {row:row, idx:idx};
+  // ラベル更新
+  var lbl = document.getElementById('dora-slot-label');
+  if(lbl) lbl.textContent = (row==='dora'?'ドラ表示牌':'裏ドラ表示牌') + ' ' + (idx+1) + '枚目';
+  // プレビュー更新
+  var arr = row==='dora' ? state.dora : state.uraDora;
+  var prevArea = document.getElementById('dora-tile-preview');
+  if(prevArea) prevArea.innerHTML = arr[idx] ? teHtml(arr[idx]) : '';
+  // mini更新
+  doraUpdateMini();
+  // input取得
+  var ni = document.getElementById('dora-slot-input');
+  if(!ni){ renderSection(); return; }
+  ni.oninput = null; ni.onkeydown = null; ni.onfocus = null;
+  ni.value = '';
+  attachDoraHandlers(ni, row, idx);
+  ni.focus();
+}
+
+function attachDoraHandlers(ni, row, idx){
+  ni.onfocus   = function(){ state.doraSlot={row:row,idx:idx}; };
+  ni.oninput   = function(){ doraOnInput(ni, row, idx); };
+  ni.onkeydown = function(e){ doraKeydown(e, ni, row, idx); };
+}
+
+function doraOnInput(input, row, idx){
+  var v = input.value;
+  if(!v) return;
+  var tiles = parseTileText(v);
+  var prevArea = document.getElementById('dora-tile-preview');
+  if(prevArea) prevArea.innerHTML = tiles.length ? teHtml(tiles[0]) : '';
+  if(tiles.length !== 1) return;
+  var tile = tiles[0];
+  if(isTileComplete(v, tile)){
+    if(prevArea) prevArea.innerHTML = '';
+    doraConfirm(tile, row, idx);
+  }
+}
+
+function doraConfirm(tile, row, idx){
+  var arr = row==='dora' ? state.dora : state.uraDora;
+  // 長さが足りなければ埋める
+  while(arr.length <= idx) arr.push(null);
+  arr[idx] = tile;
+  // 次スロットへ
+  doraNextSlot(row, idx);
+  renderSection(); // ← ペア表示を即更新
+}
+
+function doraNextSlot(row, idx){
+  // 移動順: 表1→裏1→表2→裏2→表3→裏3→表4→裏4
+  if(row==='dora'){
+    // 表ドラ idx → 同じ番号の裏ドラへ
+    doraSlotSwitch('uraDora', idx);
+  } else {
+    // 裏ドラ idx → 次の番号の表ドラへ（なければ末端）
+    if(idx + 1 < DORA_MAX){
+      doraSlotSwitch('dora', idx+1);
+    } else {
+      doraUpdateMini();
+    }
+  }
+}
+
+function doraKeydown(e, input, row, idx){
+  if(e.key==='Enter'||e.key==='Tab'){
+    e.preventDefault();
+    var v = input.value.trim();
+    var tiles = v ? parseTileText(v) : [];
+    if(tiles.length) doraConfirm(tiles[0], row, idx);
+    else doraNextSlot(row, idx);
+  } else if(e.key==='Backspace' && input.value===''){
+    e.preventDefault();
+    var arr = row==='dora' ? state.dora : state.uraDora;
+    if(arr[idx]){ arr[idx]=undefined; doraUpdateMini(); }
+    else { doraPrevSlot(row, idx); }
+  }
+}
+
+function doraPrevSlot(row, idx){
+  // 逆順: 裏idx → 表idx → 裏(idx-1) → 表(idx-1)...
+  if(row==='uraDora'){
+    // 裏ドラ idx → 同じ番号の表ドラへ
+    doraSlotSwitch('dora', idx);
+  } else {
+    // 表ドラ idx → 前の番号の裏ドラへ
+    if(idx > 0){
+      doraSlotSwitch('uraDora', idx-1);
+    }
+    // idx===0 なら先頭なので動かない
+  }
+}
+
+function doraUpdateMini(){
+  var kanDoraList = state.melds.filter(function(m){return m.kanDoraTile;}).map(function(m){return m.kanDoraTile;});
+  ['dora','uraDora'].forEach(function(row){
+    var wrap = document.getElementById('mini-wrap-'+row);
+    if(!wrap) return;
+    var arr = row==='dora' ? state.dora.concat(kanDoraList) : state.uraDora;
+    var max = DORA_MAX;
+    var ds = state.doraSlot||{};
+    wrap.innerHTML = Array.from({length:max}, function(_,i){
+      var t = arr[i];
+      var isKan = row==='dora' && i >= state.dora.length && kanDoraList[i-state.dora.length];
+      var cur = ds.row===row && ds.idx===i;
+      return '<span onclick="doraSlotSwitch(\''+row+'\','+i+')"'
+        +' style="display:inline-flex;flex-direction:column;align-items:center;'
+        +'width:30px;min-height:36px;border-radius:4px;cursor:pointer;margin:1px;'
+        +'border:'+(cur?'1.5px solid var(--b)':'.5px solid var(--bd)')+';'
+        +'background:'+(cur?'var(--b-bg)':t?'var(--sf)':'var(--sf2)')+';">'
+        +(t?'<span style="font-size:18px;line-height:1.2">'+teHtml(t)+'</span>':'<span style="font-size:9px;color:var(--tx3);margin-top:6px">'+(i+1)+'</span>')
+
+        +'</span>';
+    }).join('');
+  });
+}
+
+function doraTilePick(t){
+  if(!state.doraSlot) return;
+  doraConfirm(t, state.doraSlot.row, state.doraSlot.idx);
 }
 
 function slotUpdateMini(){
@@ -1919,10 +2141,10 @@ function kbdClear(){
   renderSection();
 }
 function haipaiPick(t){
-  if(state.haipai.length<13){state.haipai.push(t);renderSection();}
+  state.haipai.push(t);renderSection();
 }
 function finalPick(t){
-  if(state.finalHand.length<14){state.finalHand.push(t);renderSection();}
+  state.finalHand.push(t);renderSection();
 }
 function waitPick(t){
   if(!state.waitTiles.includes(t)){state.waitTiles.push(t);renderSection();}
@@ -1933,13 +2155,141 @@ function waitPick(t){
 // ═══════════════════════════════════════════════
 function renderSection(){
   var el=document.getElementById("sec-content");
+  if(el) el.classList.add("input-active"); // 薄い緑背景を常時適用
   var h="";
   var s=state.section;
+
+  // セクションのサマリー表示（確定済みは緑・未確定でも内容があれば薄いグレーで表示）
+  function confirmedSummary(key, lines){
+    var done = !!confirmedSections[key];
+    var hasContent = lines.some(function(l){ return l && l.length > 0 && l.indexOf('未入力') < 0; });
+    if(!done && !hasContent) return '';
+    var bg   = done ? 'var(--g-bg)' : 'var(--sf2)';
+    var bd   = done ? 'var(--g)'    : 'var(--bd2)';
+    var lbl  = done
+      ? '<div style="font-size:11px;font-weight:700;color:var(--g);margin-bottom:4px">✅ 確定済み</div>'
+      : '<div style="font-size:11px;font-weight:700;color:var(--tx3);margin-bottom:4px">📝 入力済み（未確定）</div>';
+    return '<div style="background:'+bg+';border:.5px solid '+bd+';border-radius:var(--ra);padding:8px 12px;margin-bottom:8px">'
+      + lbl
+      + lines.map(function(l){
+        return '<div style="font-size:12px;color:var(--tx2);margin-bottom:1px">'+l+'</div>';
+      }).join('')
+      + '</div>';
+  }
+
 
   if(s==="game"){
     h=renderGameFlow();
   }
 
+
+
+  else if(s==="dora"){
+    var doraDone = !!confirmedSections['dora'];
+    var kanDoraList = state.melds.filter(function(m){return m.kanDoraTile;}).map(function(m){return m.kanDoraTile;});
+    var kanCount = kanDoraList.length;
+    var maxDoraSlots = DORA_MAX; // 常に4スロット表示
+    if(!state.doraSlot) state.doraSlot = {row:'dora', idx:0};
+    var ds = state.doraSlot;
+    var activeArr = ds.row==='dora' ? state.dora : state.uraDora;
+    var activeTile = activeArr[ds.idx];
+    var activeLabel = (ds.row==='dora'?'ドラ表示牌':'裏ドラ表示牌') + ' ' + (ds.idx+1) + '枚目';
+
+    // ── 入力ボックス（コンパクト） ──
+    var inputBox =
+      '<div style="margin-bottom:16px;padding:10px 12px;background:var(--sf2);border-radius:var(--ra);border:.5px solid var(--bd2)">'
+      + '<div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">'
+      // ラベル
+      + '<div id="dora-slot-label" style="font-size:12px;font-weight:600;color:var(--b);flex:1">' + activeLabel + '</div>'
+      // 入力例（右寄せ）
+      + '<div style="font-size:10px;color:var(--tx3)">入力例: <code style="background:var(--sf);padding:1px 3px;border-radius:3px">3m</code> <code style="background:var(--sf);padding:1px 3px;border-radius:3px">7z</code> <code style="background:var(--sf);padding:1px 3px;border-radius:3px">r5p</code></div>'
+      + '</div>'
+      + '<div style="display:flex;align-items:center;gap:10px">'
+      + '<input id="dora-slot-input" type="text" inputmode="text"'
+      + ' autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"'
+      + ' maxlength="3" value=""'
+      + ' style="width:56px;height:56px;font-size:15px;font-family:monospace;text-align:center;'
+      + 'border:2px solid var(--b);border-radius:10px;background:var(--b-bg);'
+      + 'color:var(--tx);padding:0;box-sizing:border-box;outline:none;caret-color:var(--b);">'
+      + '<div style="display:flex;flex-direction:column;align-items:center;gap:2px">'
+      + '<div id="dora-tile-preview" style="font-size:44px;min-width:44px;line-height:1">'+(activeTile?teHtml(activeTile):'')+'</div>'
+      + '<div style="display:flex;align-items:center;gap:3px;min-height:20px">'
+      + (activeTile ? '<span style="font-size:11px;color:var(--tx3)">↓</span><span style="font-size:26px;background:var(--gold-bg);border-radius:4px;padding:0 2px">'+teHtml(doraFromIndicator(activeTile))+'</span>' : '<span style="font-size:10px;color:var(--tx3)">ドラ</span>')
+      + '</div>'
+      + '</div>'
+      + '<div style="display:flex;gap:6px;flex:1">'
+      + '<button onclick="doraPrevSlot(\''+ds.row+'\','+ds.idx+')" style="flex:1;padding:6px;border-radius:var(--ra);border:.5px solid var(--bd2);background:var(--sf);font-family:inherit;font-size:13px;cursor:pointer;'+(ds.row==='dora'&&ds.idx===0?'opacity:.3;pointer-events:none;':'')+'">← 前</button>'
+      + '<button onclick="doraNextSlot(\''+ds.row+'\','+ds.idx+')" style="flex:1;padding:6px;border-radius:var(--ra);border:.5px solid var(--bd2);background:var(--sf);font-family:inherit;font-size:13px;cursor:pointer">次 →</button>'
+      + '</div>'
+      + '</div>'
+      + '</div>';
+
+    // ── ペア表示関数（表示牌行 + ドラ行）──
+    function doraPairRow(rowKey, rowLabel, tileArr, maxN){
+      var dsCur = state.doraSlot||{};
+      // 各スロットのペアを横並び
+      var pairs = Array.from({length:maxN}, function(_,i){
+        var t = tileArr[i];
+        var isKan = rowKey==='dora' && i >= state.dora.length;
+        var cur = dsCur.row===rowKey && dsCur.idx===i;
+        var actual = t ? doraFromIndicator(t) : null;
+        return '<div onclick="doraSlotSwitch(\''+rowKey+'\','+i+')"'
+          + ' style="display:flex;flex-direction:column;align-items:center;gap:1px;cursor:pointer;'
+          + 'padding:4px 3px;border-radius:6px;min-width:34px;position:relative;'
+          + 'border:'+(cur?'1.5px solid var(--b)':'.5px solid '+(t?'var(--bd)':'var(--bd2)'))+';'
+          + 'background:'+(cur?'var(--b-bg)':t?'var(--sf)':'var(--sf2)')+';">'
+          // 表示牌
+          + '<span style="font-size:20px;line-height:1.2;'+(t?'':'opacity:.35')+'">'
+          + (t ? teHtml(t) : '<span style="font-size:10px;color:var(--tx3)">'+(i+1)+'</span>')
+          + '</span>'
+          // 矢印
+          + '<span style="font-size:9px;color:var(--tx3);line-height:1">↓</span>'
+          // ドラ本体
+          + '<span style="font-size:20px;line-height:1.2;'+(actual?'background:var(--gold-bg);border-radius:3px;padding:0 1px':'opacity:.2')+'">'
+          + (actual ? teHtml(actual) : '<span style="font-size:10px;color:var(--tx3)">?</span>')
+          + '</span>'
+
+          // 削除ボタン
+          + (t&&!isKan
+            ? '<span onclick="(function(e){e.stopPropagation();'+(rowKey==='dora'?'state.dora':'state.uraDora')+'['+i+']=undefined;renderSection();})(event)"'
+              + ' style="position:absolute;top:-5px;right:-5px;width:14px;height:14px;border-radius:50%;'
+              + 'background:var(--r);color:#fff;font-size:9px;display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:2">✕</span>'
+            : '')
+          + '</div>';
+      }).join('');
+
+      return '<div style="margin-bottom:14px">'
+        + '<div style="font-size:10px;color:var(--tx3);font-weight:600;margin-bottom:5px;display:flex;align-items:center;gap:6px">'
+        + rowLabel
+        + '<span style="font-size:9px;font-weight:400;opacity:.7">（上: 表示牌 / 下: ドラ）</span>'
+        + '</div>'
+        + '<div id="mini-wrap-'+rowKey+'" style="display:flex;flex-wrap:wrap;gap:3px">'+pairs+'</div>'
+        + '</div>';
+    }
+
+    // state.dora に全表ドラ表示牌（カンドラ含む）を格納する設計
+    var doraRows =
+      doraPairRow('dora',    'ドラ表示牌（表ドラ・カンドラ）', state.dora, DORA_MAX)
+      + doraPairRow('uraDora', '裏ドラ表示牌', state.uraDora, DORA_MAX);
+
+    // ── キーボード ──
+    var doraKbd = kbdHTML('doraTilePick', 'dora-kbd');
+
+    // ── 確定ボタン ──
+    var doraDoneBtn = '<button onclick="confirmSection(\'dora\')"'
+      + ' style="width:100%;margin-top:8px;padding:12px;border-radius:var(--ra);'
+      + 'background:'+(doraDone?'var(--g)':'var(--b)')+';border:none;color:#e6f1fb;font-size:14px;'
+      + 'font-weight:600;font-family:inherit;cursor:pointer">'
+      + (doraDone?'✅ ドラ 確定済み':'✓ ドラを確定') + '</button>';
+
+    h = '<div class="card">'
+      + '<div class="slabel">🌟 ドラ</div>'
+      + inputBox
+      + doraRows
+      + doraKbd
+      + doraDoneBtn
+      + '</div>';
+  }
 
   else if(s==="haipai"){
     var haipaiDone=!!confirmedSections['haipai'];
@@ -1948,9 +2298,16 @@ function renderSection(){
       +'background:'+(haipaiDone?'var(--g)':'var(--b)')+';border:none;color:#e6f1fb;font-size:15px;'
       +'font-weight:600;font-family:inherit;cursor:pointer">'
       +(haipaiDone?'✅ 配牌 確定済み':'✓ 配牌を確定')+'</button>';
+    // 確定済みスナップショット優先（別タブから戻っても消えない）
+    var _haipaiTiles = (haipaiDone && confirmedSections._haipai && confirmedSections._haipai.length)
+      ? confirmedSections._haipai : state.haipai;
+    var haipaiSummary = confirmedSummary('haipai', [
+      '配牌: ' + (_haipaiTiles.length ? handPreview(_haipaiTiles) : '未入力')
+    ]);
     h='<div class="card">'
       +'<div class="slabel">🃏 配牌 <span style="color:var(--tx3);font-weight:400">(13枚)</span></div>'
-      +'<div class="hand-prev">'+handPreview(state.haipai)+'</div>'
+      +haipaiSummary
+      +'<div class="hand-prev">'+handPreview(_haipaiTiles)+'</div>'
       +kbdHTML("haipaiPick","",true)
       +haipaiConfirmBtn
       +'</div>';
@@ -1970,7 +2327,6 @@ function renderSection(){
       var rDisc=state.discards[riichiIdx];
       riichiUI='<div style="background:var(--r-bg);border:1px solid var(--r);border-radius:var(--ra);'
         +'padding:8px 12px;margin-bottom:8px;display:flex;align-items:center;gap:10px">'
-        +'<span style="font-size:22px">⛩️</span>'
         +'<div style="flex:1"><div style="font-size:12px;font-weight:600;color:var(--r)">リーチ宣言</div>'
           +'<div style="font-size:12px">宣言牌: <span style="font-size:20px">'+(rDisc?teHtml(rDisc):'?')+'</span>'
           +(rDisc?' ('+(riichiIdx+1)+'巡目の捨て牌)':'')+'</div></div>'
@@ -1978,60 +2334,75 @@ function renderSection(){
           +'style="padding:4px 10px;border-radius:6px;background:none;border:.5px solid var(--r);'
           +'color:var(--r);font-size:11px;font-family:inherit;cursor:pointer">解除</button>'
         +'</div>';
-    } else if(hasDiscs){
+    } else {
       riichiUI='<button onclick="showRiichiSelect()" '
-        +'style="width:100%;padding:11px;border-radius:var(--ra);margin-bottom:8px;'
-        +'background:var(--r);border:none;'
-        +'color:#fff;font-size:14px;font-weight:700;font-family:inherit;cursor:pointer;'
-        +'box-shadow:0 2px 8px rgba(192,64,64,.4);letter-spacing:.05em">'
-        +'リーチ宣言</button>';
+        +'style="width:100%;padding:10px;border-radius:var(--ra);margin-bottom:8px;'
+        +'background:rgba(220,80,80,.10);border:1.5px solid rgba(220,80,80,.4);'
+        +'color:#d05050;font-size:13px;font-weight:600;font-family:inherit;cursor:pointer">'
+        +'リーチを宣言する</button>';
     }
+    var drawCount=state.draws.filter(Boolean).length;
+    var discCount=state.discards.filter(Boolean).length;
+    var riichiLabel=state.riichiDiscIdx!==null?(' / リーチ: '+(state.riichiDiscIdx+1)+'巡目'):""; 
+    var turnsSummary=confirmedSummary('turns',[
+      'ツモ: '+drawCount+'巡 / 捨て: '+discCount+'巡'+riichiLabel
+    ]);
     h='<div class="card">'
       +'<div class="slabel">♻️ ツモ牌・捨て牌</div>'
+      +turnsSummary
       +'<p style="font-size:11px;color:var(--tx3);margin-bottom:8px">マスをタップして入力 → 次へ自動移動</p>'
-      +renderGrid()
-      +riichiUI
+      +renderGrid(riichiUI)
       +turnsConfirmBtn
       +'</div>';
   }
 
-  else if(s==="final"){
-    h='<div class="card">'
-      +'<div class="slabel">🖐 最終手牌</div>'
-      +'<div class="hand-prev">'+handPreview(state.finalHand)+'</div>'
+  else if(s==="final"||s==="meld"){
+    // ① 最終手牌
+    var finalSummaryLines=[];
+    if(state.finalHand.length) finalSummaryLines.push('最終手牌: '+handPreview(state.finalHand));
+    if(state.melds.length) finalSummaryLines.push('副露: '+state.melds.length+'回（'+ state.melds.map(function(m){return m.type+(m.tiles?'('+m.tiles.join('')+')':'');}).join('、') +'）');
+    if(state.isTenpai) finalSummaryLines.push('待ち: '+state.waitTiles.map(teHtml).join(''));
+    var finalSummary=confirmedSummary('final',finalSummaryLines);
+    var finalCard='<div class="card" style="margin-bottom:6px">'
+      +finalSummary
+      +'<div class="slabel" style="margin-bottom:4px">🖐 最終手牌</div>'
+      +'<div class="hand-prev" style="margin-bottom:4px">'+handPreview(state.finalHand)+'</div>'
       +kbdHTML("finalPick","",true)
+      +'</div>';
+
+    // ② 副露パネル（最終手牌の直下）
+    var meldCard='<div class="card" style="margin-bottom:6px">'+_renderMeldInline()+'</div>';
+
+    // ③ 待ち牌（コンパクト: ラベル行にトグルを同居）
+    var isTp=state.isTenpai===true;
+    var tpToggle='<div style="display:inline-flex;border-radius:20px;overflow:hidden;border:.5px solid var(--bd2);">'
+      +'<button onclick="state.isTenpai=false;renderSection()" style="padding:3px 10px;font-size:11px;font-family:inherit;cursor:pointer;border:none;'
+      +'background:'+(isTp?'var(--sf2)':'var(--b)')+';color:'+(isTp?'var(--tx3)':'#e6f1fb')+'">ノーテン</button>'
+      +'<button onclick="state.isTenpai=true;renderSection()" style="padding:3px 10px;font-size:11px;font-family:inherit;cursor:pointer;border:none;'
+      +'background:'+(isTp?'var(--b)':'var(--sf2)')+';color:'+(isTp?'#e6f1fb':'var(--tx3)')+'">テンパイ</button>'
+      +'</div>';
+    var waitContent=isTp
+      ?renderWaitGrid()
+      :'<p style="font-size:11px;color:var(--tx3);margin:4px 0 0">テンパイの場合は右のトグルで切り替えてください</p>';
+    var waitCard='<div class="card" style="margin-bottom:6px">'
+      +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">'
+      +'<div class="slabel" style="margin:0">⏳ 待ち牌</div>'
+      +tpToggle
       +'</div>'
-      +'<div class="card" style="margin-top:8px">'
-      +'<div class="slabel">⏳ 待ち牌</div>'
-      // テンパイ/ノーテン選択
-      +'<div style="display:flex;gap:8px;margin-bottom:10px">'
-      +'<button onclick="state.isTenpai=false;renderSection()" '
-        +'style="flex:1;padding:8px;border-radius:var(--ra);font-size:13px;font-family:inherit;cursor:pointer;'
-        +'background:'+(state.isTenpai===true?'var(--sf)':'var(--b)')+';'
-        +'border:'+(state.isTenpai===true?'.5px solid var(--bd2)':'1.5px solid var(--b)')+';'
-        +'color:'+(state.isTenpai===true?'var(--tx)':'#e6f1fb')+'">ノーテン</button>'
-      +'<button onclick="state.isTenpai=true;renderSection()" '
-        +'style="flex:1;padding:8px;border-radius:var(--ra);font-size:13px;font-family:inherit;cursor:pointer;'
-        +'background:'+(state.isTenpai===true?'var(--b)':'var(--sf)')+';'
-        +'border:'+(state.isTenpai===true?'1.5px solid var(--b)':'.5px solid var(--bd2)')+';'
-        +'color:'+(state.isTenpai===true?'#e6f1fb':'var(--tx)')+'">テンパイ</button>'
-      +'</div>'
-      +(state.isTenpai===true
-        ?'<p style="font-size:11px;color:var(--tx3);margin-bottom:8px">マスをタップして入力</p>'
-          +renderWaitGrid()
-        :'<p style="font-size:11px;color:var(--tx3)">テンパイの場合は「テンパイ」を選択してください</p>'
-      )
-      +'</div>'
-      +'<button onclick="confirmSection(\'final\')"'
-      +' style="width:100%;margin-top:14px;padding:13px;border-radius:var(--ra);'
-      +'background:'+(confirmedSections["final"]?"var(--g)":"var(--b)")+';border:none;color:#e6f1fb;font-size:15px;'
+      +waitContent
+      +'</div>';
+
+    // ④ 確定ボタン
+    var isDone=confirmedSections["final"];
+    var doneBtn='<button onclick="confirmSection(\'final\')"'
+      +' style="width:100%;padding:11px;border-radius:var(--ra);'
+      +'background:'+(isDone?"var(--g)":"var(--b)")+';border:none;color:#e6f1fb;font-size:14px;'
       +'font-weight:600;font-family:inherit;cursor:pointer">'
-      +(confirmedSections["final"]?"✅ 最終手牌・待ち 確定済み":"✓ 最終手牌・待ちを確定")+'</button>';
+      +(isDone?"✅ 確定済み":"✓ 最終手牌・副露・待ちを確定")+'</button>';
+
+    h=finalCard+meldCard+waitCard+doneBtn;
   }
 
-  else if(s==="meld"){
-    h=renderMeldSection();
-  }
 
   else if(s==="agari"){
     var WJseats=["東家","南家","西家","北家"];
@@ -2274,7 +2645,29 @@ function renderSection(){
       +'</div>';
   }
 
+  // 確定済みならサマリーを先頭に追加
+  if(s==='agari' && confirmedSections['agari']){
+    var _ag=state.agari;
+    var _agLabel=(_ag.who||'未入力')
+      +(_ag.who==='流局'?'':(_ag.type?' '+_ag.type:''))
+      +(_ag.score?' +'+_ag.score+'点':'')
+      +(_ag.yaku?' ('+_ag.yaku+')':'');
+    var _agSummary='<div style="background:var(--g-bg);border:.5px solid var(--g);border-radius:var(--ra);'
+      +'padding:8px 12px;margin-bottom:8px">'
+      +'<div style="font-size:11px;font-weight:700;color:var(--g);margin-bottom:4px">✅ 確定済み</div>'
+      +'<div style="font-size:12px;color:var(--tx2)">'+_agLabel+'</div></div>';
+    h=_agSummary+h;
+  }
   el.innerHTML=h;
+  // doraセクションならdora-slot-inputにハンドラ設定
+  if(s==="dora"){
+    var dsi=document.getElementById('dora-slot-input');
+    if(dsi){
+      var _ds=state.doraSlot||{row:'dora',idx:0};
+      attachDoraHandlers(dsi,_ds.row,_ds.idx);
+      dsi.value=''; dsi.focus();
+    }
+  }
   // turnsセクションならinputにハンドラを設定
   if(s==="turns"&&state.activeSlot){
     var ni=document.getElementById('main-slot-input');
@@ -2292,14 +2685,39 @@ function renderSection(){
 var confirmedSections={};  // {haipai:true, turns:true, ...}
 
 function confirmSection(key){
+  // テキスト入力欄に値が残っていたら自動確定（Enterを押し忘れた場合の救済）
+  var kbdInputId = 'kbd-inp-' + (
+    key==='haipai' ? 'haipaiPick' :
+    key==='final'  ? 'finalPick'  : null
+  );
+  if(kbdInputId){
+    var kbdInp = document.getElementById(kbdInputId);
+    if(kbdInp && kbdInp.value.trim()){
+      kbdInpConfirm(
+        key==='haipai' ? 'haipaiPick' : 'finalPick',
+        kbdInputId
+      );
+    }
+  }
   confirmedSections[key]=true;
+  // 確定時点のデータをスナップショット保存（タブを切り替えても残る）
+  if(key==='haipai')  confirmedSections._haipai  = state.haipai.slice();
+  if(key==='turns')   confirmedSections._draws    = state.draws.slice(),
+                      confirmedSections._discards = state.discards.slice(),
+                      confirmedSections._riichiIdx= state.riichiDiscIdx;
+  if(key==='final')   confirmedSections._finalHand= state.finalHand.slice(),
+                      confirmedSections._melds    = JSON.parse(JSON.stringify(state.melds)),
+                      confirmedSections._waitTiles= state.waitTiles.slice();
+  if(key==='agari')   confirmedSections._agari    = Object.assign({},state.agari);
+  if(key==='dora')    confirmedSections._dora     = state.dora.slice(),
+                      confirmedSections._uraDora  = state.uraDora.slice();
   // rtViewTab を確定したセクションに合わせる
   var rtTabMap={haipai:'haipai',turns:'turns',final:'final',meld:'final',agari:'agari'};
   if(rtTabMap[key]) state.rtViewTab=rtTabMap[key];
   // 入力状況パネルを更新
   renderRtPanel();
   // 次のタブへ自動移動
-  var order=["haipai","turns","final","meld","agari"];
+  var order=["dora","haipai","turns","final","meld","agari"];
   var ni=order.indexOf(key)+1;
   if(ni<order.length) setSection(order[ni]);
   // agari (最後) は confirmSummary を出さない → ナビの「送信」ボタンから
@@ -2322,8 +2740,11 @@ function renderConfirmSummary(){
 
   // ─ 自分の入力状況 ─
   var myItems=[
-    {label:'配牌',     done:state.haipai.length>=13,
-      val:state.haipai.length+'枚 '+handPreview(state.haipai)},
+    {label:'配牌',     done:state.haipai.length>=13 || !!(confirmedSections._haipai&&confirmedSections._haipai.length),
+      val:(function(){
+        var t=confirmedSections._haipai&&confirmedSections._haipai.length?confirmedSections._haipai:state.haipai;
+        return t.length+'枚 '+handPreview(t);
+      })()},
     {label:'ツモ・捨て',done:state.draws.some(Boolean)||state.discards.some(Boolean),
       val:'ツモ '+state.draws.filter(Boolean).length+'巡 / 捨て '+state.discards.filter(Boolean).length+'巡'},
     {label:'最終手牌', done:state.finalHand.length>0,
@@ -2342,15 +2763,27 @@ function renderConfirmSummary(){
   var myP=myPid?allP.find(function(x){return x.id===myPid;}):null;
 
   var myHtml='<div style="background:var(--sf2);border-radius:var(--ra);padding:12px;margin-bottom:14px">'
-    +'<div style="font-size:12px;font-weight:700;color:var(--b);margin-bottom:8px">'
+    +'<div style="font-size:12px;font-weight:700;color:var(--b);margin-bottom:10px">'
     +'✏️ 自分の入力（'+mySeatLabel+(myP?' '+myP.name:'')+'）</div>';
   myItems.forEach(function(item){
-    myHtml+='<div style="display:flex;align-items:baseline;gap:6px;margin-bottom:4px;font-size:13px">'
+    myHtml+='<div style="border-bottom:.5px solid var(--bd);padding:6px 0;margin-bottom:2px">'
+      +'<div style="display:flex;align-items:center;gap:6px;margin-bottom:3px">'
       +'<span style="color:'+(item.done?'var(--g)':'var(--tx3)')+';font-size:14px">'+(item.done?'✓':'○')+'</span>'
-      +'<span style="color:var(--tx3);min-width:72px">'+item.label+'</span>'
-      +'<span style="color:var(--tx);font-size:12px">'+item.val+'</span>'
+      +'<span style="font-size:12px;font-weight:600;color:'+(item.done?'var(--tx)':'var(--tx3)')+'">'+item.label+'</span>'
+      +'</div>'
+      +(item.done?'<div style="font-size:13px;color:var(--tx);padding-left:20px;line-height:1.5">'+item.val+'</div>':'')
       +'</div>';
   });
+  // ドラ情報も表示
+  var kanDoraL=state.melds.filter(function(m){return m.kanDoraTile;}).map(function(m){return m.kanDoraTile;});
+  var allDora=state.dora.concat(kanDoraL);
+  if(allDora.length||state.uraDora.length){
+    myHtml+='<div style="padding:6px 0;margin-bottom:2px">'
+      +'<div style="font-size:12px;font-weight:600;margin-bottom:4px">🌟 ドラ</div>'
+      +(allDora.length?'<div style="font-size:12px;padding-left:20px">表ドラ表示牌: '+allDora.map(teHtml).join(' ')+'</div>':'')
+      +(state.uraDora.length?'<div style="font-size:12px;padding-left:20px">裏ドラ表示牌: '+state.uraDora.map(teHtml).join(' ')+'</div>':'')
+      +'</div>';
+  }
   myHtml+='</div>';
 
   // ─ 他者の確定済みデータ（rtLog から） ─
@@ -2547,24 +2980,16 @@ function _renderGameFlowInner(){
     var tours=TOURNAMENTS[gf.org]||[];
     var tourBtns=tours.map(function(t){
       var on=gf.tournament===t.id;
-      // 参加資格バッジ
-      var eli=t.eligibility||'オープン';
-      var eliColor=eli==='オープン'?'var(--g)':eli==='プロ'?'var(--gold)':'var(--b)';
-      var eliBg=eli==='オープン'?'var(--g-bg)':eli==='プロ'?'var(--gold-bg)':'var(--b-bg)';
-      return '<button onclick="gfSelectTournament(\''+t.id+'\')" '
+      var tRule=t.rule_id?getRules().find(function(r){return r.id===t.rule_id;}):null;
+      return '<button onclick="gfSelectTournament(\''+t.id+'\')"'
         +' style="padding:12px 14px;border-radius:var(--ra);font-size:14px;font-family:inherit;text-align:left;'
         +'background:'+(on?'var(--b-bg)':'var(--sf)')+';'
         +'border:'+(on?'1.5px solid var(--b)':'.5px solid var(--bd2)')+';'
         +'color:'+(on?'var(--b-t)':'var(--tx)')+';'
         +'cursor:pointer;display:flex;align-items:center;gap:8px;width:100%">'
         +'<span style="font-size:18px">'+(on?'✅':'⬜')+'</span>'
-        +'<div style="flex:1">'
-          +'<div style="display:flex;align-items:center;gap:6px">'
-            +'<span style="font-weight:'+(on?'700':'400')+'">'+t.label+'</span>'
-            +'<span style="font-size:9px;padding:1px 6px;border-radius:8px;'
-              +'background:'+eliBg+';color:'+eliColor+';border:.5px solid '+eliColor+'">'+eli+'</span>'
-          +'</div>'
-          +(t.ruleDetail?'<div style="font-size:10px;color:var(--tx3);margin-top:1px">'+t.ruleDetail+'</div>':'')
+        +'<div><div style="font-weight:'+(on?'700':'400')+'">'+t.label+'</div>'
+        +(tRule?'<div style="font-size:10px;color:var(--tx3)">'+tRule.label+'</div>':'')
         +'</div></button>';
     }).join('');
     var rules=getRules();
@@ -2579,13 +3004,37 @@ function _renderGameFlowInner(){
         +(selRule.oka?'　オカ +'+selRule.oka.toLocaleString():'')
         +'</div>'
       :'';
-     body='<div>'
-       +'<div style="font-size:12px;color:var(--tx3);margin-bottom:8px">団体：<strong style="color:var(--tx)">'+(org?org.label:'')+'</strong></div>'
-       +'<div class="slabel">リーグ名・大会名を選択</div>'
-       +'<div style="display:flex;flex-direction:column;gap:6px;margin-bottom:14px">'+tourBtns+'</div>'
-       +(gf.tournament&&ruleInfoHtml?'<div style="margin-bottom:14px">'+ruleInfoHtml+'</div>':'')
-       +(gf.tournament?'<button class="pri" style="width:100%;padding:11px" onclick="gfNext()">次へ：選手を選ぶ →</button>':'')
-       +'</div>';
+    var customForm=(gf.rule==='custom')
+      ?'<div style="background:var(--sf2);border-radius:var(--ra);padding:10px 12px;margin-top:8px">'
+        +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">'
+        +['startPts:初期点数','oka:オカ','uma1:1着ウマ','uma2:2着ウマ','uma3:3着ウマ','uma4:4着ウマ'].map(function(itm){
+          var pts=itm.split(':'),key=pts[0],lbl=pts[1];
+          var val=(gf.customRule&&gf.customRule[key]!==undefined)?gf.customRule[key]:'';
+          return'<div><div style="font-size:10px;color:var(--tx3);margin-bottom:2px">'+lbl+'</div>'
+            +'<input type="number" value="'+val+'" placeholder="0" '
+            +'onchange="gfSetCustomRule(\''+key+'\',this.value)" '
+            +'style="width:100%;padding:5px 8px;border:.5px solid var(--bd2);border-radius:6px;'
+            +'background:var(--sf);color:var(--tx);font-size:13px;font-family:inherit;outline:none">'
+            +'</div>';
+        }).join('')
+        +'</div></div>'
+      :'';
+    body='<div>'
+      +'<div style="font-size:12px;color:var(--tx3);margin-bottom:8px">団体：<strong style="color:var(--tx)">'+(org?org.label:'')+'</strong></div>'
+      +'<div class="slabel">大会を選択</div>'
+      +'<div style="display:flex;flex-direction:column;gap:6px;margin-bottom:14px">'+tourBtns+'</div>'
+      +'<div style="margin-bottom:14px">'
+        +'<div class="slabel">ルール</div>'
+        +'<select onchange="gfSelectRule(this.value)" '
+          +'style="width:100%;padding:9px 10px;background:var(--sf);border:.5px solid var(--bd2);border-radius:var(--ra);color:var(--tx);font-size:14px;font-family:inherit;outline:none;margin-bottom:4px">'
+          +'<option value="">（未選択）</option>'
+          +ruleOpts
+        +'</select>'
+        +ruleInfoHtml
+        +customForm
+      +'</div>'
+      +(gf.tournament?'<button class="pri" style="width:100%;padding:11px" onclick="gfNext()">次へ：選手を選ぶ →</button>':'')
+      +'</div>';
   }
 
   // ── STEP 3: 選手選択 ──
@@ -2922,14 +3371,20 @@ function renderKyokuList(gf){
     var pid=initSeats[w];
     var p=pid?allP.find(function(x){return x.id===pid;}):null;
     var pts=currentPts[w];
-    var pct=Math.max(0,Math.min(100,pts/MAX_PTS*100));
     var color=pts>=rule.startPts?'var(--g)':'var(--r)';
-    html+='<div style="padding:6px 10px;border-bottom:.5px solid var(--bd2);display:flex;align-items:center;gap:8px">'
-      +'<div style="font-size:11px;color:var(--tx3);min-width:28px">'+WJd[wi]+'</div>'
-      +'<div style="font-size:12px;font-weight:600;flex:1">'+(p?p.name:'—')+'</div>'
-      +'<div style="font-family:monospace;font-size:14px;font-weight:700;color:'+color+';min-width:60px;text-align:right">'
-        +pts.toLocaleString()+'</div>'
-      +'</div>';
+    var isMySeat=state.seat===w;
+    var rowBg=isMySeat?';background:var(--g-bg)':'';
+    var nameCo=isMySeat?'var(--g)':'var(--tx)';
+    var btnSt=isMySeat
+      ?'background:var(--g);border:1px solid var(--g);color:#fff;font-weight:600'
+      :'background:var(--sf2);border:1px solid var(--bd2);color:var(--tx2)';
+    var btnTx=isMySeat?'\u2713 \u5165\u529b\u4e2d':'\u3053\u306e\u30d7\u30ec\u30a4\u30e4\u30fc\u3067\u5165\u529b';
+    html+='<div style="padding:6px 10px;border-bottom:.5px solid var(--bd2);display:flex;align-items:center;gap:6px'+rowBg+'">'+
+      '<div style="font-size:11px;color:var(--tx3);min-width:28px">'+WJd[wi]+'</div>'+
+      '<div style="font-size:12px;font-weight:600;flex:1;color:'+nameCo+'">'+(p?p.name:'\u2014')+(isMySeat?' \u25c4':'')+'</div>'+
+      '<div style="font-family:monospace;font-size:13px;font-weight:700;color:'+color+';min-width:52px;text-align:right">'+pts.toLocaleString()+'</div>'+
+      '<button onclick="gfSetMySeat(\''+w+'\')" style="font-size:11px;padding:4px 9px;border-radius:14px;white-space:nowrap;cursor:pointer;'+btnSt+'">'+btnTx+'</button>'+
+      '</div>';
   });
   html+='</div>';
 
@@ -2980,7 +3435,58 @@ function gfSelectKyoku(ba, kyoku, honba){
   renderSection();
 }
 
+function gfSetMySeat(wind){
+  if(!state.gameFlow.matched) return;
+  state.seat=wind;
+  var gf=state.gameFlow;
+  if(gf.computedSeats) state.seatMap=Object.assign({east:null,south:null,west:null,north:null},gf.computedSeats);
+  renderSection();
+  renderNav();
+}
+
+function gfShowSeatPicker(onSelect){
+  var gf=state.gameFlow;
+  var seats=gf.computedSeats||gf.initSeats||{};
+  var allP=Object.values(typeof PLAYERS_MASTER!=='undefined'?PLAYERS_MASTER:{}).flat();
+  var WJseats=['東家','南家','西家','北家'];
+  var WEseats=['east','south','west','north'];
+  var ov=document.createElement('div');
+  ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:700;display:flex;align-items:center;justify-content:center;padding:16px';
+  var inner='<div style="background:var(--sf);border-radius:var(--ral);padding:20px;max-width:320px;width:100%;box-shadow:0 8px 32px rgba(0,0,0,.3)">'
+    +'<div style="font-size:14px;font-weight:700;margin-bottom:4px">どのプレイヤーの情報を入力しますか？</div>'
+    +'<div style="font-size:11px;color:var(--tx3);margin-bottom:14px">この局でのあなたの座席を選んでください</div>'
+    +WEseats.map(function(w,wi){
+      var pid=seats[w];
+      var p=pid?allP.find(function(x){return x.id===pid;}):null;
+      return '<div class="picker-item" data-wind="'+w+'" '
+        +'style="display:flex;align-items:center;gap:10px;margin-bottom:8px;padding:11px 14px;'
+        +'border-radius:var(--ra);border:.5px solid var(--bd2);background:var(--sf2);cursor:pointer;">'
+        +'<span style="font-size:11px;padding:2px 7px;border-radius:10px;background:var(--b-bg);color:var(--b-t);font-weight:700">'+WJseats[wi]+'</span>'
+        +'<span style="font-weight:600;font-size:14px">'+(p?p.name:'未設定')+'</span>'
+        +'</div>';
+    }).join('')
+    +'<button class="picker-cancel" style="width:100%;padding:8px;border-radius:var(--ra);border:.5px solid var(--bd);background:transparent;font-family:inherit;color:var(--tx3);cursor:pointer;margin-top:4px">キャンセル</button>'
+    +'</div>';
+  ov.innerHTML=inner;
+  ov.addEventListener('click',function(e){
+    var item=e.target.closest('.picker-item');
+    if(item){document.body.removeChild(ov);onSelect(item.dataset.wind);return;}
+    if(e.target.classList.contains('picker-cancel')){document.body.removeChild(ov);}
+  });
+  document.body.appendChild(ov);
+}
+
 function gfStartInput(){
+  if(!state.seat){
+    gfShowSeatPicker(function(wind){
+      state.seat=wind;
+      _gfStartInputCore();
+    });
+    return;
+  }
+  _gfStartInputCore();
+}
+function _gfStartInputCore(){
   // 選択済み局と座席を state に反映
   var gf=state.gameFlow;
   var ky=gf.selectedKyoku||{ba:'東',kyoku:1,honba:0};
@@ -2990,8 +3496,6 @@ function gfStartInput(){
   state.gameInfo.bakaze=ky.ba;
   state.gameInfo.kyoku=ky.kyoku;
   state.gameInfo.honba=ky.honba;
-  // 自分の座席: initSeats から自分が入力しているものを選ぶ（後でseat選択）
-  state.seat = state.seat || null;
   // ポイント付与
   var existDraft=localStorage.getItem('tsumolog_draft');
   var isResume=false;
@@ -2999,7 +3503,8 @@ function gfStartInput(){
   if(!isResume){
     TsumologPoints.grant('new_kifu_start',5,'新規牌譜入力開始').then(function(){TsumologPoints.refreshDisplay();});
   }
-  state.section='haipai';  // 最初から配牌タブを表示
+  state.section='dora';    // 最初はドラ入力タブ
+  document.body.classList.add('is-input'); // 入力モード: 薄い緑背景
   renderNav();
   renderSection();
 }
@@ -3262,16 +3767,23 @@ function renderRtPanel(){
         var maxIdx = 0;
         for(var i=0;i<21;i++){if(draws[i]||discs[i])maxIdx=i;}
         var drawRow='', discRow='';
+        var myRiichiIdx = isMe ? state.riichiDiscIdx : null;
         for(var j=0;j<=maxIdx;j++){
           var dt=draws[j], di2=discs[j];
           drawRow += '<span style="display:inline-flex;align-items:center;justify-content:center;'
             +'width:24px;height:24px;font-size:16px;border-radius:3px;'
             +'background:'+(dt?'var(--sf)':'var(--sf2)')+';border:.5px solid var(--bd);margin:1px">'
             +(dt?teHtml(dt):'<span style="font-size:8px;color:var(--tx3)">'+(j+1)+'</span>')+'</span>';
+          var isRiichi = (myRiichiIdx !== null && j === myRiichiIdx);
           discRow += '<span style="display:inline-flex;align-items:center;justify-content:center;'
-            +'width:24px;height:24px;font-size:16px;border-radius:3px;'
-            +'background:'+(di2?'var(--sf)':'var(--sf2)')+';border:.5px solid var(--bd);margin:1px">'
-            +(di2?teHtml(di2):'<span style="font-size:8px;color:var(--tx3)">'+(j+1)+'</span>')+'</span>';
+            +'width:24px;height:24px;font-size:16px;border-radius:3px;position:relative;'
+            +'background:'+(di2?'var(--sf)':'var(--sf2)')+';'
+            +'border:'+(isRiichi?'1.5px solid #d05050':'.5px solid var(--bd)')+';margin:1px">'
+            +(di2?teHtml(di2):'<span style="font-size:8px;color:var(--tx3)">'+(j+1)+'</span>')
+            +(isRiichi?'<span style="position:absolute;top:-5px;left:-3px;'
+              +'font-size:9px;font-weight:700;color:#fff;background:#d05050;'
+              +'border-radius:3px;padding:0 2px;line-height:14px;pointer-events:none">R</span>':'')
+            +'</span>';
         }
         gridHtml = '<div style="font-size:9px;color:var(--tx3);margin-bottom:2px">ツモ</div>'
           +'<div style="display:flex;flex-wrap:wrap;margin-bottom:4px">'+drawRow+'</div>'
@@ -3461,6 +3973,15 @@ function discWithMeldBadge(discards,melds){
     }
     return e;
   }).join("");
+}
+
+// finalタブ内埋め込み用ラッパー（card外側なしで中身のみ返す）
+function _renderMeldInline(){
+  var full=renderMeldSection();
+  // renderMeldSection は '<div class="card">…</div>' を返す
+  // 外側の card div を除いた中身だけを返す
+  var m=full.match(/^<div class="card">([\s\S]*)<\/div>$/);
+  return m?m[1]:full;
 }
 
 // 副露セクション描画
@@ -3812,6 +4333,18 @@ function meldFinish(){
     kanTsumoIdx:d.kanTsumoIdx!=null?d.kanTsumoIdx:null,
   });
   state.meldDraft=null;
+  // kanDoraTile が入力されていたら state.dora に自動反映
+  (function(){
+    var allKanDora=state.melds.filter(function(m){return m.kanDoraTile;}).map(function(m){return m.kanDoraTile;});
+    // state.dora[0] は通常のドラ表示牌。カンドラは [1] 以降
+    allKanDora.forEach(function(t,i){
+      var slot=i+1; // 0番目は通常ドラなので1番目から
+      if(slot < DORA_MAX){
+        while(state.dora.length <= slot) state.dora.push(null);
+        if(!state.dora[slot]) state.dora[slot]=t; // 未入力のときだけ反映
+      }
+    });
+  })();
   renderNav();
   renderSection();
 }
@@ -3885,11 +4418,9 @@ function checkInputConsistency(){
 function calcScores(){
   // state.agari から各プレイヤーの点数変動を計算
   var gf=state.gameFlow;
-  var rule=gf.ruleObj||null;
-  if(!rule){
-    var _rules=getRules();
-    rule=_rules.find(function(r){return r.id===gf.rule;})||(_rules[0]||{startPts:30000,uma:[20,10,-10,-20],oka:20000});
-  }
+  var _rules=getRules();
+  var rule=_rules.find(function(r){return r.id===gf.rule;})||(_rules[0]||{startPts:30000,uma:[20,10,-10,-20],oka:20000});
+  if(gf.rule==='custom'&&gf.customRule){var cr=gf.customRule;rule=Object.assign({},rule,{startPts:+(cr.startPts)||rule.startPts,uma:[+(cr.uma1)||0,+(cr.uma2)||0,+(cr.uma3)||0,+(cr.uma4)||0],oka:+(cr.oka)||0});}
   var WE=['east','south','west','north'];
   var WJ=['東家','南家','西家','北家'];
   var sm=state.seatMap||{};
@@ -4040,8 +4571,10 @@ function buildKifuJSON(){
   }
 
   // ドラ (gameInfo から)
-  var doraIndicators = gi.dora ? parseTileText(gi.dora) : null;
-  var uraDoraIndicators = gi.ura_dora ? parseTileText(gi.ura_dora) : null;
+  // ドラはstateから直接取得（doraタブで入力）
+  var kanDoraList=state.melds.filter(function(m){return m.kanDoraTile;}).map(function(m){return m.kanDoraTile;});
+  var doraIndicators = state.dora.length ? state.dora.concat(kanDoraList) : (gi.dora ? parseTileText(gi.dora) : null);
+  var uraDoraIndicators = state.uraDora.length ? state.uraDora : (gi.ura_dora ? parseTileText(gi.ura_dora) : null);
 
   // 局情報
   var bakazeMap={'東':'東','南':'南','西':'西','北':'北'};
@@ -4191,6 +4724,7 @@ function submitAll(){
 
     clearDraft(); // 送信完了したらドラフトを削除
     }catch(e){}
+    document.body.classList.remove("is-input");
     document.getElementById("done-modal").classList.add("open");
   });
 }
@@ -4281,91 +4815,30 @@ var shopTab="pt";
 // ランキング
 // ═══════════════════════════════════════════════
 function renderRanking(){
-  // フェーズ1: 自分のデータのみ表示
-  // フェーズ2: /wp-json/tsumolog/v1/ranking からランキングデータ取得
-  TsumologPoints.getUser().then(function(u){
-    var games=0;
-    try{ games=JSON.parse(localStorage.getItem('tsumolog_kifu_history')||'[]').length; }catch(e){}
-    var row='<div class="rank-row me">'
-      +'<div class="rank-num">—</div>'
-      +'<div class="rank-name">'+u.name
-        +' <span style="font-size:11px;color:var(--b-t);background:var(--b-bg);border-radius:4px;padding:0 5px;">自分</span>'
-        +'<div style="font-size:11px;color:var(--tx3)">'+games+'局入力</div></div>'
-      +'<div class="rank-pts">'+(u.points||0).toLocaleString()
-        +'<span style="font-size:11px;color:var(--tx3);font-weight:400">pt</span></div>'
-      +'</div>'
-      +'<div style="font-size:11px;color:var(--tx3);text-align:center;padding:16px 0">'
-        +'ランキング（全体）はフェーズ2で有効になります</div>';
-    document.getElementById("ranking-list").innerHTML=row;
-  });
+  document.getElementById("ranking-list").innerHTML=RANKINGS.map(function(r){
+    return`<div class="rank-row ${r.me?"me":""}">`
+      +`<div class="rank-num">${r.badge||r.rank}</div>`
+      +`<div class="rank-name">${r.name}${r.me?" <span style='font-size:11px;color:var(--b-t);background:var(--b-bg);border-radius:4px;padding:0 5px;'>自分</span>":""}`
+      +`<div style="font-size:11px;color:var(--tx3)">${r.games}局 / 正解率${r.acc}%</div></div>`
+      +`<div class="rank-pts">${r.pts.toLocaleString()}<span style="font-size:11px;color:var(--tx3);font-weight:400">pt</span></div>`
+      +`</div>`;
+  }).join("");
 }
 
 // ═══════════════════════════════════════════════
 // アカウント
 // ═══════════════════════════════════════════════
 function renderAccount(){
-  TsumologPoints.getUser().then(function(u){
-    // 名前
-    var nameEl=document.getElementById('acct-name');
-    if(nameEl) nameEl.textContent=u.name||'ゲスト';
-
-    var handleEl=document.getElementById('acct-handle');
-    if(handleEl) handleEl.textContent='ID: '+(u.id||'—');
-
-    // ポイント
-    var pts=u.points||0;
-    TsumologPoints.refreshDisplay();
-
-    // 今月獲得
-    var now=new Date(), ym=now.getFullYear()*100+(now.getMonth()+1);
-    var monthPts=(u.log||[]).filter(function(l){
-      var d=new Date(l.ts);
-      return l.pts>0 && d.getFullYear()*100+(d.getMonth()+1)===ym;
-    }).reduce(function(s,l){return s+l.pts;},0);
-    var monthEl=document.getElementById('acct-month-pts');
-    if(monthEl) monthEl.textContent=monthPts.toLocaleString();
-
-    // 入力対局数
-    var games=0;
-    try{ games=JSON.parse(localStorage.getItem('tsumolog_kifu_history')||'[]').length; }catch(e){}
-    var gamesEl=document.getElementById('acct-games');
-    if(gamesEl) gamesEl.textContent=games;
-
-    // ポイントバー（次の報酬: 100pt単位）
-    var next=Math.ceil((pts+1)/100)*100;
-    var pct=((pts%100)/100*100).toFixed(0);
-    var barLabel=document.getElementById('acct-pts-bar-label');
-    var barEl=document.getElementById('acct-pts-bar');
-    if(barLabel) barLabel.textContent=(pts%100)+' / 100 pt';
-    if(barEl) barEl.style.width=pct+'%';
-  });
-
-  // ポイントテーブル
-  var tbl=POINT_TABLE.length?POINT_TABLE:POINT_TABLE_FALLBACK;
-  document.getElementById("pt-table-body").innerHTML=tbl.map(function(p){
-    return'<tr><td>'+(p.task||p.label||'')+'</td><td class="td-pts '+(p.cls||'')+'">+'+(+(p.pts||p.points||0))+'pt</td></tr>';
+  document.getElementById("pt-table-body").innerHTML=POINT_TABLE.map(function(p,i){
+    return`<tr><td>${p.task}</td><td class="td-pts ${p.cls}">+${p.pts}pt</td></tr>`;
   }).join("");
-
-  // 入力履歴（ポイントログ）
-  var log=TsumologPoints.getLog()||[];
-  var TASK_LABEL={submit_game:'牌譜入力',haipai:'配牌',turn:'ツモ捨て',
-    meld:'副露',final_wait:'最終手牌',agari:'アガリ',new_kifu_start:'新規開始',
-    admin_adjust:'管理者調整'};
-  var histEl=document.getElementById("history-list");
-  if(!log.length){
-    histEl.innerHTML='<div style="font-size:12px;color:var(--tx3);text-align:center;padding:12px">まだ履歴がありません</div>';
-    return;
-  }
-  histEl.innerHTML=log.slice(0,15).map(function(l,i){
-    var d=new Date(l.ts);
-    var ds=(d.getMonth()+1)+'/'+(d.getDate());
-    var isLast=i===Math.min(log.length,15)-1;
-    return'<div style="display:flex;align-items:center;gap:10px;padding:8px 0;'+(isLast?'':'border-bottom:.5px solid var(--bd);')+'">'
-      +'<span style="font-size:11px;color:var(--tx3);min-width:36px">'+ds+'</span>'
-      +'<span style="flex:1;font-size:13px">'+(TASK_LABEL[l.task]||l.task)+(l.note?' ('+l.note+')':'')+'</span>'
-      +'<span style="font-size:13px;font-weight:700;color:'+(l.pts>0?'var(--gold)':'var(--r)')+'">'
-        +(l.pts>0?'+':'')+l.pts+'pt</span>'
-      +'</div>';
+  document.getElementById("history-list").innerHTML=HISTORY.map(function(h,i){
+    var isLast=i===HISTORY.length-1;
+    return`<div style="display:flex;align-items:center;gap:10px;padding:8px 0;${isLast?"":"border-bottom:.5px solid var(--bd);"}">`
+      +`<span style="font-size:11px;color:var(--tx3);width:36px">${h.date}</span>`
+      +`<span style="flex:1;font-size:13px">${h.game}</span>`
+      +`<span style="font-size:11px;padding:1px 8px;border-radius:10px;background:${h.status==="正解"?"var(--g-bg)":"var(--a-bg)"};color:${h.status==="正解"?"var(--g)":"var(--a)"}">${h.status}</span>`
+      +`<span style="font-size:13px;font-weight:700;color:var(--gold)">+${h.pts}pt</span></div>`;
   }).join("");
 }
 
@@ -4488,6 +4961,229 @@ function initApp(){
 
 // CSVを読み込んでから起動
 loadAllCSV();
+
+
+// ══════════════════════════════════════════════════════════════
+//  TsumologLibrary — 共有IndexedDB + BroadcastChannel 連携モジュール
+//  両アプリ共通。同一オリジン上に配置することでIDBを共有する。
+// ══════════════════════════════════════════════════════════════
+var TsumologLibrary = (function(){
+  var DB_NAME  = 'tsumolog_shared';
+  var DB_VER   = 1;
+  var STORE    = 'library';
+  var _db      = null;
+  var _bc      = null; // BroadcastChannel
+
+  // ── BroadcastChannel（タブ間同期） ──────────────────────
+  try{
+    _bc = new BroadcastChannel('tsumolog_library');
+  }catch(e){ _bc = null; }
+
+  function _broadcast(type, data){
+    if(_bc) try{ _bc.postMessage({type:type, data:data}); }catch(e){}
+  }
+
+  // ── IDB オープン ────────────────────────────────────────
+  function _open(cb){
+    if(_db){ cb(_db); return; }
+    var req = indexedDB.open(DB_NAME, DB_VER);
+    req.onupgradeneeded = function(e){
+      var db = e.target.result;
+      if(!db.objectStoreNames.contains(STORE)){
+        var s = db.createObjectStore(STORE, {keyPath:'id', autoIncrement:true});
+        s.createIndex('source',  'source',  {unique:false});
+        s.createIndex('userId',  'userId',  {unique:false});
+        s.createIndex('savedAt', 'savedAt', {unique:false});
+      }
+    };
+    req.onsuccess  = function(e){ _db = e.target.result; cb(_db); };
+    req.onerror    = function(){ console.warn('[TsumologLibrary] IDB open failed'); cb(null); };
+  }
+
+  // ── 現在のユーザーID取得 ─────────────────────────────────
+  function _userId(){
+    try{
+      var u = JSON.parse(localStorage.getItem('tsumolog_user')||'null');
+      return (u && u.id) ? u.id : null;
+    }catch(e){ return null; }
+  }
+
+  // ── レコード追加 ─────────────────────────────────────────
+  // source: 'input' | 'replay' | 'variant'
+  // permissions: [userId, ...] — 再生を許可するユーザーIDの配列
+  function add(gameDataObj, opts, cb){
+    // opts: { source, label, filename, permissions }
+    var uid   = _userId();
+    var meta  = (gameDataObj.gameData||gameDataObj).meta || {};
+    var label = opts.label || meta.title || (meta.bakaze||'')+(meta.kyoku||'')+'局';
+    var perms = opts.permissions || (uid ? [uid] : []);
+
+    var record = {
+      source:      opts.source || 'replay',
+      label:       label,
+      filename:    opts.filename || '',
+      userId:      uid,
+      permissions: perms,
+      savedAt:     new Date().toISOString(),
+      savedAtDisp: new Date().toLocaleString('ja-JP'),
+      data:        JSON.stringify(gameDataObj),
+    };
+
+    _open(function(db){
+      if(!db){ cb && cb(null); return; }
+      var tx  = db.transaction(STORE, 'readwrite');
+      var req = tx.objectStore(STORE).add(record);
+      req.onsuccess = function(){
+        _broadcast('added', {id: req.result, source: record.source, label: label});
+        cb && cb(req.result);
+      };
+      req.onerror = function(){ cb && cb(null); };
+    });
+  }
+
+  // ── 全件取得（権限チェック付き） ─────────────────────────
+  // onlyMine=true: 自分が権限を持つものだけ返す
+  function getAll(opts, cb){
+    // opts: { onlyMine, source }
+    var uid = _userId();
+    _open(function(db){
+      if(!db){ cb([]); return; }
+      var req = db.transaction(STORE,'readonly').objectStore(STORE).getAll();
+      req.onsuccess = function(){
+        var all = req.result || [];
+        if(opts && opts.source) all = all.filter(function(r){ return r.source === opts.source; });
+        if(opts && opts.onlyMine){
+          all = all.filter(function(r){
+            if(!uid) return false;
+            // 所有者 or permissions に含まれる
+            return r.userId === uid || (r.permissions && r.permissions.indexOf(uid) >= 0);
+          });
+        }
+        cb(all.reverse()); // 新しい順
+      };
+      req.onerror = function(){ cb([]); };
+    });
+  }
+
+  // ── 1件取得（権限チェック付き） ──────────────────────────
+  function get(id, cb){
+    var uid = _userId();
+    _open(function(db){
+      if(!db){ cb(null, 'db_error'); return; }
+      var req = db.transaction(STORE,'readonly').objectStore(STORE).get(id);
+      req.onsuccess = function(){
+        var r = req.result;
+        if(!r){ cb(null, 'not_found'); return; }
+        // 権限チェック
+        var hasPermission = !uid
+          ? false
+          : (r.userId === uid || (r.permissions && r.permissions.indexOf(uid) >= 0));
+        if(!hasPermission){ cb(null, 'no_permission'); return; }
+        cb(r, null);
+      };
+      req.onerror = function(){ cb(null, 'db_error'); };
+    });
+  }
+
+  // ── 権限付与（購入時などに呼ぶ） ─────────────────────────
+  function grantPermission(id, targetUserId, cb){
+    _open(function(db){
+      if(!db){ cb && cb(false); return; }
+      var tx    = db.transaction(STORE,'readwrite');
+      var store = tx.objectStore(STORE);
+      var req   = store.get(id);
+      req.onsuccess = function(){
+        var r = req.result;
+        if(!r){ cb && cb(false); return; }
+        if(!r.permissions) r.permissions = [];
+        if(r.permissions.indexOf(targetUserId) < 0) r.permissions.push(targetUserId);
+        var upd = store.put(r);
+        upd.onsuccess = function(){
+          _broadcast('permission_granted', {id:id, userId:targetUserId});
+          cb && cb(true);
+        };
+        upd.onerror = function(){ cb && cb(false); };
+      };
+    });
+  }
+
+  // ── 削除 ─────────────────────────────────────────────────
+  function remove(id, cb){
+    _open(function(db){
+      if(!db){ cb && cb(); return; }
+      var tx = db.transaction(STORE,'readwrite');
+      tx.objectStore(STORE).delete(id);
+      tx.oncomplete = function(){
+        _broadcast('deleted', {id:id});
+        cb && cb();
+      };
+    });
+  }
+
+  // ── BroadcastChannel 受信ハンドラ登録 ────────────────────
+  function onUpdate(fn){
+    if(_bc) _bc.onmessage = function(e){ fn(e.data); };
+  }
+
+
+  // ── 公開一覧取得（ショップ用: source='input'の全件, 権限チェックなし）──
+  function getPublic(cb){
+    _open(function(db){
+      if(!db){ cb([]); return; }
+      var req = db.transaction(STORE,'readonly').objectStore(STORE).index('source').getAll('input');
+      req.onsuccess = function(){
+        var all = req.result || [];
+        cb(all.reverse()); // 新しい順
+      };
+      req.onerror = function(){ cb([]); };
+    });
+  }
+
+  return { add:add, getAll:getAll, get:get, getPublic:getPublic, grantPermission:grantPermission, remove:remove, onUpdate:onUpdate, userId:_userId };
+})();
+
+
+// ══════════════════════════════════════════════
+// 【入力アプリ連携】submitAll 後に共有IDBへ保存
+// ══════════════════════════════════════════════
+(function(){
+  function _patchSubmitAll(){
+    var orig = window.submitAll;
+    window.submitAll = function(){
+      orig.apply(this, arguments);
+      setTimeout(function(){
+        try{
+          var obj = buildKifuJSON();
+          if(!obj || !obj.gameData) return;
+          var _m = obj.gameData.meta||{};
+          var _ps = obj.gameData.playerScores||{};
+          var _we = ['east','south','west','north'];
+          var _names = _we.map(function(w){return _ps[w]&&_ps[w].name?_ps[w].name:'';}).filter(Boolean);
+          var _res = _m.result_type==='tsumo'?'ツモ':_m.result_type==='ron'?'ロン':_m.result_type==='ryukyoku'?'流局':'';
+          var _desc = (_m.date?_m.date+' ':'')
+            +(_m.bakaze||'')+(_m.kyoku||'')+'局'
+            +(_m.honba?' '+_m.honba+'本場':'')
+            +(_res?' '+_res:'')
+            +(_m.score?' '+_m.score+'点':'')
+            +(_names.length?' · '+_names.join(' / '):'');
+          TsumologLibrary.add(obj, {
+            source: 'input',
+            label:  _m.title || ((_m.bakaze||'')+(_m.kyoku||'')+'局'),
+            description: _desc,
+          }, function(id){
+            if(id) console.log('[TsumologLibrary] 入力牌譜を保存 id='+id);
+          });
+        }catch(e){ console.warn('[TsumologLibrary] 保存エラー', e); }
+      }, 300);
+    };
+  }
+  if(document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded', _patchSubmitAll);
+  } else {
+    setTimeout(_patchSubmitAll, 0);
+  }
+})();
+
 </script>
 </body>
 </html>
