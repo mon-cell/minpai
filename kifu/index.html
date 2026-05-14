@@ -800,59 +800,65 @@ function showLoadStatus(msg,isError){
 
 function loadAllCSV(){
   showLoadStatus("マスタデータを読み込み中...",false);
+  // 各CSVを個別に試行し、失敗したものだけフォールバック
+  function tryCSV(name){ return loadCSV(name).catch(function(){ return null; }); }
   Promise.all([
-    loadCSV("orgs.csv"),
-    loadCSV("tournaments.csv"),
-    loadCSV("players.csv"),
-    loadCSV("points.csv"),
-    loadCSV("scores.csv"),
-    loadCSV("yaku.csv"),
-    loadCSV("rule.csv"),
+    tryCSV("orgs.csv"),
+    tryCSV("tournaments.csv"),
+    tryCSV("players.csv"),
+    tryCSV("points.csv"),
+    tryCSV("scores.csv"),
+    tryCSV("yaku.csv"),
+    tryCSV("rule.csv"),
   ]).then(function(texts){
-    applyOrgsCSV(parseCSV(texts[0]));
-    applyTournamentsCSV(parseCSV(texts[1]));
-    applyPlayersCSV(parseCSV(texts[2]));
-    applyPointsCSV(parseCSV(texts[3]));
-    applyScoresCSV(parseCSV(texts[4]));
-    applyYakuCSV(parseCSV(texts[5]));
-    applyRuleCSV(parseCSV(texts[6]));
+    var missing=[];
+    if(texts[0]) applyOrgsCSV(parseCSV(texts[0]));         else{ loadFallback_orgs();        missing.push("orgs"); }
+    if(texts[1]) applyTournamentsCSV(parseCSV(texts[1]));  else{ loadFallback_tournaments();  missing.push("tournaments"); }
+    if(texts[2]) applyPlayersCSV(parseCSV(texts[2]));      else{ loadFallback_players();      missing.push("players"); }
+    if(texts[3]) applyPointsCSV(parseCSV(texts[3]));       else{ POINT_TABLE=POINT_TABLE_FALLBACK.slice(); missing.push("points"); }
+    if(texts[4]) applyScoresCSV(parseCSV(texts[4]));       else{ applyScoresCSV([]);          missing.push("scores"); }
+    if(texts[5]) applyYakuCSV(parseCSV(texts[5]));         else{ applyYakuCSV([]);            missing.push("yaku"); }
+    if(texts[6]) applyRuleCSV(parseCSV(texts[6]));         else missing.push("rule");
     MASTER_LOADED=true;
-    showLoadStatus("",false);
-    initApp();
-  }).catch(function(err){
-    console.warn("CSV fetch failed, using fallback:",err.message);
-    loadFallback();
-    MASTER_LOADED=true;
-    showLoadStatus("⚠ CSVファイルが見つかりません。サンプルデータで起動しています。",true);
+    if(missing.length){
+      console.warn("CSV not found (using fallback):", missing.join(", "));
+      showLoadStatus("⚠ 一部CSVが読めません（"+missing.join(", ")+"）。サンプルデータを使用中。",true);
+    } else {
+      showLoadStatus("",false);
+    }
     initApp();
   });
 }
 
-// ── フォールバック（CSVが読めない場合）──
-function loadFallback(){
-  POINT_TABLE=POINT_TABLE_FALLBACK.slice();
-  applyScoresCSV([]);
-  applyYakuCSV([]);
+function loadFallback_orgs(){
   applyOrgsCSV([
-    {id:"saikoui",label:"最高位",sort_order:1},
-    {id:"kyokai", label:"協会",  sort_order:2},
-    {id:"renmei", label:"連盟",  sort_order:3},
-    {id:"rmu",    label:"RMU",   sort_order:4},
-    {id:"mu",     label:"μ",    sort_order:5},
-    {id:"other",  label:"その他",sort_order:99},
+    {id:"saikoui",label:"最高位",sort_order:1},{id:"kyokai",label:"協会",sort_order:2},
+    {id:"renmei",label:"連盟",sort_order:3},{id:"rmu",label:"RMU",sort_order:4},
+    {id:"mu",label:"μ",sort_order:5},{id:"other",label:"その他",sort_order:99},
   ]);
+}
+function loadFallback_tournaments(){
   applyTournamentsCSV([
     {id:"rmu1",org_id:"rmu",label:"A大会",sort_order:1},
     {id:"rmu2",org_id:"rmu",label:"B大会",sort_order:2},
     {id:"rmu3",org_id:"rmu",label:"C大会",sort_order:3},
-    {id:"o1",  org_id:"other",label:"フリー対局",sort_order:1},
+    {id:"o1",org_id:"other",label:"フリー対局",sort_order:1},
   ]);
+}
+function loadFallback_players(){
   applyPlayersCSV([
     {id:"rmu_p1",org_id:"rmu",name:"雷神ケンイチ",ruby:"らいじんけんいち",is_pro:"1",sort_order:1},
-    {id:"rmu_p2",org_id:"rmu",name:"桜花散る",    ruby:"おうかちる",      is_pro:"1",sort_order:2},
-    {id:"rmu_p3",org_id:"rmu",name:"東風荘の鬼",  ruby:"とうふうそうのおに",is_pro:"1",sort_order:3},
-    {id:"rmu_p4",org_id:"rmu",name:"麻雀修行中",  ruby:"まーじゃんしゅぎょうちゅう",is_pro:"1",sort_order:4},
+    {id:"rmu_p2",org_id:"rmu",name:"桜花散る",ruby:"おうかちる",is_pro:"1",sort_order:2},
+    {id:"rmu_p3",org_id:"rmu",name:"東風荘の鬼",ruby:"とうふうそうのおに",is_pro:"1",sort_order:3},
+    {id:"rmu_p4",org_id:"rmu",name:"麻雀修行中",ruby:"まーじゃんしゅぎょうちゅう",is_pro:"1",sort_order:4},
   ]);
+}
+
+// ── フォールバック（後方互換・一括版）──
+function loadFallback(){
+  POINT_TABLE=POINT_TABLE_FALLBACK.slice();
+  applyScoresCSV([]);applyYakuCSV([]);
+  loadFallback_orgs();loadFallback_tournaments();loadFallback_players();
 }
 
 // ── points.csv → POINT_TABLE ──
@@ -1486,6 +1492,9 @@ function kbdInpConfirm(fn, inputId){
     else if(fn==="meldPickKanTsumo")       meldPickKanTsumo(t,null);
     else if(fn==="gridTilePick")           gridTilePick(t);
   });
+  // ソート
+  if(fn==="haipaiPick") state.haipai=sortTiles(state.haipai);
+  if(fn==="finalPick")  state.finalHand=sortTiles(state.finalHand);
   inp.value="";
   var prv=document.getElementById(inputId.replace("kbd-inp-","kbd-prv-"));
   if(prv)prv.innerHTML="";
@@ -2140,11 +2149,25 @@ function kbdClear(){
   else if(state.section==="final"){state.finalHand=[];}
   renderSection();
 }
+
+// ══ 手牌ソート（マンズ→ピンズ→ソーズ→字牌、数字昇順、赤5は5の直後）══
+function sortTiles(tiles){
+  var order={'m':0,'p':1,'s':2,'z':3};
+  function tileKey(t){
+    // r5m/r5p/r5s → 数字5.5として扱う（5の直後）
+    var m=t.match(/^r5([mps])$/);
+    if(m) return order[m[1]]*100+5.5;
+    var m2=t.match(/^([1-9])([mpsz])$/);
+    if(m2) return order[m2[2]]*100+parseInt(m2[1]);
+    return 999;
+  }
+  return tiles.slice().sort(function(a,b){ return tileKey(a)-tileKey(b); });
+}
 function haipaiPick(t){
-  state.haipai.push(t);renderSection();
+  state.haipai.push(t);state.haipai=sortTiles(state.haipai);renderSection();
 }
 function finalPick(t){
-  state.finalHand.push(t);renderSection();
+  state.finalHand.push(t);state.finalHand=sortTiles(state.finalHand);renderSection();
 }
 function waitPick(t){
   if(!state.waitTiles.includes(t)){state.waitTiles.push(t);renderSection();}
