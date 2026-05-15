@@ -1,0 +1,568 @@
+<!DOCTYPE html>
+<html lang="ja"><head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ツモログ ポイントショップ</title>
+<style>
+/* ── 麻雀牌をモチーフにした和洋折衷デザイン ── */
+@import url('https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@400;700&family=DM+Mono:wght@400;500&display=swap');
+
+:root{
+  --bg:#0f0e0b; --sf:#1a1916; --sf2:#232119;
+  --bd:rgba(255,255,255,.1); --bd2:rgba(255,255,255,.06);
+  --tx:#f0ead6; --tx2:#c8bfa0; --tx3:#7a7060;
+  --gold:#d4a843; --gold2:#f0c860; --r:#e04040;
+  --g:#4db87a; --b:#4a8fd4;
+  --ra:10px; --ral:16px;
+}
+
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);color:var(--tx);font-family:'Noto Serif JP',serif;min-height:100vh;}
+
+/* ヘッダー */
+.header{
+  background:linear-gradient(180deg,#1a1612 0%,var(--bg) 100%);
+  border-bottom:1px solid rgba(212,168,67,.2);
+  padding:16px 20px;
+  position:sticky;top:0;z-index:100;
+}
+.header-inner{max-width:520px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;}
+.logo{font-size:18px;font-weight:700;color:var(--gold);letter-spacing:.05em;}
+.pts-badge{
+  background:linear-gradient(135deg,#2a2418,#1a1612);
+  border:1px solid var(--gold);border-radius:20px;
+  padding:6px 14px;display:flex;align-items:center;gap:6px;
+  font-family:'DM Mono',monospace;
+}
+.pts-badge .star{font-size:14px;}
+.pts-badge .num{font-size:17px;font-weight:500;color:var(--gold2);}
+.pts-badge .unit{font-size:11px;color:var(--tx3);}
+
+/* メインコンテンツ */
+.wrap{max-width:520px;margin:0 auto;padding:16px;}
+
+/* タブ */
+.tabs{display:flex;gap:0;border-bottom:1px solid var(--bd);margin-bottom:20px;}
+.tab{flex:1;padding:10px;text-align:center;font-size:13px;color:var(--tx3);cursor:pointer;border-bottom:2px solid transparent;transition:all .2s;}
+.tab.on{color:var(--gold);border-bottom-color:var(--gold);}
+
+/* ポイント履歴 */
+.log-item{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:12px 14px;border-bottom:1px solid var(--bd2);
+}
+.log-item:last-child{border-bottom:none;}
+.log-task{font-size:13px;color:var(--tx2);}
+.log-note{font-size:11px;color:var(--tx3);margin-top:2px;}
+.log-pts{font-family:'DM Mono',monospace;font-size:16px;font-weight:500;}
+.log-pts.plus{color:var(--gold);}
+.log-pts.minus{color:var(--r);}
+.log-date{font-size:10px;color:var(--tx3);}
+.log-time-col{text-align:right;}
+
+/* ショップアイテム */
+.shop-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.shop-item{
+  background:var(--sf);border:1px solid var(--bd);border-radius:var(--ral);
+  padding:16px;cursor:pointer;transition:all .2s;
+  display:flex;flex-direction:column;gap:8px;
+}
+.shop-item:hover{border-color:var(--gold);background:var(--sf2);}
+.shop-item.disabled{opacity:.4;cursor:not-allowed;}
+.item-icon{font-size:28px;text-align:center;}
+.item-name{font-size:13px;font-weight:700;color:var(--tx);}
+.item-desc{font-size:11px;color:var(--tx3);line-height:1.5;}
+.item-price{
+  display:flex;align-items:center;gap:4px;
+  font-family:'DM Mono',monospace;color:var(--gold);font-size:14px;font-weight:500;
+  margin-top:auto;
+}
+.item-price .star{font-size:12px;}
+
+/* 購入確認モーダル */
+.modal-overlay{
+  position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:200;
+  display:none;align-items:center;justify-content:center;padding:20px;
+}
+.modal-overlay.open{display:flex;}
+.modal{
+  background:var(--sf);border:1px solid var(--bd);border-radius:var(--ral);
+  padding:24px;width:100%;max-width:340px;
+}
+.modal-title{font-size:16px;font-weight:700;margin-bottom:12px;}
+.modal-desc{font-size:13px;color:var(--tx2);line-height:1.6;margin-bottom:20px;}
+.modal-price{
+  background:var(--bg);border-radius:var(--ra);padding:12px;
+  text-align:center;margin-bottom:16px;
+  font-family:'DM Mono',monospace;font-size:22px;color:var(--gold);font-weight:500;
+}
+.modal-btns{display:flex;gap:8px;}
+.btn{
+  flex:1;padding:11px;border-radius:var(--ra);font-family:'Noto Serif JP',serif;
+  font-size:14px;cursor:pointer;border:none;transition:all .15s;
+}
+.btn-cancel{background:var(--sf2);color:var(--tx3);border:1px solid var(--bd);}
+.btn-buy{background:linear-gradient(135deg,var(--gold),var(--gold2));color:#1a1200;font-weight:700;}
+.btn-buy:disabled{opacity:.4;cursor:not-allowed;}
+
+/* ユーザー設定 */
+.setting-row{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:14px 0;border-bottom:1px solid var(--bd2);
+}
+.setting-label{font-size:13px;color:var(--tx2);}
+.setting-val{font-size:13px;color:var(--tx3);}
+.setting-input{
+  background:var(--sf2);border:1px solid var(--bd);border-radius:8px;
+  padding:6px 10px;color:var(--tx);font-family:'Noto Serif JP',serif;font-size:13px;
+  outline:none;width:160px;
+}
+
+/* トースト */
+.toast{
+  position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);
+  background:var(--g);color:#fff;border-radius:20px;padding:10px 20px;
+  font-size:13px;font-weight:700;z-index:300;transition:transform .3s ease;
+  white-space:nowrap;
+}
+.toast.show{transform:translateX(-50%) translateY(0);}
+
+/* 合計サマリー */
+.summary-card{
+  background:linear-gradient(135deg,var(--sf2),var(--sf));
+  border:1px solid rgba(212,168,67,.3);border-radius:var(--ral);
+  padding:20px;margin-bottom:20px;text-align:center;
+}
+.summary-pts{font-family:'DM Mono',monospace;font-size:36px;color:var(--gold2);font-weight:500;}
+.summary-label{font-size:12px;color:var(--tx3);margin-top:4px;}
+.summary-sub{font-size:11px;color:var(--tx3);margin-top:8px;}
+
+.empty{padding:32px;text-align:center;color:var(--tx3);font-size:13px;}
+
+/* フェーズ2バナー */
+.phase2-banner{
+  background:rgba(74,143,212,.1);border:1px solid rgba(74,143,212,.3);
+  border-radius:var(--ra);padding:10px 14px;margin-bottom:16px;
+  font-size:12px;color:var(--b);
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-inner">
+    <div class="logo"><a href="index.html" style="color:var(--tx2);text-decoration:none;font-size:12px;opacity:.6;margin-right:8px;">← 戻る</a>⭐ ツモログ ショップ</div>
+    <div class="pts-badge">
+      <span class="star">⭐</span>
+      <span class="num" id="pts-disp">0</span>
+      <span class="unit">pt</span>
+    </div>
+  </div>
+</div>
+
+<div class="wrap">
+  <div class="phase2-banner" id="phase2-banner" style="display:none">
+    🔗 サーバー連携モード (Supabase / WordPress)
+  </div>
+
+  <!-- サマリー -->
+  <div class="summary-card">
+    <div class="summary-pts" id="summary-pts">0</div>
+    <div class="summary-label">保有ポイント</div>
+    <div class="summary-sub" id="summary-sub">牌譜を入力してポイントを貯めよう</div>
+  </div>
+
+  <!-- タブ -->
+  <div class="tabs">
+    <div class="tab on" onclick="switchTab('shop')">🛒 ショップ</div>
+    <div class="tab" onclick="switchTab('kifu')">🀄 牌譜</div>
+    <div class="tab" onclick="switchTab('log')">📋 履歴</div>
+    <div class="tab" onclick="switchTab('settings')">⚙️ 設定</div>
+  </div>
+
+  <div id="tab-shop">
+    <div class="shop-grid" id="shop-grid"></div>
+  </div>
+
+  <div id="tab-kifu" style="display:none">
+    <div id="kifu-list"></div>
+  </div>
+
+  <div id="tab-log" style="display:none">
+    <div id="log-list"></div>
+  </div>
+
+  <div id="tab-settings" style="display:none">
+    <div class="setting-row">
+      <div class="setting-label">ユーザー名</div>
+      <input class="setting-input" id="inp-name" type="text" placeholder="名前を入力">
+    </div>
+    <div class="setting-row">
+      <div class="setting-label">ユーザーID</div>
+      <div class="setting-val" id="disp-uid">-</div>
+    </div>
+    <div class="setting-row">
+      <div class="setting-label">データ</div>
+      <button onclick="resetData()" style="padding:5px 12px;border-radius:6px;border:1px solid var(--r);background:transparent;color:var(--r);font-size:12px;cursor:pointer">リセット</button>
+    </div>
+    <div style="margin-top:20px;font-size:11px;color:var(--tx3);line-height:1.7">
+      ※ 現在フェーズ1（ローカル保存）です。<br>
+      サーバー連携後はWordPressアカウントと紐付けられます。
+    </div>
+  </div>
+</div>
+
+<!-- 購入確認モーダル -->
+<div class="modal-overlay" id="modal">
+  <div class="modal">
+    <div class="modal-title" id="modal-title">購入確認</div>
+    <div class="modal-desc" id="modal-desc"></div>
+    <div class="modal-price" id="modal-price"></div>
+    <div class="modal-btns">
+      <button class="btn btn-cancel" onclick="closeModal()">キャンセル</button>
+      <button class="btn btn-buy" id="btn-buy" onclick="executePurchase()">購入する</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ══════════════════════════════════════════════
+// TsumologPoints（kifu-input.html と共通ロジック）
+// ══════════════════════════════════════════════
+var TsumologPoints=(function(){
+  var KEY='tsumolog_user';
+  var USE_API=false;
+  var API_BASE='/wp-json/tsumolog/v1';
+
+  function load(){try{return JSON.parse(localStorage.getItem(KEY)||'null');}catch(e){return null;}}
+  function save(u){localStorage.setItem(KEY,JSON.stringify(u));}
+  function defaultUser(){return{id:'local_'+Math.random().toString(36).slice(2,9),name:'ゲスト',points:0,log:[],createdAt:Date.now()};}
+  function getUser(){return load()||defaultUser();}
+
+  function grantLocal(task,pts,note){
+    var u=getUser(); u.points+=pts;
+    u.log.unshift({task:task,pts:pts,note:note||'',ts:Date.now()});
+    if(u.log.length>200)u.log=u.log.slice(0,200);
+    save(u); return{points:u.points,granted:pts};
+  }
+  function spendLocal(task,pts,note){
+    var u=getUser();
+    if(u.points<pts) return{ok:false,points:u.points};
+    u.points-=pts;
+    u.log.unshift({task:task,pts:-pts,note:note||'',ts:Date.now()});
+    save(u); return{ok:true,points:u.points};
+  }
+
+  return{
+    getUser:function(){return Promise.resolve(getUser());},
+    getPoints:function(){return Promise.resolve(getUser().points);},
+    getLog:function(){return getUser().log||[];},
+    setName:function(n){var u=getUser();u.name=n;save(u);},
+    grant:function(task,pts,note){return Promise.resolve(grantLocal(task,pts,note));},
+    spend:function(task,pts,note){
+      if(USE_API){
+        return fetch(API_BASE+'/points/spend',{method:'POST',credentials:'include',
+          headers:{'Content-Type':'application/json','X-WP-Nonce':window.tsumologNonce||''},
+          body:JSON.stringify({task,pts,note})}).then(r=>r.json());
+      }
+      return Promise.resolve(spendLocal(task,pts,note));
+    },
+    enableAPI:function(nonce){USE_API=true;if(nonce)window.tsumologNonce=nonce;},
+  };
+})();
+
+// ══════════════════════════════════════════════
+// ショップ商品定義
+// ══════════════════════════════════════════════
+// shop.csv から動的に読み込む
+var SHOP_ITEMS=[];
+
+// ─────────────────────────────────────────────────
+// § 2. shop.csv 読み込み
+// ─────────────────────────────────────────────────
+function loadShopCSV(){
+  return fetch('shop.csv')
+    .then(function(r){ if(!r.ok) throw new Error('shop.csv not found'); return r.text(); })
+    .then(function(txt){
+      var lines=txt.trim().split(/\r?\n/);
+      var headers=lines[0].split(',').map(function(h){return h.trim();});
+      SHOP_ITEMS=lines.slice(1).map(function(line){
+        var cols=[],cur='',inQ=false;
+        for(var i=0;i<line.length;i++){
+          var ch=line[i];
+          if(ch==='"'){inQ=!inQ;}
+          else if(ch===','&&!inQ){cols.push(cur.trim());cur='';}
+          else cur+=ch;
+        }
+        cols.push(cur.trim());
+        var obj={};
+        headers.forEach(function(h,i){obj[h]=cols[i]!==undefined?cols[i]:'';});
+        obj.price=parseInt(obj.price)||0;
+        return obj;
+      });
+    })
+    .catch(function(){
+      // フォールバック（CSVが読めない場合）
+      SHOP_ITEMS=[
+        {id:'download_1',icon:'📄',name:'牌譜DL（1局）',
+         desc:'入力した牌譜をJSONでダウンロード。再生アプリで使用可能。',price:30,action:'download'},
+        {id:'sub_month',icon:'⭐',name:'月額プラン',
+         desc:'30日間・牌譜DL無制限＋再生し放題。',price:300,action:'subscribe_month'},
+      ];
+    });
+}
+
+var currentItem=null;
+var currentTab='shop';
+
+// ══════════════════════════════════════════════
+// 初期化
+// ══════════════════════════════════════════════
+function init(){
+  loadShopCSV().then(function(){
+  TsumologPoints.getUser().then(function(u){
+    document.getElementById('pts-disp').textContent=u.points.toLocaleString();
+    document.getElementById('summary-pts').textContent=u.points.toLocaleString();
+    var gained=u.log.filter(function(l){return l.pts>0;}).reduce(function(s,l){return s+l.pts;},0);
+    var spent=u.log.filter(function(l){return l.pts<0;}).reduce(function(s,l){return s+Math.abs(l.pts);},0);
+    document.getElementById('summary-sub').textContent='累計獲得: '+gained+'pt  使用: '+spent+'pt';
+    document.getElementById('inp-name').value=u.name||'';
+    document.getElementById('disp-uid').textContent=u.id;
+    renderShop(u.points);
+    renderLog();
+  });
+  document.getElementById('inp-name').addEventListener('change',function(){
+    TsumologPoints.setName(this.value);
+    showToast('名前を保存しました');
+  });
+  }); // loadShopCSV end
+}
+
+// ─────────────────────────────────────────────────
+// § 3. ショップ描画
+// ─────────────────────────────────────────────────
+function renderShop(pts){
+  var grid=document.getElementById('shop-grid');
+  grid.innerHTML=SHOP_ITEMS.map(function(item){
+    var canBuy=pts>=item.price;
+    return'<div class="shop-item'+(canBuy?'':' disabled')+'" onclick="'+(canBuy?'openModal(\''+item.id+'\')':'')+'\">'
+      +'<div class="item-icon">'+item.icon+'</div>'
+      +'<div class="item-name">'+item.name+'</div>'
+      +'<div class="item-desc">'+item.desc+'</div>'
+      +'<div class="item-price"><span class="star">⭐</span>'+item.price.toLocaleString()+'pt</div>'
+      +'</div>';
+  }).join('');
+}
+
+// ─────────────────────────────────────────────────
+// § 4. ポイント履歴描画
+// ─────────────────────────────────────────────────
+function renderLog(){
+  var log=TsumologPoints.getLog();
+  var el=document.getElementById('log-list');
+  if(!log.length){
+    el.innerHTML='<div class="empty">まだ履歴がありません<br>牌譜を入力してポイントを貯めよう</div>';
+    return;
+  }
+  var TASK_LABEL={
+    submit_game:'牌譜入力',player_pos:'座席情報',haipai:'配牌',
+    turn:'ツモ・捨て牌',meld:'副露',final_wait:'最終手牌',agari:'アガリ',
+    download:'牌譜DL',subscribe_month:'月額プラン',subscribe_year:'年額プラン',
+    expand_comment:'コメント枠拡張',profile_icon:'プロフィール',pts_double:'ポイント2倍',
+  };
+  el.innerHTML=log.map(function(l){
+    var d=new Date(l.ts);
+    var ds=(d.getMonth()+1)+'/'+(d.getDate())+' '
+      +('0'+d.getHours()).slice(-2)+':'+('0'+d.getMinutes()).slice(-2);
+    var plus=l.pts>0;
+    return'<div class="log-item">'
+      +'<div>'
+      +'<div class="log-task">'+(TASK_LABEL[l.task]||l.task)+'</div>'
+      +(l.note?'<div class="log-note">'+l.note+'</div>':'')
+      +'</div>'
+      +'<div class="log-time-col">'
+      +'<div class="log-pts '+(plus?'plus':'minus')+'">'+(plus?'+':'')+l.pts+'pt</div>'
+      +'<div class="log-date">'+ds+'</div>'
+      +'</div>'
+      +'</div>';
+  }).join('');
+}
+
+function switchTab(tab){
+  currentTab=tab;
+  ['shop','kifu','log','settings'].forEach(function(t){
+    document.getElementById('tab-'+t).style.display=(t===tab)?'':'none';
+    document.querySelectorAll('.tab')[['shop','kifu','log','settings'].indexOf(t)].className='tab'+(t===tab?' on':'');
+  });
+  if(tab==='log') renderLog();
+  if(tab==='kifu') renderKifuHistory();
+}
+
+// ══════════════════════════════════════════════
+// 購入フロー
+// ══════════════════════════════════════════════
+function openModal(id){
+  currentItem=SHOP_ITEMS.find(function(x){return x.id===id;});
+  if(!currentItem)return;
+  document.getElementById('modal-title').textContent=currentItem.icon+' '+currentItem.name;
+  document.getElementById('modal-desc').textContent=currentItem.desc;
+  document.getElementById('modal-price').textContent='⭐ '+currentItem.price.toLocaleString()+' pt';
+  TsumologPoints.getPoints().then(function(pts){
+    document.getElementById('btn-buy').disabled=pts<currentItem.price;
+  });
+  document.getElementById('modal').classList.add('open');
+}
+function closeModal(){document.getElementById('modal').classList.remove('open');currentItem=null;}
+
+function executePurchase(){
+  if(!currentItem)return;
+  TsumologPoints.spend(currentItem.action,currentItem.price,currentItem.name).then(function(result){
+    if(!result.ok){showToast('ポイントが不足しています');return;}
+    closeModal();
+    showToast(currentItem.icon+' '+currentItem.name+' を購入しました！');
+    // アクション実行
+    handlePurchaseAction(currentItem);
+    // 表示更新
+    document.getElementById('pts-disp').textContent=result.points.toLocaleString();
+    document.getElementById('summary-pts').textContent=result.points.toLocaleString();
+    renderShop(result.points);
+    renderLog();
+  });
+}
+
+function handlePurchaseAction(item){
+  // フェーズ2ではAPIで機能をアクティベート
+  // フェーズ1では localStorage にフラグを保存
+  var flags=JSON.parse(localStorage.getItem('tsumolog_flags')||'{}');
+  var exp=Date.now();
+  if(item.action==='subscribe_month') exp+=30*24*3600*1000;
+  if(item.action==='subscribe_year')  exp+=365*24*3600*1000;
+  if(item.action==='pts_double')      exp+=24*3600*1000;
+  if(item.action==='expand_comment')  exp+=30*24*3600*1000;
+  flags[item.action]={active:true,expiresAt:exp,name:item.name};
+  localStorage.setItem('tsumolog_flags',JSON.stringify(flags));
+
+  if(item.action==='download'){
+    downloadKifu(null);
+  }
+}
+
+function renderKifuHistory(){
+  var el=document.getElementById('kifu-list');
+  var hist=[];
+  try{ hist=JSON.parse(localStorage.getItem('tsumolog_kifu_history')||'[]'); }catch(e){}
+  var lastKifu=localStorage.getItem('tsumolog_last_kifu');
+
+  if(!hist.length&&!lastKifu){
+    el.innerHTML='<div class="empty">牌譜がありません<br>牌譜収集アプリで入力・送信してください</div>';
+    return;
+  }
+
+  var flags=JSON.parse(localStorage.getItem('tsumolog_flags')||'{}');
+  var now=Date.now();
+  var hasSubscription=flags['subscribe_month']&&flags['subscribe_month'].expiresAt>now
+    || flags['subscribe_year']&&flags['subscribe_year'].expiresAt>now;
+
+  var html='<div style="margin-bottom:12px;font-size:12px;color:var(--tx3);">'
+    +(hasSubscription?'✅ サブスク有効 — 無制限でダウンロード・再生できます'
+      :'購入またはサブスクでダウンロード・再生できます')
+    +'</div>';
+
+  if(!hist.length&&lastKifu){
+    // 最新1件だけ
+    try{
+      var obj=JSON.parse(lastKifu);
+      hist=[{savedAt:obj.savedAt,title:obj.gameData.meta.title||'無題',json:obj}];
+    }catch(e){}
+  }
+
+  html+=hist.map(function(item,i){
+    var d=new Date(item.savedAt);
+    var ds=(d.getMonth()+1)+'/'+(d.getDate())+' '+('0'+d.getHours()).slice(-2)+':'+('0'+d.getMinutes()).slice(-2);
+    return '<div style="background:var(--sf);border:1px solid var(--bd);border-radius:var(--ra);padding:14px;margin-bottom:10px">'
+      +'<div style="font-size:13px;font-weight:700;color:var(--tx);margin-bottom:4px">'+item.title+'</div>'
+      +'<div style="font-size:11px;color:var(--tx3);margin-bottom:10px">'+ds+'</div>'
+      +'<div style="display:flex;gap:8px">'
+      +'<button onclick="downloadKifu('+i+')" style="flex:1;padding:8px;border-radius:8px;border:1px solid var(--gold);background:transparent;color:var(--gold);font-size:12px;cursor:pointer">📥 DL</button>'
+      +'<button onclick="openReplayApp('+i+')" style="flex:1;padding:8px;border-radius:8px;border:1px solid var(--b);background:transparent;color:var(--b);font-size:12px;cursor:pointer">▶ 再生</button>'
+      +'</div>'
+      +'</div>';
+  }).join('');
+
+  el.innerHTML=html;
+}
+
+function downloadKifu(idx){
+  var flags=JSON.parse(localStorage.getItem('tsumolog_flags')||'{}');
+  var now=Date.now();
+  var hasSubscription=flags['subscribe_month']&&flags['subscribe_month'].expiresAt>now
+    || flags['subscribe_year']&&flags['subscribe_year'].expiresAt>now;
+  var hasSingleDL=flags['download']&&flags['download'].expiresAt>now;
+
+  if(!hasSubscription&&!hasSingleDL){
+    showToast('牌譜DLを購入してください');
+    switchTab('shop');
+    return;
+  }
+
+  var hist=[];
+  try{ hist=JSON.parse(localStorage.getItem('tsumolog_kifu_history')||'[]'); }catch(e){}
+  var target=idx!=null&&hist[idx] ? hist[idx].json
+    : JSON.parse(localStorage.getItem('tsumolog_last_kifu')||'null');
+
+  if(!target){ showToast('牌譜データがありません'); return; }
+
+  var fname='kifu_'+(target.gameData.meta.date||'')+
+    '_'+(target.gameData.meta.title||'noname').replace(/[\s/\\:]/g,'_')+'.json';
+  var blob=new Blob([JSON.stringify(target,null,2)],{type:'application/json'});
+  var a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download=fname; a.click();
+  // 都度購入の場合は使用済みに
+  if(!hasSubscription&&hasSingleDL){
+    delete flags['download'];
+    localStorage.setItem('tsumolog_flags',JSON.stringify(flags));
+  }
+  showToast('📥 ダウンロードしました');
+}
+
+function openReplayApp(idx){
+  var flags=JSON.parse(localStorage.getItem('tsumolog_flags')||'{}');
+  var now=Date.now();
+  var hasAccess=flags['subscribe_month']&&flags['subscribe_month'].expiresAt>now
+    || flags['subscribe_year']&&flags['subscribe_year'].expiresAt>now;
+
+  if(!hasAccess){ showToast('再生にはサブスクが必要です'); switchTab('shop'); return; }
+
+  var hist=[];
+  try{ hist=JSON.parse(localStorage.getItem('tsumolog_kifu_history')||'[]'); }catch(e){}
+  var target=idx!=null&&hist[idx] ? hist[idx].json
+    : JSON.parse(localStorage.getItem('tsumolog_last_kifu')||'null');
+  if(!target){ showToast('牌譜データがありません'); return; }
+
+  // 再生アプリへ: #d=<base64> 形式で渡す
+  var b64=btoa(unescape(encodeURIComponent(JSON.stringify(target))));
+  var replayUrl=(window.REPLAY_APP_URL||'paifu-play.html')+'#d='+b64;
+  window.open(replayUrl,'_blank');
+}
+
+function resetData(){
+  if(!confirm('全データをリセットしますか？')) return;
+  localStorage.removeItem('tsumolog_user');
+  localStorage.removeItem('tsumolog_flags');
+  showToast('リセットしました');
+  setTimeout(function(){location.reload();},800);
+}
+
+function showToast(msg){
+  var t=document.getElementById('toast');
+  t.textContent=msg;
+  t.classList.add('show');
+  setTimeout(function(){t.classList.remove('show');},2500);
+}
+
+init();
+</script>
+</body></html>
