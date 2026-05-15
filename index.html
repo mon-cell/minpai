@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>ツモログ</title>
 <style>
+@import url('https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@400;700&family=DM+Mono:wght@400;500&display=swap');
 /*
  * ╔══════════════════════════════════════════════════════════╗
  * ║  ツモログ トップページ (index.html)                      ║
@@ -19,7 +20,6 @@
  * ║    subscribe_month / subscribe_year の有効期限で判断      ║
  * ╚══════════════════════════════════════════════════════════╝
  */
-@import url('https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@400;700&family=DM+Mono:wght@400;500&display=swap');
 
 :root{
   --bg:#0c0b09;
@@ -304,8 +304,7 @@ function openPaihu(){
     location.href='paifu-play.html';
   } else {
     // ショップへ誘導
-    if(confirm('牌譜再生はプレミアムプランが必要です。
-ポイントショップで購入しますか？')){
+    if(confirm('牌譜再生はプレミアムプランが必要です。\nポイントショップで購入しますか？')){
       location.href='paifu-shop.html';
     }
   }
