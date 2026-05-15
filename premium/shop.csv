@@ -1,3 +1,0 @@
-id,icon,name,desc,price,action
-download_1,📄,牌譜DL（1局）,入力した牌譜をJSONでダウンロード。再生アプリで使用可能。,30,download
-sub_month,⭐,月額プラン,30日間・牌譜DL無制限＋再生し放題。,300,subscribe_month
