@@ -405,8 +405,10 @@ select{background:var(--sf);border:.5px solid var(--bd2);border-radius:var(--ra)
   <div class="modal-box" style="text-align:center;padding:36px 24px">
     <div style="font-size:52px;margin-bottom:12px">✅</div>
     <div style="font-size:18px;font-weight:600;margin-bottom:6px">送信完了！</div>
-    <div style="font-size:13px;color:var(--tx2);margin-bottom:10px">データを受け付けました。照合後にポイントが付与されます。</div>
+    <div style="font-size:13px;color:var(--tx2);margin-bottom:10px">データを受け付けました。他のプレイヤーの入力と自動的に統合されます。</div>
     <div id="done-json-link" style="margin-bottom:16px"></div>
+    <!-- 別席入力ボタン（動的に生成） -->
+    <div id="done-seat-btns" style="display:flex;flex-direction:column;gap:8px;margin-bottom:12px"></div>
     <button class="pri" onclick="closeDone()">閉じる</button>
   </div>
 </div>
@@ -977,6 +979,7 @@ var state={
   // 局開始時の各プレイヤー点数・供託（共通情報タブで入力）
   kyokuStartPts:{east:null,south:null,west:null,north:null},
   kyokuCarryover:0,  // 場の供託リーチ棒本数（局開始時）
+  submittedSeats:{}, // 送信済み席データ {east:{haipai,draws,...}, ...}
   // ── 対局情報ステップ ──
   gameFlow:{
     step:0,        // 0:日付 1:団体 2:大会 3:選手 4:確認
@@ -1161,12 +1164,13 @@ function renderNav(){
         var p=pid?allP2.find(function(x){return x.id===pid;}):null;
         var name=p?p.name:WJseats2[wi];
         var isMine=state.seat===w;
+        var isDone=!!(state.submittedSeats&&state.submittedSeats[w]);
         return'<button onclick="setSeat(\''+w+'\')" style="flex:1;padding:6px 3px;border-radius:7px;font-size:11px;'
-          +'font-family:inherit;cursor:pointer;border:1.5px solid '+(isMine?'var(--b)':'var(--bd2)')+';'
-          +'background:'+(isMine?'var(--b-bg)':'var(--sf2)')+';color:'+(isMine?'var(--b)':'var(--tx2)')+';text-align:center;">'
-          +'<div style="font-size:9px;color:'+(isMine?'var(--b)':'var(--tx3)')+'">'+WJseats2[wi]+'</div>'
-          +'<div style="font-weight:'+(isMine?'700':'400')+';overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+name+'</div>'
-          +(isMine?'<div style="font-size:9px;color:var(--b)">✍️ 入力中</div>':'')
+          +'font-family:inherit;cursor:pointer;border:1.5px solid '+(isMine?'var(--b)':isDone?'var(--g)':'var(--bd2)')+';'
+          +'background:'+(isMine?'var(--b-bg)':isDone?'var(--g-bg)':'var(--sf2)')+';color:'+(isMine?'var(--b)':isDone?'var(--g)':'var(--tx2)')+';text-align:center;">'
+          +'<div style="font-size:9px;color:'+(isMine?'var(--b)':isDone?'var(--g)':'var(--tx3)')+'">'+WJseats2[wi]+'</div>'
+          +'<div style="font-weight:'+(isMine||isDone?'700':'400')+';overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+name+'</div>'
+          +(isMine?'<div style="font-size:9px;color:var(--b)">✍️ 入力中</div>':isDone?'<div style="font-size:9px;color:var(--g)">✅ 送信済</div>':'')
           +'</button>';
       }).join('');
       si.innerHTML='<div style="padding:8px 0 4px;">'
@@ -1280,6 +1284,7 @@ function autoSaveDraft(){
         seatMap:       state.seatMap,
         kyokuStartPts: state.kyokuStartPts,
         kyokuCarryover:state.kyokuCarryover,
+        submittedSeats:state.submittedSeats,
         haipai:        state.haipai,
         dora:          state.dora,
         uraDora:       state.uraDora,
@@ -3425,17 +3430,15 @@ function _renderGameFlowInner(){
         ?`<div style="background:var(--g-bg);border:.5px solid var(--g);border-radius:var(--ra);padding:12px 14px;margin-bottom:12px;display:flex;align-items:center;gap:10px">
             <span style="font-size:22px">✅</span>
             <div>
-              <div style="font-size:13px;font-weight:700;color:var(--g)">マッチング成功！</div>
-              <div style="font-size:12px;color:var(--g)">この対局の牌譜ファイルへの入力が可能になりました。</div>
+              <div style="font-size:13px;font-weight:700;color:var(--g)">マッチング完了</div>
+              <div style="font-size:12px;color:var(--g)">入力画面に移行します…</div>
             </div>
-          </div>
-          <div id="kyoku-list-area">${renderKyokuList(gf)}</div>
-          <button class="pri" style="width:100%;padding:11px;font-size:15px;margin-top:10px" onclick="gfStartInput()">🀄 選択した局の入力を開始する</button>`
+          </div>`
         :`<div style="background:var(--b-bg);border:.5px solid var(--b);border-radius:var(--ra);padding:12px 14px;margin-bottom:12px;font-size:12px;color:var(--b-t)">
             ⚡ 同じ日付・団体・大会・選手を入力した他のユーザーとマッチングします。<br>
-            一致した場合、同じ牌譜ファイルへの入力が可能になります。
+            一致した場合、入力データは自動的に統合されます。
           </div>
-          <button class="gold" style="width:100%;padding:12px;font-size:15px;border-radius:var(--ra);border:none;cursor:pointer;font-family:inherit;font-weight:700" onclick="gfDoMatch()">🔍 マッチングを開始する</button>`
+          <button class="gold" style="width:100%;padding:12px;font-size:15px;border-radius:var(--ra);border:none;cursor:pointer;font-family:inherit;font-weight:700" onclick="gfDoMatch()">🔍 マッチングして入力を開始する</button>`
       }
       <button class="ghost" style="width:100%;padding:8px;margin-top:8px" onclick="gfBack()">← 修正する</button>
     </div>`;
@@ -3850,16 +3853,15 @@ function gfDoMatch(){
   var gf=state.gameFlow;
   // v2.0: makeMatchKey はゲームフローオブジェクトとseatMapを受け取る新シグネチャ
   var key=makeMatchKey(gf, state.seatMap||{});
-  // デモ：常にマッチング成功（本番はサーバー照合）
   state.gameFlow.matched=true;
   state.gameFlow.matchKey=key;
   // gameInfoにも反映
   var org=ORGS.find(function(o){return o.id===gf.org;});
   var tour=(TOURNAMENTS[gf.org]||[]).find(function(t){return t.id===gf.tournament;});
   state.gameInfo.date=gf.date;
-  state.gameInfo.title=(org?org.label:"")+" "+(tour?tour.label:"");
-  renderNav();
-  renderSection();
+  state.gameInfo.title=(org?org.label:'')+" "+(tour?tour.label:'');
+  // 座席はプレイヤー別タブで後から選択 → 入力を即開始
+  _gfStartInputCore();
 }
 
 // タップ選択方式（iOS/Android対応）
@@ -5130,70 +5132,181 @@ function downloadKifuJSON(){
 // ║  calcAndGrantPoints(): 入力内容に応じてポイントを付与     ║
 // ╚══════════════════════════════════════════════════════════╝
 function submitAll(){
-  // ポイント計算・付与
   calcAndGrantPoints().then(function(totalPts){
-    var el=document.getElementById("done-json-link");
-    if(el){
-      var pct=calcCompletion();
-      el.innerHTML='<div style="background:var(--b-bg);border-radius:var(--ra);padding:8px 12px;margin-bottom:8px;font-size:12px;color:var(--tx2)">'
-        +'牌譜完成度: <strong style="color:var(--b)">'+pct+'%</strong><br>'
-        +'<span style="color:var(--tx3)">JSONダウンロードや牌譜再生はツモログ プレミアムから</span>'
-        +'</div>'
-        +'<div style="background:var(--g-bg);border:.5px solid var(--g);border-radius:var(--ra);padding:8px 12px;font-size:13px;color:var(--g);font-weight:600">'
-        +'⭐ +'+totalPts+'pt 獲得しました！'
-        +'</div>';
-    }
-    TsumologPoints.refreshDisplay();
-    // 最新の牌譜JSONをlocalStorageに保存（ショップのDL購入で使用）
-    var kifuObj = buildKifuJSON();
-    localStorage.setItem('tsumolog_last_kifu', JSON.stringify(kifuObj, null, 2));
-    // 履歴にも追加（最大20件）
+    // ── 1. 牌譜JSONを生成・保存 ──
+    var kifuObj=buildKifuJSON();
+    localStorage.setItem('tsumolog_last_kifu', JSON.stringify(kifuObj,null,2));
     try{
-      var hist = JSON.parse(localStorage.getItem('tsumolog_kifu_history')||'[]');
-      hist.unshift({savedAt: kifuObj.savedAt, title: kifuObj.gameData.meta.title||'無題', json: kifuObj});
+      var hist=JSON.parse(localStorage.getItem('tsumolog_kifu_history')||'[]');
+      hist.unshift({savedAt:kifuObj.savedAt,title:kifuObj.gameData.meta.title||'無題',json:kifuObj});
       if(hist.length>20) hist=hist.slice(0,20);
-      localStorage.setItem('tsumolog_kifu_history', JSON.stringify(hist));
-    // 本場履歴を更新
-    var ky=state.gameFlow.selectedKyoku||{ba:'東',kyoku:1,honba:0};
-    if(!state.gameFlow.honbaHistory) state.gameFlow.honbaHistory={};
-    var hkey=ky.ba+'_'+ky.kyoku;
-    var prev=state.gameFlow.honbaHistory[hkey]||0;
-    if(ky.honba>prev) state.gameFlow.honbaHistory[hkey]=ky.honba;
+      localStorage.setItem('tsumolog_kifu_history',JSON.stringify(hist));
+    }catch(e){}
 
-    // scoreLog に局結果を記録
-    var scoreResult=calcScores();
-    if(!state.gameFlow.scoreLog) state.gameFlow.scoreLog=[];
-    state.gameFlow.scoreLog.push({
-      kyoku: state.gameFlow.selectedKyoku||{ba:'東',kyoku:1,honba:0},
-      startPts: scoreResult.startPts,
-      endPts:   scoreResult.endPts,
-      delta:    scoreResult.delta,
-      result:   state.agari.who+(state.agari.type?' '+state.agari.type:''),
-      riichiBonusApplied: (state.riichiSticks||0)+(state.riichiDiscIdx!==null?1:0),
+    // ── 2. IDB に提出・マージ（TsumologLibrary v2） ──
+    TsumologLibrary.submitContrib(kifuObj, function(kifuId, status){
+      if(kifuId) console.log('[submit] kifuId='+kifuId+' status='+status);
     });
 
-    // 供託リーチ棒の引き継ぎ計算
-    // アガリ → リーチ棒はアガった人が回収（次局は0）
-    // 流局  → リーチ棒は次局に持ち越し（供託）
-    var isRyukyoku=(state.agari.who==='流局');
-    var myRiichiStick=(state.riichiDiscIdx!==null)?1:0;
-    var totalRiichiOut=(state.riichiSticks||0)+myRiichiStick;
-    if(isRyukyoku){
-      // 流局: 全リーチ棒が次局に供託される
-      state.gameFlow.riichiCarryover=(state.gameFlow.riichiCarryover||0)+totalRiichiOut;
-    } else {
-      // アガリ: アガった人が全回収 → 次局の供託は0
-      state.gameFlow.riichiCarryover=0;
+    // ── 3. 今送信した席データをブラウザ内に保持 ──
+    //    state.submittedSeats: 送信済み席 → contribデータのマップ
+    if(!state.submittedSeats) state.submittedSeats={};
+    if(state.seat){
+      state.submittedSeats[state.seat]={
+        seat:       state.seat,
+        haipai:     state.haipai.slice(),
+        draws:      state.draws.slice(),
+        discards:   state.discards.slice(),
+        finalHand:  state.finalHand.slice(),
+        waitTiles:  state.waitTiles.slice(),
+        melds:      JSON.parse(JSON.stringify(state.melds)),
+        agari:      Object.assign({},state.agari),
+        submittedAt:new Date().toISOString(),
+      };
     }
-    // 次局のために state.riichiSticks を引き継ぎ値でリセット
-    // （次局選択時に自動セット）
-    state.riichiSticks=0;
-    state.riichiDiscIdx=null;
 
-    clearDraft(); // 送信完了したらドラフトを削除
+    // ── 4. 本場・供託リーチ棒の引き継ぎ ──
+    try{
+      var ky=state.gameFlow.selectedKyoku||{ba:'東',kyoku:1,honba:0};
+      if(!state.gameFlow.honbaHistory) state.gameFlow.honbaHistory={};
+      var hkey=ky.ba+'_'+ky.kyoku;
+      var prev=state.gameFlow.honbaHistory[hkey]||0;
+      if(ky.honba>prev) state.gameFlow.honbaHistory[hkey]=ky.honba;
+
+      var scoreResult=calcScores();
+      if(!state.gameFlow.scoreLog) state.gameFlow.scoreLog=[];
+      state.gameFlow.scoreLog.push({
+        kyoku:    state.gameFlow.selectedKyoku||{ba:'東',kyoku:1,honba:0},
+        startPts: scoreResult.startPts,
+        endPts:   scoreResult.endPts,
+        delta:    scoreResult.delta,
+        result:   state.agari.who+(state.agari.type?' '+state.agari.type:''),
+      });
+
+      var isRyukyoku=(state.agari.who==='流局');
+      var myRiichiStick=(state.riichiDiscIdx!==null)?1:0;
+      var totalRiichiOut=(state.kyokuCarryover||0)+myRiichiStick;
+      if(isRyukyoku){
+        state.gameFlow.riichiCarryover=(state.gameFlow.riichiCarryover||0)+totalRiichiOut;
+      } else {
+        state.gameFlow.riichiCarryover=0;
+      }
     }catch(e){}
-    document.body.classList.remove("is-input");
-    document.getElementById("done-modal").classList.add("open");
+
+    // ── 5. done-modal の表示更新 ──
+    var el=document.getElementById('done-json-link');
+    if(el){
+      var pct=calcCompletion();
+      var mergedStatus='';
+      // IDB からマージ状況を確認して表示
+      TsumologLibrary.getMergedByKey(kifuObj.matchKey, function(list){
+        var merged=list&&list[0];
+        var total=merged&&merged.completeness&&merged.completeness.total!=null
+          ? merged.completeness.total : pct;
+        var statusColor=total>=100?'var(--g)':total>=50?'var(--b)':'var(--gold)';
+        el.innerHTML=
+          '<div style="background:var(--b-bg);border-radius:var(--ra);padding:10px 14px;margin-bottom:8px;text-align:left">'
+          +'<div style="font-size:11px;color:var(--tx3);margin-bottom:4px">この局の統合完成度</div>'
+          +'<div style="height:6px;background:var(--bd);border-radius:3px;overflow:hidden;margin-bottom:6px">'
+            +'<div style="height:100%;width:'+total+'%;background:'+statusColor+';border-radius:3px;transition:width .4s"></div>'
+          +'</div>'
+          +'<div style="font-size:13px;font-weight:700;color:'+statusColor+'">'+total+'%'
+            +(total>=100?' ✅ 完成':'')
+          +'</div>'
+          +'<div style="font-size:11px;color:var(--tx3);margin-top:2px">'
+            +(total>=100?'ショップでダウンロード可能になりました':'他の席の入力でさらに完成度が上がります')
+          +'</div>'
+          +'</div>'
+          +(totalPts>0
+            ?'<div style="background:var(--g-bg);border:.5px solid var(--g);border-radius:var(--ra);padding:8px 12px;font-size:13px;color:var(--g);font-weight:600">⭐ +'+totalPts+'pt 獲得！</div>'
+            :'');
+      });
+    }
+
+    // ── 6. 別席入力ボタンを生成 ──
+    _renderDoneSeatBtns();
+
+    TsumologPoints.refreshDisplay();
+    clearDraft();
+    document.body.classList.remove('is-input');
+    document.getElementById('done-modal').classList.add('open');
+  });
+}
+
+// 送信完了モーダルの「別の席を入力する」ボタン群を生成
+function _renderDoneSeatBtns(){
+  var el=document.getElementById('done-seat-btns');
+  if(!el) return;
+  var allP=Object.values(PLAYERS_MASTER).flat();
+  var sm=state.seatMap||{};
+  var submitted=state.submittedSeats||{};
+  var WJseats=['東家','南家','西家','北家'];
+  var remaining=WE.filter(function(w){ return !submitted[w]; });
+
+  if(!remaining.length){
+    el.innerHTML='<div style="font-size:12px;color:var(--g);padding:6px">全4席の入力が完了しています！</div>';
+    return;
+  }
+  el.innerHTML='<div style="font-size:12px;color:var(--tx3);margin-bottom:4px;text-align:left">他の席の情報も入力できます:</div>'
+    +remaining.map(function(w){
+      var wi=WE.indexOf(w);
+      var pid=sm[w];
+      var p=pid?allP.find(function(x){return x.id===pid;}):null;
+      var name=p?p.name:WJseats[wi];
+      return '<button onclick="switchToSeat(\''+w+'\')" '
+        +'style="width:100%;padding:10px 14px;border-radius:var(--ra);border:1.5px solid var(--b);'
+        +'background:var(--b-bg);color:var(--b);font-family:inherit;font-size:13px;font-weight:600;'
+        +'cursor:pointer;text-align:left;display:flex;align-items:center;gap:10px;">'
+        +'<span style="background:var(--b);color:#fff;border-radius:4px;padding:2px 7px;font-size:11px">'+WJseats[wi]+'</span>'
+        +name+' の情報を入力する'
+        +'<span style="margin-left:auto">›</span>'
+        +'</button>';
+    }).join('');
+}
+
+// 別の席に切り替えて入力を続ける
+function switchToSeat(w){
+  // モーダルを閉じる
+  document.getElementById('done-modal').classList.remove('open');
+
+  // 対局情報・局情報・kyokuStartPts・供託はそのまま引き継ぐ
+  // 牌譜入力データだけリセット
+  state.seat=w;
+  state.haipai=[];
+  state.draws=new Array(18).fill(null);
+  state.discards=new Array(18).fill(null);
+  state.finalHand=[];
+  state.waitTiles=[];
+  state.melds=[];
+  state.meldDraft=null;
+  state.riichiDiscIdx=null;
+  state.agari={type:'',yaku:'',score:'',who:'',from:''};
+  state.dora=[];
+  state.uraDora=[];
+  state.doraSlot={row:'dora',idx:0};
+  state.isTenpai=false;
+  state.kbdOpen={};
+  state.activeSlot=null;
+
+  // confirmedSections もリセット（ただし scores はそのまま引き継ぐ）
+  var savedScores={
+    scores: confirmedSections.scores,
+    _kyokuStartPts: confirmedSections._kyokuStartPts,
+    _kyokuCarryover: confirmedSections._kyokuCarryover,
+  };
+  confirmedSections=savedScores;
+
+  // プレイヤー別タブの配牌タブから開始
+  state.bigTab='player';
+  state.section='haipai';
+  document.body.classList.add('is-input');
+  renderNav();
+  renderSection();
+  autoSaveDraft();
+
+  // ポイント付与（新席入力開始）
+  TsumologPoints.grant('new_kifu_start',3,'別席入力開始').then(function(){
+    TsumologPoints.refreshDisplay();
   });
 }
 
