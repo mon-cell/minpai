@@ -512,12 +512,15 @@ const WJ={east:"東",south:"南",west:"西",north:"北"};
 const WE=["east","south","west","north"];
 
 const SECTIONS=[
-  {key:"game",   label:"対局情報",      icon:"🀄"},
-  {key:"dora",   label:"ドラ",           icon:"🌟"},
-  {key:"haipai", label:"配牌",          icon:"🃏"},
-  {key:"turns",  label:"ツモ・捨て",    icon:"♻️"},
-  {key:"final",  label:"最終・副露・待ち",icon:"🖐"},
-  {key:"agari",  label:"アガリ・点数",  icon:"🏆"},
+  {key:"game",   label:"対局情報",         icon:"🀄"},
+  // ── 局情報（共通）大タブ ──
+  {key:"scores", label:"点数・供託",        icon:"💴", bigTab:"kyoku"},
+  {key:"dora",   label:"ドラ",              icon:"🌟", bigTab:"kyoku"},
+  {key:"agari",  label:"アガリ",            icon:"🏆", bigTab:"kyoku"},
+  // ── プレイヤー別大タブ ──
+  {key:"haipai", label:"配牌",              icon:"🃏", bigTab:"player"},
+  {key:"turns",  label:"ツモ・捨て",        icon:"♻️", bigTab:"player"},
+  {key:"final",  label:"最終・副露・待ち",  icon:"🖐", bigTab:"player"},
 ];
 
 
@@ -735,9 +738,7 @@ function parseCSV(text){
     var cols=[]; var cur=""; var inQ=false;
     for(var i=0;i<line.length;i++){
       var c=line[i];
-      if(c==='"'){inQ=!inQ;}
-      else if(c===","&&!inQ){cols.push(cur.trim());cur="";}
-      else cur+=c;
+      if(c==='"'){inQ=!inQ;} else if(c===","&&!inQ){cols.push(cur.trim());cur="";} else cur+=c;
     }
     cols.push(cur.trim());
     var obj={};
@@ -968,10 +969,14 @@ function makeKifuId(gf){
 var state={
   view:"input",
   section:"game",
+  bigTab:"kyoku",   // "kyoku" | "player" — マッチング後の大タブ
   seat:null,
   seatMap:{east:null,south:null,west:null,north:null},
   isTenpai:false,
   yakumanOpen:false,
+  // 局開始時の各プレイヤー点数・供託（共通情報タブで入力）
+  kyokuStartPts:{east:null,south:null,west:null,north:null},
+  kyokuCarryover:0,  // 場の供託リーチ棒本数（局開始時）
   // ── 対局情報ステップ ──
   gameFlow:{
     step:0,        // 0:日付 1:団体 2:大会 3:選手 4:確認
@@ -1047,7 +1052,10 @@ function setView(v){
 // ═══════════════════════════════════════════════
 function sectionDone(key){
   if(key==="game")return state.gameFlow.matched;
-
+  if(key==="scores"){
+    // 1人でも点数が入力されていれば完了扱い
+    return WE.some(function(w){ return state.kyokuStartPts[w]!=null; });
+  }
   if(key==="haipai")return state.haipai.length>=13;
   if(key==="turns")return state.draws.some(Boolean)||state.discards.some(Boolean);
   if(key==="final")return state.finalHand.length>0;
@@ -1067,67 +1075,104 @@ function calcSectionCompletion(){ return completion(); }
 function renderNav(){
   var nav=document.getElementById("sec-nav");
   var matched=state.gameFlow.matched;
-  // マッチング前: gameタブのみ表示
-  // マッチング後: gameタブを非表示、他タブを表示
-  var WJseats=["東家","南家","西家","北家"];
-  var mySeatLabel=state.seat?WJseats[WE.indexOf(state.seat)]+"の情報を入力中":"プレイヤー";
-  var visibleSections=SECTIONS.filter(function(s){
-    if(!matched) return s.key==="game";
-    return s.key!=="game";
-  });
-  nav.innerHTML=visibleSections.map(function(s){
-    // seat未設定のとき haipai/turns/final/meld/agari はロック
-    var locked=false; // 対局情報で座席設定済みのためロック不要
-    var cls="sec-btn"+(state.section===s.key?" on":sectionDone(s.key)?" done":locked?" locked":"");
-    var label=s.key==="player"?("👤 "+mySeatLabel):(s.icon+" "+s.label);
-    return'<button class="'+cls+'"'
-      +(locked?' style="opacity:.35;pointer-events:none" title="プレイヤー設定後に入力できます"':'')
-      +' onclick="setSection(\''+s.key+'\')">'+label+'</button>';
-  }).join("");
-  // マッチング後: 「← 対局情報」+ 「送信」ボタン
-  if(matched){
-    nav.innerHTML+=''
-      +'<button class="sec-btn" onclick="backToGameInfo()" style="border-color:var(--tx3);color:var(--tx3);white-space:nowrap">← 対局情報</button>'
-      +'<button onclick="showConfirmSummary()" '
-        +'style="padding:8px 18px;border-radius:var(--ra);border:none;white-space:nowrap;cursor:pointer;font-family:inherit;'
-        +'background:linear-gradient(135deg,var(--gold),var(--a));color:#fff;font-size:13px;font-weight:700;'
-        +'box-shadow:0 2px 10px rgba(200,152,58,.45);letter-spacing:.03em">🀄 送信する</button>';
-  }
   document.getElementById("prog-fill").style.width=completion()+"%";
   var fab=document.getElementById("fab-wrap");
   if(fab)fab.style.display="none";
   var topBtns=document.getElementById("top-action-btns");
-  if(topBtns)topBtns.style.display="none"; // sec-nav内の送信ボタンに統合
+  if(topBtns)topBtns.style.display="none";
 
-  // 入力担当座席インジケーター（固定バナー）
+  // ── マッチング前: 対局情報のみ ──
+  if(!matched){
+    nav.innerHTML='<button class="sec-btn on">🀄 対局情報</button>';
+    var si=document.getElementById("seat-indicator");
+    if(si) si.style.display="none";
+    return;
+  }
+
+  // ── マッチング後: 大タブ2つ ──
+  var bt=state.bigTab||"kyoku";
+
+  // 大タブの完成度バッジ
+  var kyokuSecs=SECTIONS.filter(function(s){return s.bigTab==="kyoku";});
+  var playerSecs=SECTIONS.filter(function(s){return s.bigTab==="player";});
+  var kyokuDone=kyokuSecs.filter(function(s){return sectionDone(s.key);}).length;
+  var playerDone=playerSecs.filter(function(s){return sectionDone(s.key);}).length;
+
+  var bigTabsHtml=
+    '<div style="display:flex;border-bottom:1.5px solid var(--bd);margin-bottom:0;">'
+    // 大タブ左: 局情報
+    +'<button onclick="setBigTab(\'kyoku\')" style="flex:1;padding:9px 4px 8px;font-size:13px;font-weight:600;'
+      +'font-family:inherit;cursor:pointer;border:none;border-bottom:2.5px solid '+(bt==='kyoku'?'var(--gold)':'transparent')+';'
+      +'background:transparent;color:'+(bt==='kyoku'?'var(--gold)':'var(--tx3)')+';white-space:nowrap;">'
+      +'🀄 局情報（共通）'
+      +(kyokuDone>0?'<span style="font-size:10px;margin-left:4px;color:var(--g)">'+kyokuDone+'/'+kyokuSecs.length+'</span>':'')
+    +'</button>'
+    // 大タブ右: プレイヤー別
+    +'<button onclick="setBigTab(\'player\')" style="flex:1;padding:9px 4px 8px;font-size:13px;font-weight:600;'
+      +'font-family:inherit;cursor:pointer;border:none;border-bottom:2.5px solid '+(bt==='player'?'var(--b)':'transparent')+';'
+      +'background:transparent;color:'+(bt==='player'?'var(--b)':'var(--tx3)')+';white-space:nowrap;">'
+      +'👤 プレイヤー別'
+      +(playerDone>0?'<span style="font-size:10px;margin-left:4px;color:var(--g)">'+playerDone+'/'+playerSecs.length+'</span>':'')
+    +'</button>'
+    // 送信ボタン
+    +'<button onclick="showConfirmSummary()" style="padding:7px 14px;border:none;cursor:pointer;font-family:inherit;'
+      +'background:var(--gold);color:var(--bg);font-size:12px;font-weight:700;white-space:nowrap;'
+      +'border-bottom:2.5px solid transparent;">🀄 送信</button>'
+    +'</div>';
+
+  // 小タブ
+  var curSecs= bt==='kyoku' ? kyokuSecs : playerSecs;
+  var smallTabsHtml='<div style="display:flex;gap:4px;padding:8px 0 6px;overflow-x:auto;-webkit-overflow-scrolling:touch;">';
+  curSecs.forEach(function(s){
+    var isOn=state.section===s.key;
+    var isDone=sectionDone(s.key);
+    smallTabsHtml+='<button onclick="setSection(\''+s.key+'\')" style="flex-shrink:0;padding:5px 11px;'
+      +'border-radius:14px;font-size:11px;font-family:inherit;cursor:pointer;white-space:nowrap;'
+      +'background:'+(isOn?(bt==='kyoku'?'var(--gold-bg)':'var(--b-bg)'):(isDone?'var(--g-bg)':'var(--sf2)'))+';'
+      +'border:1px solid '+(isOn?(bt==='kyoku'?'var(--gold)':'var(--b)'):(isDone?'var(--g)':'var(--bd2)'))+';'
+      +'color:'+(isOn?(bt==='kyoku'?'var(--gold)':'var(--b)'):(isDone?'var(--g)':'var(--tx3)'))+';'
+      +'font-weight:'+(isOn?'700':'400')+';">'
+      +(isDone&&!isOn?'✅ ':s.icon+' ')
+      +s.label
+      +'</button>';
+  });
+  smallTabsHtml+='</div>';
+
+  // ← 対局情報リンク
+  var backLink='<div style="text-align:right;padding:0 0 4px;">'
+    +'<button onclick="backToGameInfo()" style="font-size:11px;color:var(--tx3);background:none;border:none;cursor:pointer;padding:2px 4px;">← 対局情報を修正</button>'
+    +'</div>';
+
+  nav.innerHTML=bigTabsHtml+smallTabsHtml+backLink;
+
+  // ── 座席インジケーター（プレイヤー別タブ内）──
   var si=document.getElementById("seat-indicator");
   if(si){
-    if(state.seat&&state.gameFlow.matched){
-      var allP=Object.values(PLAYERS_MASTER).flat();
-      var sm=state.seatMap||{};
-      var WJseats=["東家","南家","西家","北家"];
-      var mySeatIdx=WE.indexOf(state.seat);
-      var mySeatLabel=WJseats[mySeatIdx]||"";
-      var myPid=sm[state.seat];
-      var myP=myPid?allP.find(function(x){return x.id===myPid;}):null;
+    if(bt==='player'){
+      var allP2=Object.values(PLAYERS_MASTER).flat();
+      var sm2=state.seatMap||{};
+      var WJseats2=["東家","南家","西家","北家"];
       var _gf=state.gameFlow;
       var _ky=_gf.selectedKyoku||{};
-      var kyLabel=_ky.ba&&_ky.kyoku?(_ky.ba+_ky.kyoku+"局"+(_ky.honba?" "+_ky.honba+"本場":"")):""
-      var mainLabel=(myP?myP.name:"—")+"（"+mySeatLabel+"）の情報を入力中";
-      var otherBadges=WE.filter(function(w){return w!==state.seat;}).map(function(w){
-        var wi2=WE.indexOf(w);
-        var pid2=sm[w];
-        var p2=pid2?allP.find(function(x){return x.id===pid2;}):null;
-        return'<span style="opacity:.8;margin-right:6px;font-size:10px">'+WJseats[wi2]+": "+(p2?p2.name:"—")+"</span>";
-      }).join("");
-      si.innerHTML='<div style="background:var(--g);color:#fff;padding:7px 14px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;">'
-        +'<span style="font-size:13px;font-weight:700;">✍️ '+mainLabel+'</span>'
-        +(kyLabel?'<span style="font-size:10px;background:rgba(0,0,0,.18);border-radius:10px;padding:1px 8px">'+kyLabel+'</span>':'')
-        +'<span style="margin-left:auto;display:flex;flex-wrap:wrap;">'+otherBadges+'</span>'
+      var kyLabel=_ky.ba&&_ky.kyoku?(_ky.ba+_ky.kyoku+'局'+(_ky.honba?' '+_ky.honba+'本場':'')):''
+      // 4席ボタン
+      var seatBtns=WE.map(function(w,wi){
+        var pid=sm2[w];
+        var p=pid?allP2.find(function(x){return x.id===pid;}):null;
+        var name=p?p.name:WJseats2[wi];
+        var isMine=state.seat===w;
+        return'<button onclick="setSeat(\''+w+'\')" style="flex:1;padding:6px 3px;border-radius:7px;font-size:11px;'
+          +'font-family:inherit;cursor:pointer;border:1.5px solid '+(isMine?'var(--b)':'var(--bd2)')+';'
+          +'background:'+(isMine?'var(--b-bg)':'var(--sf2)')+';color:'+(isMine?'var(--b)':'var(--tx2)')+';text-align:center;">'
+          +'<div style="font-size:9px;color:'+(isMine?'var(--b)':'var(--tx3)')+'">'+WJseats2[wi]+'</div>'
+          +'<div style="font-weight:'+(isMine?'700':'400')+';overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+name+'</div>'
+          +(isMine?'<div style="font-size:9px;color:var(--b)">✍️ 入力中</div>':'')
+          +'</button>';
+      }).join('');
+      si.innerHTML='<div style="padding:8px 0 4px;">'
+        +(kyLabel?'<div style="font-size:10px;color:var(--tx3);margin-bottom:5px;text-align:center">'+kyLabel+'</div>':'')
+        +'<div style="display:flex;gap:5px;">'+seatBtns+'</div>'
         +'</div>';
-      si.style.display="block";
-    } else if(state.gameFlow.matched&&!state.seat){
-      si.innerHTML='<div style="background:var(--a);color:#fff;padding:7px 14px;font-size:12px;font-weight:600;">入力開始前に「現在の点数」からプレイヤーを選んでください</div>';
       si.style.display="block";
     } else {
       si.style.display="none";
@@ -1164,6 +1209,29 @@ function removeYakuOne(name){
   renderSection();
 }
 
+// 大タブ切替（局情報共通 / プレイヤー別）
+function setBigTab(tab){
+  state.bigTab=tab;
+  // タブに合わせて小タブを初期セクションに移動
+  if(tab==='kyoku' && ['haipai','turns','final'].indexOf(state.section)>=0){
+    state.section='scores';
+  }
+  if(tab==='player' && ['scores','dora','agari'].indexOf(state.section)>=0){
+    state.section='haipai';
+  }
+  renderNav();
+  renderSection();
+  autoSaveDraft();
+}
+
+// プレイヤー別タブの座席選択
+function setSeat(w){
+  state.seat=w;
+  renderNav();
+  renderSection();
+  autoSaveDraft();
+}
+
 function backToGameInfo(){
   // カスタム確認モーダルを表示
   var ov=document.createElement('div');
@@ -1190,6 +1258,9 @@ function backToGameInfo(){
 }
 function setSection(key){
   state.section=key;
+  // 大タブを自動同期
+  var sec=SECTIONS.find(function(s){return s.key===key;});
+  if(sec&&sec.bigTab) state.bigTab=sec.bigTab;
   state.kbdOpen={};  // タブ切り替え時に牌ボタンパネルを閉じる
   renderNav();
   renderSection();
@@ -1202,10 +1273,13 @@ function autoSaveDraft(){
     var draft={
       state: {
         section:       state.section,
+        bigTab:        state.bigTab,
         gameFlow:      state.gameFlow,
         gameInfo:      state.gameInfo,
         seat:          state.seat,
         seatMap:       state.seatMap,
+        kyokuStartPts: state.kyokuStartPts,
+        kyokuCarryover:state.kyokuCarryover,
         haipai:        state.haipai,
         dora:          state.dora,
         uraDora:       state.uraDora,
@@ -1663,10 +1737,7 @@ function applyTileText(fn){
   var tiles=parseTileText(inp.value);
   if(!tiles.length)return;
   // 呼び出し元の関数名でどのバッファか判定
-  if(fn==="haipaiPick"){state.haipai=tiles.slice(0,13);}
-  else if(fn==="finalPick"){state.finalHand=tiles.slice(0,14);}
-  else if(fn==="waitPick"){state.waitTiles=tiles.filter(function(t,i,a){return a.indexOf(t)===i;});}
-  else if(fn==="gridTilePick"){
+  if(fn==="haipaiPick"){state.haipai=tiles.slice(0,13);} else if(fn==="finalPick"){state.finalHand=tiles.slice(0,14);} else if(fn==="waitPick"){state.waitTiles=tiles.filter(function(t,i,a){return a.indexOf(t)===i;});} else if(fn==="gridTilePick"){
     // ツモ・捨て牌: 全枚をドローバッファに流し込む
     tiles.forEach(function(t,i){if(i<18)state.draws[i]=t;});
   }
@@ -1861,8 +1932,7 @@ function doraKeydown(e, input, row, idx){
   } else if(e.key==='Backspace' && input.value===''){
     e.preventDefault();
     var arr = row==='dora' ? state.dora : state.uraDora;
-    if(arr[idx]){ arr[idx]=undefined; doraUpdateMini(); }
-    else { doraPrevSlot(row, idx); }
+    if(arr[idx]){ arr[idx]=undefined; doraUpdateMini(); } else { doraPrevSlot(row, idx); }
   }
 }
 
@@ -2080,8 +2150,7 @@ function slotConfirm(tile,type,idx){
   // 次スロットへ（slotSwitchが内部でfocusを行う）
   var ng=(type==='draw')?'discard':(idx+1<21?'draw':null);
   var ni=(type==='draw')?idx:idx+1;
-  if(ng){slotSwitch(ng,ni);}
-  else{slotUpdateMini();}
+  if(ng){slotSwitch(ng,ni);} else{slotUpdateMini();}
   renderNav();
 }
 
@@ -2097,9 +2166,7 @@ function slotTextKeydown(e,input,type,idx){
     }
   } else if(e.key==='Backspace'&&input.value===''){
     e.preventDefault();
-    if(type==='draw'&&state.draws[idx]){state.draws[idx]=null;slotUpdateMini();}
-    else if(type==='discard'&&state.discards[idx]){state.discards[idx]=null;slotUpdateMini();}
-    else{slotMovePrev(type,idx);}
+    if(type==='draw'&&state.draws[idx]){state.draws[idx]=null;slotUpdateMini();} else if(type==='discard'&&state.discards[idx]){state.discards[idx]=null;slotUpdateMini();} else{slotMovePrev(type,idx);}
   } else if(e.key==='Escape'){
     input.blur();
   }
@@ -2271,25 +2338,21 @@ function waitKeydown(e,input,i){
   if(e.key==="Enter"){
     e.preventDefault();
     var tiles=parseTileText(input.value);
-    if(tiles.length){waitConfirm(tiles[0],i);}
-    else{waitMoveNext(i);}
+    if(tiles.length){waitConfirm(tiles[0],i);} else{waitMoveNext(i);}
   } else if(e.key==="Backspace"&&input.value===""){
     e.preventDefault();
-    if(state.waitTiles[i]){state.waitTiles[i]=null;renderSection();}
-    else{waitMovePrev(i);}
+    if(state.waitTiles[i]){state.waitTiles[i]=null;renderSection();} else{waitMovePrev(i);}
   } else if(e.key==="Escape"){
     waitActiveIdx=null;renderSection();
   }
 }
 
 function kbdDelete(){
-  if(state.section==="haipai"){state.haipai.pop();}
-  else if(state.section==="final"){state.finalHand.pop();}
+  if(state.section==="haipai"){state.haipai.pop();} else if(state.section==="final"){state.finalHand.pop();}
   renderSection();
 }
 function kbdClear(){
-  if(state.section==="haipai"){state.haipai=[];}
-  else if(state.section==="final"){state.finalHand=[];}
+  if(state.section==="haipai"){state.haipai=[];} else if(state.section==="final"){state.finalHand=[];}
   renderSection();
 }
 
@@ -2355,11 +2418,62 @@ function renderSection(){
 
   if(s==="game"){
     h=renderGameFlow();
-  }
+  } else if(s==="scores"){
+    // ── 局情報: 点数・供託 ──
+    var allP3=Object.values(PLAYERS_MASTER).flat();
+    var sm3=state.seatMap||{};
+    var WJseats3=["東家","南家","西家","北家"];
+    var scoresDone=!!confirmedSections['scores'];
+    var rule3=getRules().find(function(r){return r.id===state.gameFlow.rule;})||(getRules()[0]||{startPts:30000});
 
+    var ptsRows=WE.map(function(w,wi){
+      var pid=sm3[w];
+      var p=pid?allP3.find(function(x){return x.id===pid;}):null;
+      var name=p?p.name:WJseats3[wi];
+      var curVal=state.kyokuStartPts[w];
+      var placeholder=rule3.startPts?rule3.startPts.toLocaleString():'30000';
+      return '<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">'
+        +'<div style="width:52px;flex-shrink:0;">'
+          +'<div style="font-size:9px;color:var(--tx3)">'+WJseats3[wi]+'</div>'
+          +'<div style="font-size:12px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+name+'</div>'
+        +'</div>'
+        +'<input type="number" min="0" max="99999" step="100"'
+          +' value="'+(curVal!=null?curVal:'')+'" placeholder="'+placeholder+'"'
+          +' oninput="state.kyokuStartPts[\''+w+'\']=this.value===\'\'?null:parseInt(this.value);renderNav()"'
+          +' style="flex:1;font-size:16px;font-weight:700;padding:7px 10px;border-radius:var(--ra);'
+          +'border:.5px solid var(--bd2);background:var(--sf);color:var(--tx);font-family:inherit;outline:none;box-sizing:border-box;">'
+        +'<span style="font-size:12px;color:var(--tx3);flex-shrink:0;">点</span>'
+        +'</div>';
+    }).join('');
 
+    var carryoverHtml=''
+      +'<div style="margin-top:14px;padding-top:12px;border-top:.5px solid var(--bd);">'
+      +'<div style="font-size:11px;color:var(--tx3);margin-bottom:6px">供託リーチ棒（この局開始時点で場に出ている本数）</div>'
+      +'<div style="display:flex;align-items:center;gap:10px">'
+      +'<button onclick="state.kyokuCarryover=Math.max(0,(state.kyokuCarryover||0)-1);renderSection()" '
+        +'style="width:34px;height:34px;border-radius:50%;border:.5px solid var(--bd2);background:var(--sf);font-size:18px;cursor:pointer;'
+        +(!state.kyokuCarryover?'opacity:.3;pointer-events:none;':'')+'">−</button>'
+      +'<span style="font-size:22px;font-weight:700;min-width:28px;text-align:center">'+(state.kyokuCarryover||0)+'</span>'
+      +'<button onclick="state.kyokuCarryover=(state.kyokuCarryover||0)+1;renderSection()" '
+        +'style="width:34px;height:34px;border-radius:50%;border:.5px solid var(--bd2);background:var(--sf);font-size:18px;cursor:pointer">＋</button>'
+      +'<span style="font-size:12px;color:var(--tx3)">本　= '+(state.kyokuCarryover||0)*1000+'点分</span>'
+      +'</div>'
+      +'</div>';
 
-  else if(s==="dora"){
+    var scoresConfirmBtn='<button onclick="confirmSection(\'scores\')"'
+      +' style="width:100%;margin-top:14px;padding:12px;border-radius:var(--ra);'
+      +'background:'+(scoresDone?'var(--g)':'var(--b)')+';border:none;color:#e6f1fb;font-size:14px;'
+      +'font-weight:600;font-family:inherit;cursor:pointer">'
+      +(scoresDone?'✅ 点数・供託 確定済み':'✓ 点数・供託を確定')+'</button>';
+
+    h='<div class="card">'
+      +'<div class="slabel">💴 局開始時の点数</div>'
+      +'<div style="font-size:11px;color:var(--tx3);margin-bottom:10px">各プレイヤーのこの局が始まる前の持ち点。未入力のままでもルールの初期値で計算します。</div>'
+      +ptsRows
+      +carryoverHtml
+      +scoresConfirmBtn
+      +'</div>';
+  } else if(s==="dora"){
     var doraDone = !!confirmedSections['dora'];
     var kanDoraList = state.melds.filter(function(m){return m.kanDoraTile;}).map(function(m){return m.kanDoraTile;});
     var kanCount = kanDoraList.length;
@@ -2464,9 +2578,7 @@ function renderSection(){
       + doraKbd
       + doraDoneBtn
       + '</div>';
-  }
-
-  else if(s==="haipai"){
+  } else if(s==="haipai"){
     var haipaiDone=!!confirmedSections['haipai'];
     var haipaiConfirmBtn='<button onclick="confirmSection(\'haipai\')"'
       +' style="width:100%;margin-top:14px;padding:13px;border-radius:var(--ra);'
@@ -2490,9 +2602,7 @@ function renderSection(){
       +kbdHTML("haipaiPick","",true)
       +haipaiConfirmBtn
       +'</div>';
-  }
-
-  else if(s==="turns"){
+  } else if(s==="turns"){
     var turnsDone=!!confirmedSections['turns'];
     var turnsConfirmBtn='<button onclick="confirmSection(\'turns\')"'
       +' style="width:100%;margin-top:14px;padding:13px;border-radius:var(--ra);'
@@ -2533,9 +2643,7 @@ function renderSection(){
       +renderGrid(riichiUI)
       +turnsConfirmBtn
       +'</div>';
-  }
-
-  else if(s==="final"||s==="meld"){
+  } else if(s==="final"||s==="meld"){
     // ① 最終手牌
     var finalSummaryLines=[];
     if(state.finalHand.length) finalSummaryLines.push('最終手牌: '+handPreview(state.finalHand));
@@ -2584,10 +2692,7 @@ function renderSection(){
       +(isDone?"✅ 確定済み":"✓ 最終手牌・副露・待ちを確定")+'</button>';
 
     h=finalCard+meldCard+waitCard+doneBtn;
-  }
-
-
-  else if(s==="agari"){
+  } else if(s==="agari"){
     var WJseats=["東家","南家","西家","北家"];
     var ag=state.agari;
     if(!ag.tenpaiMap) ag.tenpaiMap={};
@@ -2807,23 +2912,12 @@ function renderSection(){
       +howSection
       +fromSection
       +scoreSection
-      // 供託・リーチ棒セクション
-      +'<div style="margin-top:12px;padding-top:12px;border-top:.5px solid var(--bd)">'
-      +'<div style="font-size:11px;color:var(--tx3);margin-bottom:6px">⑤ リーチ棒・供託（場に出ている本数）</div>'
-      +'<div style="display:flex;align-items:center;gap:10px">'
-      +'<span style="font-size:13px;color:var(--tx2)">場のリーチ棒</span>'
-      +'<button onclick="state.riichiSticks=Math.max(0,(state.riichiSticks||0)-1);renderSection()" '
-        +'style="width:32px;height:32px;border-radius:50%;border:.5px solid var(--bd2);background:var(--sf);font-size:16px;cursor:pointer;'
-        +(!(state.riichiSticks>0)?'opacity:.3;pointer-events:none;':'')+'">−</button>'
-      +'<span style="font-size:20px;font-weight:700;min-width:24px;text-align:center">'+(state.riichiSticks||0)+'</span>'
-      +'<button onclick="state.riichiSticks=(state.riichiSticks||0)+1;renderSection()" '
-        +'style="width:32px;height:32px;border-radius:50%;border:.5px solid var(--bd2);background:var(--sf);font-size:16px;cursor:pointer">＋</button>'
-      +'<span style="font-size:11px;color:var(--tx3)">本　= '+(state.riichiSticks||0)*1000+'点</span>'
-      +'</div>'
+      // 自分のリーチ棒注記（scores タブで供託を入力済みの場合は参考表示）
       +(state.riichiDiscIdx!==null
-        ?'<div style="font-size:11px;color:var(--tx3);margin-top:4px">＋ 自分のリーチ棒 1本 (1000点) も加算されます</div>'
+        ?'<div style="margin-top:8px;font-size:11px;color:var(--tx3);background:var(--sf2);border-radius:var(--ra);padding:6px 10px;">'
+          +'💡 自分のリーチ棒（1000点）は点数計算に自動加算されます。<br>'
+          +'場の供託は「局情報 → 点数・供託」タブで入力してください。</div>'
         :'')
-      +'</div>'
       +confirmBtn
       +'</div>';
   }
@@ -2889,6 +2983,8 @@ function confirmSection(key){
   }
   confirmedSections[key]=true;
   // 確定時点のデータをスナップショット保存（タブを切り替えても残る）
+  if(key==='scores')  confirmedSections._kyokuStartPts=Object.assign({},state.kyokuStartPts),
+                      confirmedSections._kyokuCarryover=state.kyokuCarryover||0;
   if(key==='haipai')  confirmedSections._haipai  = state.haipai.slice();
   if(key==='turns')   confirmedSections._draws    = state.draws.slice(),
                       confirmedSections._discards = state.discards.slice(),
@@ -2904,8 +3000,8 @@ function confirmSection(key){
   if(rtTabMap[key]) state.rtViewTab=rtTabMap[key];
   // 入力状況パネルを更新
   renderRtPanel();
-  // 次のタブへ自動移動
-  var order=["dora","haipai","turns","final","meld","agari"];
+  // 次のタブへ自動移動（大タブ内を順に進む）
+  var order=["scores","dora","agari","haipai","turns","final"];
   var ni=order.indexOf(key)+1;
   if(ni<order.length) setSection(order[ni]);
   // agari (最後) は confirmSummary を出さない → ナビの「送信」ボタンから
@@ -3703,7 +3799,8 @@ function _gfStartInputCore(){
   if(!isResume){
     TsumologPoints.grant('new_kifu_start',5,'新規牌譜入力開始').then(function(){TsumologPoints.refreshDisplay();});
   }
-  state.section='dora';    // 最初はドラ入力タブ
+  state.section='scores'; // 最初は点数・供託タブ
+  state.bigTab='kyoku';   // 局情報（共通）大タブから開始
   document.body.classList.add('is-input'); // 入力モード: 薄い緑背景
   renderNav();
   renderSection();
@@ -3793,8 +3890,7 @@ function dropToSeat(e,w){
 // 座席に選手を割り当て
 function gfAssignSeat(w, pid){
   if(!state.seatMap)state.seatMap={east:null,south:null,west:null,north:null};
-  if(pid===null){state.seatMap[w]=null;}
-  else{
+  if(pid===null){state.seatMap[w]=null;} else{
     // 他の座席に同じ選手が割り当て済みなら外す
     WE.forEach(function(ow){if(state.seatMap[ow]===pid&&ow!==w)state.seatMap[ow]=null;});
     state.seatMap[w]=pid;
@@ -3942,9 +4038,7 @@ function renderRtPanel(){
         +'</div>';
     }).join('');
     if(!html) html = '<p style="font-size:12px;color:var(--tx3)">データなし</p>';
-  }
-
-  else if(tab === 'turns'){
+  } else if(tab === 'turns'){
     // ツモ・捨て: 全座席のミニグリッド
     var maxShow = Math.max(
       state.draws.filter(Boolean).length,
@@ -4004,9 +4098,7 @@ function renderRtPanel(){
         +sn+(isMe?' (自分)':'')+'</div>'
         +gridHtml+'</div>';
     }).join('');
-  }
-
-  else if(tab === 'final'){
+  } else if(tab === 'final'){
     // 最終手牌・待ち・副露
     html = WE.map(function(w){
       var isMe = (w === state.seat);
@@ -4044,9 +4136,7 @@ function renderRtPanel(){
         +'<div style="font-size:12px;margin-top:2px">'+meldHtml+'</div>'
         +'</div>';
     }).join('');
-  }
-
-  else if(tab === 'agari'){
+  } else if(tab === 'agari'){
     // アガリ・点数
     var ag = state.agari;
     var mySummary = (ag.who||ag.type||ag.score)
@@ -4518,8 +4608,7 @@ function meldPickKandora(tile){
   // カンの場合はSTEP6（カン前ツモ牌）へ
   var d=state.meldDraft;
   var isKan=(d.type==='kan'||d.type==='ankan'||d.isAnkan);
-  if(isKan){ d.step=6; renderSection(); }
-  else { meldFinish(); }
+  if(isKan){ d.step=6; renderSection(); } else { meldFinish(); }
 }
 function meldPickKanTsumo(tile, idx){
   state.meldDraft.kanTsumoTile = tile||null;
@@ -4637,9 +4726,12 @@ function calcScores(){
   var WJ=['東家','南家','西家','北家'];
   var sm=state.seatMap||{};
 
-  // 現在局の初期点数（前局からの引き継ぎがなければルールの初期値）
+  // 現在局の初期点数（scores タブで入力された値を優先。なければルールの初期値）
   var startPts={};
-  WE.forEach(function(w){ startPts[w]=rule.startPts; });
+  WE.forEach(function(w){
+    var entered=state.kyokuStartPts&&state.kyokuStartPts[w];
+    startPts[w]=(entered!=null?parseInt(entered):null)||rule.startPts;
+  });
 
   // 点数変動を計算
   var delta={east:0,south:0,west:0,north:0};
@@ -4650,11 +4742,11 @@ function calcScores(){
   var winnerJIdx=WJ.indexOf(ag.who);
   var winnerW=winnerJIdx>=0?WE[winnerJIdx]:null;
 
-  // 本場・リーチ棒
+  // 本場・リーチ棒（供託は scores タブの kyokuCarryover を使用）
   var honba=(gf.selectedKyoku&&gf.selectedKyoku.honba)||0;
   var honbaBonus=honba*300;
   var myRiichi=(state.riichiDiscIdx!==null)?1:0;
-  var riichiSticks=(state.riichiSticks||0)+myRiichi;
+  var riichiSticks=(state.kyokuCarryover||0)+myRiichi;
   var riichiBonus=riichiSticks*1000;
 
   if(ag.type==='ツモ'&&winnerW){
@@ -4865,7 +4957,7 @@ function buildKifuJSON(){
 
     playerScores[w]={
       name:      pName,
-      start:     null,
+      start:     state.kyokuStartPts&&state.kyokuStartPts[w]!=null?parseInt(state.kyokuStartPts[w]):null,
       end:       null,
       delta:     0,
       pointMode: false,
@@ -4998,7 +5090,7 @@ function buildKifuJSON(){
         oka:      scoreReport.rule.oka||0,
       }:null,
       players:    matchPlayers,
-      kyokuInfo:  {bakaze:bakaze,kyoku:kyoku,honba:honba},
+      kyokuInfo:  {bakaze:bakaze,kyoku:kyoku,honba:honba,carryover:state.kyokuCarryover||0},
     },
     // v1互換（再生アプリがそのまま読める）
     gameData:  gameData,
