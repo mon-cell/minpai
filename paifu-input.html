@@ -1010,7 +1010,7 @@ var state={
   agari:{type:"",yaku:"",score:"",who:"",from:""},
   rtLog:[], // リアルタイムログ [{seat,type,idx,tile,ts,self}]
   user:{ pts:1240, plan:"free" }, // free | paid  (本番: WordPress WP_USERから取得)
-  rtTab:null,   // リアルタイム小窓の選択タブ（null=自分の座席）
+  rtTab:null,   // リアルタイム小窓の選択タブ（null=入力対象の座席）
   melds:[],     // [{type,tiles,nakiIdx,from,rinshanTile,discTile,kanDoraTile,巡目}]
   meldDraft:null,
   riichiDiscIdx:null,   // リーチ宣言牌の捨て牌インデックス
@@ -1170,7 +1170,7 @@ function renderNav(){
           +'background:'+(isMine?'var(--b-bg)':isDone?'var(--g-bg)':'var(--sf2)')+';color:'+(isMine?'var(--b)':isDone?'var(--g)':'var(--tx2)')+';text-align:center;">'
           +'<div style="font-size:9px;color:'+(isMine?'var(--b)':isDone?'var(--g)':'var(--tx3)')+'">'+WJseats2[wi]+'</div>'
           +'<div style="font-weight:'+(isMine||isDone?'700':'400')+';overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+name+'</div>'
-          +(isMine?'<div style="font-size:9px;color:var(--b)">✍️ 入力中</div>':isDone?'<div style="font-size:9px;color:var(--g)">✅ 送信済</div>':'')
+          +(isMine?'<div style="font-size:9px;color:var(--b)">✍️ 入力対象</div>':isDone?'<div style="font-size:9px;color:var(--g)">✅ 送信済</div>':'')
           +'</button>';
       }).join('');
       si.innerHTML='<div style="padding:8px 0 4px;">'
@@ -2431,6 +2431,64 @@ function renderSection(){
     var scoresDone=!!confirmedSections['scores'];
     var rule3=getRules().find(function(r){return r.id===state.gameFlow.rule;})||(getRules()[0]||{startPts:30000});
 
+    // ── 初期配置UI（東一局の座席割り当て） ──
+    var gf3=state.gameFlow;
+    var IS3=gf3.initSeats||{};
+    var initSeatsHtml='';
+    var initDone3=gfInitSeatsComplete();
+    {
+      var selPid3=gf3.initSelPid||null;
+      var assignedIds3={};
+      WE.forEach(function(w){if(IS3[w])assignedIds3[IS3[w]]=w;});
+      var stock3=gf3.players.filter(function(pid){return !assignedIds3[pid];}).map(function(pid){
+        var p3=allP3.find(function(x){return x.id===pid;}); if(!p3)return'';
+        var isSel3=(selPid3===pid);
+        return'<div onclick="gfInitSelPlayer(\''+pid+'\')" '
+          +'style="padding:6px 11px;border-radius:20px;cursor:pointer;font-size:13px;'
+          +'background:'+(isSel3?'var(--b)':'var(--sf)')+';'
+          +'border:'+(isSel3?'2px solid var(--b)':'.5px solid var(--bd2)')+';'
+          +'color:'+(isSel3?'#e6f1fb':'var(--tx)')+';margin:2px">'+p3.name+'</div>';
+      }).join('');
+      var seatBoxes3=WE.map(function(w,wi){
+        var pid3=IS3[w];
+        var p3=pid3?allP3.find(function(x){return x.id===pid3;}):null;
+        var content3='';
+        if(p3){
+          content3='<div style="display:flex;align-items:center;gap:8px;flex:1">'
+            +'<span style="font-size:14px;font-weight:600">'+p3.name+'</span>'
+            +'<button onclick="event.stopPropagation();gfSetInitSeat(\''+w+'\',null)" '
+              +'style="font-size:11px;padding:2px 8px;border-radius:4px;background:none;border:.5px solid var(--bd2);cursor:pointer;color:var(--tx3)">外す</button>'
+            +'</div>';
+        } else if(selPid3){
+          var selP3=allP3.find(function(x){return x.id===selPid3;});
+          content3='<button data-w="'+w+'" onclick="gfInitDropToSeat(this.dataset.w)" '
+            +'style="font-size:12px;padding:4px 12px;border-radius:6px;font-family:inherit;cursor:pointer;'
+            +'background:var(--b);border:none;color:#e6f1fb;font-weight:600">'
+            +(selP3?selP3.name:'選手')+'をここに配置</button>';
+        } else {
+          content3='<span style="font-size:12px;color:var(--tx3)">↑ 選手を選んでタップ</span>';
+        }
+        return'<div style="border:.5px solid '+(p3?'var(--g)':'var(--bd)')+';border-radius:var(--ra);'
+          +'background:'+(p3?'var(--g-bg)':'var(--sf)')+';padding:8px 12px;margin-bottom:5px;'
+          +'display:flex;align-items:center;gap:8px">'
+          +'<div style="font-size:13px;font-weight:700;min-width:36px">'+WJseats3[wi]+'</div>'
+          +content3+'</div>';
+      }).join('');
+      initSeatsHtml=''
+        +'<div style="margin-bottom:14px;">'
+        +'<div class="slabel">🀄 東一局の初期配置</div>'
+        +'<div style="font-size:11px;color:var(--tx3);margin-bottom:8px">①選手名をタップ → ②座席をタップして配置。局が進むと自動的に座席が回転します。</div>'
+        +'<div style="display:flex;flex-wrap:wrap;gap:4px;min-height:36px;padding:8px;background:var(--sf2);border-radius:var(--ra);margin-bottom:8px">'
+        +'<div style="font-size:10px;color:var(--tx3);width:100%;margin-bottom:4px">未配置の選手</div>'
+        +(stock3||'<span style="font-size:11px;color:var(--g)">✓ 全員配置済み</span>')
+        +'</div>'
+        +seatBoxes3
+        +(initDone3
+          ?'<div style="font-size:11px;color:var(--g);padding:4px 0">✅ 配置完了 — 局選択すると各局の座席が自動計算されます</div>'
+          :'<div style="font-size:11px;color:var(--tx3);padding:4px 0">全員を配置すると、局ごとの座席が自動計算されます（観戦者が入力対象のプレイヤーをタブで切り替えられます）</div>')
+        +'</div>';
+    }
+
     var ptsRows=WE.map(function(w,wi){
       var pid=sm3[w];
       var p=pid?allP3.find(function(x){return x.id===pid;}):null;
@@ -2472,6 +2530,7 @@ function renderSection(){
       +(scoresDone?'✅ 点数・供託 確定済み':'✓ 点数・供託を確定')+'</button>';
 
     h='<div class="card">'
+      +initSeatsHtml
       +'<div class="slabel">💴 局開始時の点数</div>'
       +'<div style="font-size:11px;color:var(--tx3);margin-bottom:10px">各プレイヤーのこの局が始まる前の持ち点。未入力のままでもルールの初期値で計算します。</div>'
       +ptsRows
@@ -3027,7 +3086,7 @@ function renderConfirmSummary(){
   var allP=Object.values(PLAYERS_MASTER).flat();
   var sm=state.seatMap||{};
 
-  // ─ 自分の入力状況 ─
+  // ─ 入力対象の状況 ─
   var myItems=[
     {label:'配牌',     done:state.haipai.length>=13 || !!(confirmedSections._haipai&&confirmedSections._haipai.length),
       val:(function(){
@@ -3058,7 +3117,7 @@ function renderConfirmSummary(){
 
   var myHtml='<div style="background:var(--sf2);border-radius:var(--ra);padding:12px;margin-bottom:14px">'
     +'<div style="font-size:12px;font-weight:700;color:var(--b);margin-bottom:10px">'
-    +'✏️ 自分の入力（'+mySeatLabel+(myP?' '+myP.name:'')+'）</div>';
+    +'✏️ 入力対象（'+mySeatLabel+(myP?' '+myP.name:'')+'）</div>';
   myItems.forEach(function(item){
     myHtml+='<div style="border-bottom:.5px solid var(--bd);padding:6px 0;margin-bottom:2px">'
       +'<div style="display:flex;align-items:center;gap:6px;margin-bottom:3px">'
@@ -3387,7 +3446,9 @@ function _renderGameFlowInner(){
       +'<div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:10px;min-height:28px">'+selectedChips+'</div>'
       +'<div class="kbd-tabs" style="margin-bottom:8px">'+orgTabBtns+'</div>'
       +'<div style="display:flex;flex-direction:column;gap:6px;margin-bottom:14px">'+playerBtns+'</div>'
-      +(gf.players.length>=2?initSeatsUI():'<div style="font-size:12px;color:var(--tx3);text-align:center;padding:6px">2名以上選択してください</div>')
+      +(gf.players.length>=2
+        ?'<button class="pri" style="width:100%;padding:11px" onclick="gfNext()">次へ：確認 →</button>'
+        :'<div style="font-size:12px;color:var(--tx3);text-align:center;padding:6px">2名以上選択してください</div>')
       +'</div>';
 
 
@@ -3423,6 +3484,7 @@ function _renderGameFlowInner(){
               return`<span style="font-size:13px;padding:3px 10px;border-radius:20px;background:var(--b-bg);color:var(--b-t)">${p.name}</span>`;
             }).join("")}
           </div>
+          <div style="font-size:11px;color:var(--tx3);margin-top:6px">💡 初期配置はマッチング後に「点数・供託」タブで設定できます</div>
         </div>
       </div>
 
@@ -3484,13 +3546,15 @@ function gfNext(){
   if(gf.step===1&&!gf.org)return;
   if(gf.step===2&&!gf.tournament)return;
   if(gf.step===3&&gf.players.length<2)return;
-  if(gf.step===3&&!gfInitSeatsComplete())return;
   state.gameFlow.step++;
   renderSection();
 }
 function gfBack(){
   if(state.gameFlow.step>0){state.gameFlow.step--;renderSection();}
 }
+// 旧関数: Step3で使っていた初期配置UI。
+// 現在は scores セクション内にインラインで実装済みのため未使用。
+// 削除可能だが参照用に残す。
 function initSeatsUI(){
   var gf=state.gameFlow;
   var IS=gf.initSeats||{};
@@ -3562,10 +3626,15 @@ function gfInitDropToSeat(w){
 function gfSetInitSeat(w, pid){
   if(!state.gameFlow.initSeats) state.gameFlow.initSeats={};
   // 既存の配置を解除（同じpidを別の座席に割り当て直す）
-  var WE=['east','south','west','north'];
   if(pid) WE.forEach(function(ow){if(ow!==w&&state.gameFlow.initSeats[ow]===pid)state.gameFlow.initSeats[ow]=null;});
   state.gameFlow.initSeats[w] = pid||null;
-  state.gameFlow.initSelPid = null; // 選択をクリア
+  state.gameFlow.initSelPid = null;
+  // 配置完了したら現在の局の座席を自動計算
+  if(gfInitSeatsComplete()){
+    var sel=state.gameFlow.selectedKyoku||{ba:'東',kyoku:1,honba:0};
+    gfSelectKyoku(sel.ba, sel.kyoku, sel.honba);
+    return; // gfSelectKyokuがrenderSectionを呼ぶ
+  }
   renderSection();
 }
 function gfInitSeatsComplete(){
@@ -3662,7 +3731,9 @@ function renderKyokuList(gf){
 
   // 現在の点数スコアボード
   html+='<div style="margin-top:12px;border:.5px solid var(--bd);border-radius:var(--ra);overflow:hidden">'
-    +'<div style="background:var(--sf2);padding:6px 10px;font-size:10px;font-weight:600;color:var(--tx3)">現在の点数</div>';
+    +'<div style="background:var(--sf2);padding:6px 10px;font-size:10px;font-weight:600;color:var(--tx3)">現在の点数'
+    +(state.gameFlow.matched?' <span style="font-weight:400;color:var(--tx3)">— 点数・供託タブで入力対象プレイヤーを切り替えられます</span>':'')
+    +'</div>';
   var dispSeats=['east','south','west','north'];
   var WJd=['東家','南家','西家','北家'];
   var MAX_PTS=rule.startPts*4;
@@ -3674,15 +3745,10 @@ function renderKyokuList(gf){
     var isMySeat=state.seat===w;
     var rowBg=isMySeat?';background:var(--g-bg)':'';
     var nameCo=isMySeat?'var(--g)':'var(--tx)';
-    var btnSt=isMySeat
-      ?'background:var(--g);border:1px solid var(--g);color:#fff;font-weight:600'
-      :'background:var(--sf2);border:1px solid var(--bd2);color:var(--tx2)';
-    var btnTx=isMySeat?'\u2713 \u5165\u529b\u4e2d':'\u3053\u306e\u30d7\u30ec\u30a4\u30e4\u30fc\u3067\u5165\u529b';
     html+='<div style="padding:6px 10px;border-bottom:.5px solid var(--bd2);display:flex;align-items:center;gap:6px'+rowBg+'">'+
       '<div style="font-size:11px;color:var(--tx3);min-width:28px">'+WJd[wi]+'</div>'+
-      '<div style="font-size:12px;font-weight:600;flex:1;color:'+nameCo+'">'+(p?p.name:'\u2014')+(isMySeat?' \u25c4':'')+'</div>'+
+      '<div style="font-size:12px;font-weight:600;flex:1;color:'+nameCo+'">'+(p?p.name:'—')+(isMySeat?' ◀ 入力対象':'')+'</div>'+
       '<div style="font-family:monospace;font-size:13px;font-weight:700;color:'+color+';min-width:52px;text-align:right">'+pts.toLocaleString()+'</div>'+
-      '<button onclick="gfSetMySeat(\''+w+'\')" style="font-size:11px;padding:4px 9px;border-radius:14px;white-space:nowrap;cursor:pointer;'+btnSt+'">'+btnTx+'</button>'+
       '</div>';
   });
   html+='</div>';
@@ -3708,32 +3774,40 @@ function gfChangeHonba(ba, k, delta){
 }
 
 function gfSelectKyoku(ba, kyoku, honba){
-  var WE=['east','south','west','north'];
   state.gameFlow.selectedKyoku={ba:ba,kyoku:kyoku,honba:honba};
   // 供託リーチ棒を自動セット
   state.riichiSticks=state.gameFlow.riichiCarryover||0;
-  // 座席を自動計算
+  // 初期配置が完了している場合のみ座席を自動計算
   var gf=state.gameFlow;
   var initSeats=gf.initSeats||{};
   var players=gf.players||[];
   var n=players.length;
-  var kyokuIdx=(ba==='東'?0:n)+kyoku-1;
-  // 各プレイヤーの局時点での座席を計算
-  // 東一局からkyokuIdx局分ローテーション
-  var newSeats={};
-  WE.forEach(function(w,wi){
-    var pid=initSeats[w];
-    if(pid){
-      // wiから kyokuIdx 分逆回転（上家に進む）
-      var newWi=(wi - kyokuIdx % n + n*10) % n;
-      newSeats[WE[newWi]] = pid;
+  if(gfInitSeatsComplete()){
+    var kyokuIdx=(ba==='東'?0:n)+kyoku-1;
+    var newSeats={};
+    WE.forEach(function(w,wi){
+      var pid=initSeats[w];
+      if(pid){
+        var newWi=(wi - kyokuIdx % n + n*10) % n;
+        newSeats[WE[newWi]] = pid;
+      }
+    });
+    state.gameFlow.computedSeats=newSeats;
+    // 入力対象プレイヤーの座席を局ごとに自動追従
+    if(state.seat){
+      var myPid=initSeats[state.seat]||null;
+      if(myPid){
+        var myNewSeat=Object.keys(newSeats).find(function(w){return newSeats[w]===myPid;});
+        if(myNewSeat) state.seat=myNewSeat;
+      }
     }
-  });
-  // state.seatMap に設定
-  state.gameFlow.computedSeats=newSeats;
+    state.seatMap=Object.assign({east:null,south:null,west:null,north:null},newSeats);
+  }
   renderSection();
 }
 
+// gfSetMySeat: 入力対象プレイヤーの座席を変更する
+// （観戦者が任意のプレイヤーの情報を入力できる）
 function gfSetMySeat(wind){
   if(!state.gameFlow.matched) return;
   state.seat=wind;
@@ -3753,7 +3827,7 @@ function gfShowSeatPicker(onSelect){
   ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:700;display:flex;align-items:center;justify-content:center;padding:16px';
   var inner='<div style="background:var(--sf);border-radius:var(--ral);padding:20px;max-width:320px;width:100%;box-shadow:0 8px 32px rgba(0,0,0,.3)">'
     +'<div style="font-size:14px;font-weight:700;margin-bottom:4px">どのプレイヤーの情報を入力しますか？</div>'
-    +'<div style="font-size:11px;color:var(--tx3);margin-bottom:14px">この局でのあなたの座席を選んでください</div>'
+    +'<div style="font-size:11px;color:var(--tx3);margin-bottom:14px">入力するプレイヤーの座席を選択してください</div>'
     +WEseats.map(function(w,wi){
       var pid=seats[w];
       var p=pid?allP.find(function(x){return x.id===pid;}):null;
@@ -4143,7 +4217,7 @@ function renderRtPanel(){
     var ag = state.agari;
     var mySummary = (ag.who||ag.type||ag.score)
       ? '<div style="background:var(--g-bg);border:.5px solid var(--g);border-radius:var(--ra);padding:8px 12px;margin-bottom:8px">'
-        +'<div style="font-size:11px;color:var(--g);font-weight:600;margin-bottom:4px">自分の入力</div>'
+        +'<div style="font-size:11px;color:var(--g);font-weight:600;margin-bottom:4px">入力済み</div>'
         +'<div style="font-size:14px;font-weight:600">'
         +(ag.who?ag.who+' ':'' )+(ag.type?ag.type+' ':'')+(ag.from?ag.from+'から ':'' )
         +(ag.score?'<span style="color:var(--g);font-size:18px">'+ag.score+'</span>':'')
