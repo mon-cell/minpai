@@ -822,6 +822,8 @@ function continueInputKifu(kifuId){
     location.href='paifu-input.html?edit=1';
   });
 }
+
+function downloadMergedKifu(kifuId){
   var flags=JSON.parse(localStorage.getItem('tsumolog_flags')||'{}');
   var now=Date.now();
   var hasSubscription=flags['subscribe_month']&&flags['subscribe_month'].expiresAt>now
