@@ -176,6 +176,7 @@ body{background:var(--bg);color:var(--tx);font-family:'Noto Serif JP',serif;min-
   <div class="tabs">
     <div class="tab on" onclick="switchTab('shop')">🛒 ショップ</div>
     <div class="tab" onclick="switchTab('kifu')">🀄 牌譜</div>
+    <div class="tab" onclick="switchTab('incomplete')" id="tab-btn-incomplete">⏳ 未完成</div>
     <div class="tab" onclick="switchTab('log')">📋 履歴</div>
     <div class="tab" onclick="switchTab('settings')">⚙️ 設定</div>
   </div>
@@ -184,7 +185,30 @@ body{background:var(--bg);color:var(--tx);font-family:'Noto Serif JP',serif;min-
     <div class="shop-grid" id="shop-grid"></div>
   </div>
 
+  <div id="tab-incomplete" style="display:none">
+    <!-- ソートと説明 -->
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;flex-wrap:wrap;">
+      <div style="font-size:12px;color:var(--tx3);flex:1;">続きを入力すると完成度が上がります</div>
+      <select id="incomplete-sort" onchange="renderIncompleteKifu()"
+        style="padding:6px 10px;border-radius:var(--ra);border:1px solid var(--bd);
+               background:var(--sf);color:var(--tx);font-size:12px;font-family:inherit;cursor:pointer;">
+        <option value="updatedAt">更新順</option>
+        <option value="completeness">完成率 低い順</option>
+        <option value="disputes">審議数 多い順</option>
+      </select>
+    </div>
+    <div id="incomplete-list"></div>
+  </div>
+
   <div id="tab-kifu" style="display:none">
+    <!-- 牌譜検索バー -->
+    <div style="margin-bottom:12px;">
+      <input id="kifu-search" type="search" placeholder="タイトル・大会名・対局日・レポートIDで検索…"
+        oninput="renderKifuHistory()"
+        style="width:100%;box-sizing:border-box;padding:9px 12px;border-radius:var(--ra);
+               border:1px solid var(--bd);background:var(--sf);color:var(--tx);
+               font-size:13px;font-family:inherit;outline:none;">
+    </div>
     <div id="kifu-list"></div>
   </div>
 
@@ -279,6 +303,77 @@ var TsumologPoints=(function(){
 // shop.csv から動的に読み込む
 var SHOP_ITEMS=[];
 
+// 席定数（shop内で使用）
+var WE_SHOP=['east','south','west','north'];
+var WJ_SHOP=['東','南','西','北'];
+
+// ─────────────────────────────────────────────────
+// TsumologLibrary（最小版）: kifu_merged の読み取りのみ
+// ─────────────────────────────────────────────────
+var TsumologLibrary=(function(){
+  var DB_NAME='tsumolog_shared',DB_VER=2,STORE_MRG='kifu_merged';
+  var _db=null;
+  function _open(cb){
+    if(_db){cb(_db);return;}
+    var req=indexedDB.open(DB_NAME,DB_VER);
+    req.onupgradeneeded=function(e){
+      var db=e.target.result;
+      if(!db.objectStoreNames.contains('library')){
+        var sL=db.createObjectStore('library',{keyPath:'id',autoIncrement:true});
+        sL.createIndex('source','source',{unique:false});
+      }
+      if(!db.objectStoreNames.contains('kifu_submissions')){
+        var sS=db.createObjectStore('kifu_submissions',{keyPath:'contribId'});
+        sS.createIndex('matchKey','matchKey',{unique:false});
+      }
+      if(!db.objectStoreNames.contains(STORE_MRG)){
+        var sM=db.createObjectStore(STORE_MRG,{keyPath:'kifuId'});
+        sM.createIndex('status','status',{unique:false});
+        sM.createIndex('updatedAt','updatedAt',{unique:false});
+      }
+    };
+    req.onsuccess=function(e){_db=e.target.result;cb(_db);};
+    req.onerror=function(){cb(null);};
+  }
+  function getMerged(kifuId,cb){
+    _open(function(db){
+      if(!db){cb(null);return;}
+      var req=db.transaction(STORE_MRG,'readonly').objectStore(STORE_MRG).get(kifuId);
+      req.onsuccess=function(){
+        var r=req.result;if(!r){cb(null);return;}
+        try{cb(JSON.parse(r.json));}catch(e){cb(null);}
+      };
+      req.onerror=function(){cb(null);};
+    });
+  }
+  function getAllMerged(cb){
+    _open(function(db){
+      if(!db){cb([]);return;}
+      var req=db.transaction(STORE_MRG,'readonly').objectStore(STORE_MRG).getAll();
+      req.onsuccess=function(){
+        var all=(req.result||[]).map(function(r){try{return JSON.parse(r.json);}catch(e){return null;}}).filter(Boolean);
+        all.sort(function(a,b){return(b.updatedAt||'').localeCompare(a.updatedAt||'');});
+        cb(all);
+      };
+      req.onerror=function(){cb([]);};
+    });
+  }
+  function getIncompleteMerged(cb){
+    _open(function(db){
+      if(!db){cb([]);return;}
+      var req=db.transaction(STORE_MRG,'readonly').objectStore(STORE_MRG).getAll();
+      req.onsuccess=function(){
+        var all=(req.result||[]).map(function(r){try{return JSON.parse(r.json);}catch(e){return null;}}).filter(Boolean);
+        var inc=all.filter(function(k){return k.status==='partial'||k.status==='disputed';});
+        inc.sort(function(a,b){return(b.updatedAt||'').localeCompare(a.updatedAt||'');});
+        cb(inc);
+      };
+      req.onerror=function(){cb([]);};
+    });
+  }
+  return{getMerged:getMerged,getAllMerged:getAllMerged,getIncompleteMerged:getIncompleteMerged};
+})();
+
 // ─────────────────────────────────────────────────
 // § 2. shop.csv 読み込み
 // ─────────────────────────────────────────────────
@@ -316,6 +411,20 @@ function loadShopCSV(){
 
 var currentItem=null;
 var currentTab='shop';
+
+// URL パラメータで tab 指定されていれば自動切替（paifu-input の「続きを入力する」ボタンから）
+(function(){
+  try{
+    var p=new URLSearchParams(location.search);
+    var t=p.get('tab');
+    if(t&&['shop','kifu','incomplete','log','settings'].indexOf(t)>=0){
+      document.querySelectorAll('.tab').forEach(function(b){b.classList.remove('on');});
+      var btn=document.getElementById('tab-btn-'+t);
+      if(btn) btn.classList.add('on');
+      document.addEventListener('DOMContentLoaded',function(){ switchTab(t); });
+    }
+  }catch(e){}
+})();
 
 // ══════════════════════════════════════════════
 // 初期化
@@ -392,13 +501,25 @@ function renderLog(){
 
 function switchTab(tab){
   currentTab=tab;
-  ['shop','kifu','log','settings'].forEach(function(t){
-    document.getElementById('tab-'+t).style.display=(t===tab)?'':'none';
-    document.querySelectorAll('.tab')[['shop','kifu','log','settings'].indexOf(t)].className='tab'+(t===tab?' on':'');
+  var allTabs=['shop','kifu','incomplete','log','settings'];
+  allTabs.forEach(function(t){
+    var el=document.getElementById('tab-'+t);
+    if(el) el.style.display=(t===tab)?'':'none';
   });
-  if(tab==='log') renderLog();
-  if(tab==='kifu') renderKifuHistory();
+  // タブボタンの active 状態
+  document.querySelectorAll('.tab').forEach(function(btn){
+    btn.classList.remove('on');
+    // data-tab 属性かテキストで判定
+    var btnTab=btn.getAttribute('data-tab')||btn.getAttribute('onclick')||'';
+    if(btnTab.indexOf("'"+tab+"'")>=0) btn.classList.add('on');
+  });
+  if(tab==='log')        renderLog();
+  if(tab==='kifu')       renderKifuHistory();
+  if(tab==='incomplete') renderIncompleteKifu();
 }
+
+// URL パラメータで tab 指定されていれば自動切替は下部で実行（currentTab宣言後）
+
 
 // ══════════════════════════════════════════════
 // 購入フロー
@@ -455,10 +576,59 @@ function renderKifuHistory(){
   try{ hist=JSON.parse(localStorage.getItem('tsumolog_kifu_history')||'[]'); }catch(e){}
   var lastKifu=localStorage.getItem('tsumolog_last_kifu');
 
-  if(!hist.length&&!lastKifu){
-    el.innerHTML='<div class="empty">牌譜がありません<br>牌譜収集アプリで入力・送信してください</div>';
-    return;
+  if(!hist.length&&lastKifu){
+    try{
+      var obj=JSON.parse(lastKifu);
+      hist=[{savedAt:obj.savedAt,title:obj.gameData.meta.title||'無題',json:obj}];
+    }catch(e){}
   }
+
+  // IDBの統合済み牌譜も合わせて表示
+  TsumologLibrary.getAllMerged(function(mergedList){
+    _renderKifuList(el, hist, mergedList);
+  });
+}
+
+function _kifuMatchSearch(item, q){
+  if(!q) return true;
+  q = q.toLowerCase();
+  // ローカル履歴アイテムの検索対象
+  var json = item.json || {};
+  var meta = (json.gameData && json.gameData.meta) || {};
+  var match = json.match || {};
+  var kifuId = json.kifuId || '';
+  var searchStr = [
+    item.title || '',
+    meta.date  || '',
+    match.orgLabel    || '',
+    match.tournLabel  || '',
+    match.date        || '',
+    kifuId,
+  ].join(' ').toLowerCase();
+  return searchStr.indexOf(q) >= 0;
+}
+
+function _kifuMergedMatchSearch(k, q){
+  if(!q) return true;
+  q = q.toLowerCase();
+  var m = k.match || {};
+  var gm = k.gameData ? k.gameData.meta : {};
+  var searchStr = [
+    k.kifuId      || '',
+    m.title       || '',
+    m.date        || '',
+    m.orgLabel    || '',
+    m.tournLabel  || '',
+    gm.date       || '',
+    gm.title      || '',
+    // バリアントIDも検索対象（-var付きIDはlocalStorageに保存されないが念のため）
+  ].join(' ').toLowerCase();
+  return searchStr.indexOf(q) >= 0;
+}
+
+function _renderKifuList(el, hist, mergedList){
+  var q = (document.getElementById('kifu-search')||{}).value || '';
+  q = q.trim();
 
   var flags=JSON.parse(localStorage.getItem('tsumolog_flags')||'{}');
   var now=Date.now();
@@ -470,28 +640,207 @@ function renderKifuHistory(){
       :'購入またはサブスクでダウンロード・再生できます')
     +'</div>';
 
-  if(!hist.length&&lastKifu){
-    // 最新1件だけ
-    try{
-      var obj=JSON.parse(lastKifu);
-      hist=[{savedAt:obj.savedAt,title:obj.gameData.meta.title||'無題',json:obj}];
-    }catch(e){}
+  // ── 統合済み牌譜（IDB kifu_merged）──
+  var filteredMerged = (mergedList||[]).filter(function(k){ return _kifuMergedMatchSearch(k, q); });
+  if(filteredMerged.length){
+    html += '<div style="font-size:10px;font-weight:700;color:var(--tx3);letter-spacing:.06em;margin-bottom:6px;">✅ 統合済み牌譜</div>';
+    html += filteredMerged.map(function(k){
+      var m = k.match || {};
+      var gm = k.gameData ? k.gameData.meta : {};
+      var title = m.title || gm.title || k.kifuId;
+      var dateStr = (m.date || gm.date || '').replace(/-/g,'/');
+      var total = k.completeness && k.completeness.total != null ? k.completeness.total : 0;
+      var isComplete = k.status === 'complete';
+      var reportId = k.kifuId || '';
+      return '<div style="background:var(--sf);border:1px solid var(--bd);border-radius:var(--ra);padding:14px;margin-bottom:10px">'
+        +'<div style="display:flex;align-items:baseline;gap:8px;margin-bottom:2px;flex-wrap:wrap;">'
+          +'<div style="font-size:13px;font-weight:700;color:var(--tx);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+title+'</div>'
+          +(isComplete?'<span style="font-size:10px;color:var(--g);border:1px solid var(--g);border-radius:8px;padding:1px 6px;flex-shrink:0;">完成</span>'
+            :'<span style="font-size:10px;color:var(--gold);border:1px solid var(--gold);border-radius:8px;padding:1px 6px;flex-shrink:0;">'+total+'%</span>')
+        +'</div>'
+        +(dateStr?'<div style="font-size:11px;color:var(--tx3);margin-bottom:2px;">📅 '+dateStr+'</div>':'')
+        +(m.orgLabel||m.tournLabel?'<div style="font-size:11px;color:var(--tx3);margin-bottom:4px;">'+(m.orgLabel||'')+(m.tournLabel?' / '+m.tournLabel:'')+'</div>':'')
+        +'<div style="font-size:9px;color:var(--tx3);font-family:monospace;margin-bottom:10px;">'
+          +'<span style="color:var(--gold);font-weight:700;">ID</span> '+reportId
+        +'</div>'
+        +'<div style="display:flex;gap:8px;">'
+          +(isComplete?'<button onclick="downloadMergedKifu(\''+reportId+'\')" style="flex:1;padding:8px;border-radius:8px;border:1px solid var(--gold);background:transparent;color:var(--gold);font-size:12px;cursor:pointer">📥 DL</button>':'')
+          +'<button onclick="replayMergedKifu(\''+reportId+'\')" style="flex:1;padding:8px;border-radius:8px;border:1px solid var(--b);background:transparent;color:var(--b);font-size:12px;cursor:pointer">▶ 再生</button>'
+        +'</div>'
+        +'</div>';
+    }).join('');
   }
 
-  html+=hist.map(function(item,i){
-    var d=new Date(item.savedAt);
-    var ds=(d.getMonth()+1)+'/'+(d.getDate())+' '+('0'+d.getHours()).slice(-2)+':'+('0'+d.getMinutes()).slice(-2);
-    return '<div style="background:var(--sf);border:1px solid var(--bd);border-radius:var(--ra);padding:14px;margin-bottom:10px">'
-      +'<div style="font-size:13px;font-weight:700;color:var(--tx);margin-bottom:4px">'+item.title+'</div>'
-      +'<div style="font-size:11px;color:var(--tx3);margin-bottom:10px">'+ds+'</div>'
-      +'<div style="display:flex;gap:8px">'
-      +'<button onclick="downloadKifu('+i+')" style="flex:1;padding:8px;border-radius:8px;border:1px solid var(--gold);background:transparent;color:var(--gold);font-size:12px;cursor:pointer">📥 DL</button>'
-      +'<button onclick="openReplayApp('+i+')" style="flex:1;padding:8px;border-radius:8px;border:1px solid var(--b);background:transparent;color:var(--b);font-size:12px;cursor:pointer">▶ 再生</button>'
-      +'</div>'
-      +'</div>';
-  }).join('');
+  // ── ローカル履歴 ──
+  var filteredHist = hist.filter(function(item){ return _kifuMatchSearch(item, q); });
+  if(filteredHist.length){
+    html += '<div style="font-size:10px;font-weight:700;color:var(--tx3);letter-spacing:.06em;margin:10px 0 6px;">📝 自分の入力履歴</div>';
+    html += filteredHist.map(function(item, i){
+      var realIdx = hist.indexOf(item);
+      var d=new Date(item.savedAt);
+      var ds=(d.getMonth()+1)+'/'+(d.getDate())+' '+('0'+d.getHours()).slice(-2)+':'+('0'+d.getMinutes()).slice(-2);
+      var json = item.json || {};
+      var meta = (json.gameData && json.gameData.meta) || {};
+      var match = json.match || {};
+      var reportId = json.kifuId || '';
+      var dateStr = (meta.date || match.date || '').replace(/-/g,'/');
+      return '<div style="background:var(--sf);border:1px solid var(--bd);border-radius:var(--ra);padding:14px;margin-bottom:10px">'
+        +'<div style="font-size:13px;font-weight:700;color:var(--tx);margin-bottom:2px;">'+item.title+'</div>'
+        +(dateStr?'<div style="font-size:11px;color:var(--tx3);margin-bottom:2px;">📅 '+dateStr+'</div>':'')
+        +(match.orgLabel||match.tournLabel?'<div style="font-size:11px;color:var(--tx3);margin-bottom:2px;">'+(match.orgLabel||'')+(match.tournLabel?' / '+match.tournLabel:'')+'</div>':'')
+        +(reportId?'<div style="font-size:9px;color:var(--tx3);font-family:monospace;margin-bottom:8px;">'
+          +'<span style="color:var(--gold);font-weight:700;">ID</span> '+reportId
+          +'</div>':'<div style="font-size:11px;color:var(--tx3);margin-bottom:8px;">'+ds+'</div>')
+        +'<div style="display:flex;gap:8px">'
+          +'<button onclick="downloadKifu('+realIdx+')" style="flex:1;padding:8px;border-radius:8px;border:1px solid var(--gold);background:transparent;color:var(--gold);font-size:12px;cursor:pointer">📥 DL</button>'
+          +'<button onclick="openReplayApp('+realIdx+')" style="flex:1;padding:8px;border-radius:8px;border:1px solid var(--b);background:transparent;color:var(--b);font-size:12px;cursor:pointer">▶ 再生</button>'
+        +'</div>'
+        +'</div>';
+    }).join('');
+  }
+
+  if(!filteredMerged.length && !filteredHist.length){
+    html += q
+      ? '<div class="empty">「'+q+'」に一致する牌譜が見つかりません</div>'
+      : '<div class="empty">牌譜がありません<br>牌譜入力アプリで入力・送信してください</div>';
+  }
 
   el.innerHTML=html;
+}
+
+function renderIncompleteKifu(){
+  var el=document.getElementById('incomplete-list');
+  if(!el) return;
+  el.innerHTML='<div style="font-size:13px;color:var(--tx3);padding:10px 0;">読み込み中…</div>';
+
+  TsumologLibrary.getIncompleteMerged(function(list){
+    if(!list.length){
+      el.innerHTML='<div class="empty">未完成の牌譜はありません<br>牌譜を入力すると自動的に統合されます</div>';
+      return;
+    }
+
+    // ソート
+    var sortKey=(document.getElementById('incomplete-sort')||{}).value||'updatedAt';
+    if(sortKey==='completeness'){
+      list.sort(function(a,b){
+        return (a.completeness&&a.completeness.total||0)-(b.completeness&&b.completeness.total||0);
+      });
+    } else if(sortKey==='disputes'){
+      list.sort(function(a,b){
+        return (b.disputes||[]).length-(a.disputes||[]).length;
+      });
+    } else {
+      list.sort(function(a,b){return(b.updatedAt||'').localeCompare(a.updatedAt||'');});
+    }
+
+    el.innerHTML=list.map(function(k){
+      var m=k.match||{};
+      var gm=k.gameData?k.gameData.meta:{};
+      var title=m.title||gm.title||k.kifuId;
+      var dateStr=(m.date||gm.date||'').replace(/-/g,'/');
+      var total=k.completeness&&k.completeness.total!=null?k.completeness.total:0;
+      var disputes=k.disputes||[];
+      var dispCount=disputes.length;
+      var isDisputed=k.status==='disputed';
+
+      // 席ごとの入力状況
+      var seatsHtml=WE_SHOP.map(function(w,wi){
+        var c=k.completeness&&k.completeness[w];
+        var haipai=c&&c.haipai;
+        var discs=c&&c.discards;
+        var score=c?c.score:0;
+        return '<div style="text-align:center;flex:1;">'
+          +'<div style="font-size:9px;color:var(--tx3);">'+WJ_SHOP[wi]+'</div>'
+          +'<div style="font-size:11px;font-weight:700;color:'+(score>=15?'var(--g)':score>0?'var(--b)':'var(--tx3)')+'">'+score+'pt</div>'
+          +(haipai?'<div style="font-size:9px;color:var(--g)">配牌✓</div>':'<div style="font-size:9px;color:var(--bd2)">未入力</div>')
+          +'</div>';
+      }).join('');
+
+      // 審議内容
+      var disputeHtml='';
+      if(dispCount>0){
+        disputeHtml='<div style="background:#fff8ec;border:1px solid #f39c12;border-radius:6px;padding:8px 10px;margin-bottom:8px;">'
+          +'<div style="font-size:11px;font-weight:700;color:#e67e22;margin-bottom:4px;">⚖️ 審議 '+dispCount+'件</div>'
+          +disputes.map(function(d){
+            return'<div style="font-size:11px;color:#e67e22;">• '+d.note+'</div>';
+          }).join('')
+          +'</div>';
+      }
+
+      return '<div style="background:var(--sf);border:1px solid '+(isDisputed?'#f39c12':'var(--bd)')+';'
+        +'border-radius:var(--ra);padding:14px;margin-bottom:10px">'
+        +'<div style="display:flex;align-items:baseline;gap:8px;margin-bottom:4px;flex-wrap:wrap;">'
+          +'<div style="font-size:13px;font-weight:700;color:var(--tx);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+title+'</div>'
+          +(isDisputed
+            ?'<span style="font-size:10px;font-weight:700;color:#e67e22;border:1px solid #f39c12;border-radius:8px;padding:1px 7px;flex-shrink:0;">⚖️ 審議中</span>'
+            :'<span style="font-size:10px;color:var(--gold);border:1px solid var(--gold);border-radius:8px;padding:1px 6px;flex-shrink:0;">'+total+'%</span>')
+        +'</div>'
+        +(dateStr?'<div style="font-size:11px;color:var(--tx3);margin-bottom:6px;">📅 '+dateStr
+          +(m.orgLabel?' · '+m.orgLabel:'')+(m.tournLabel?' / '+m.tournLabel:'')+'</div>':'')
+        // 完成度バー
+        +'<div style="height:5px;background:var(--bd);border-radius:3px;overflow:hidden;margin-bottom:8px;">'
+          +'<div style="height:100%;width:'+total+'%;background:'+(isDisputed?'#f39c12':total>=50?'var(--b)':'var(--gold)')+';border-radius:3px;"></div>'
+        +'</div>'
+        // 席ごとの状況
+        +'<div style="display:flex;gap:4px;padding:6px;background:var(--sf2);border-radius:6px;margin-bottom:8px;">'+seatsHtml+'</div>'
+        // 審議内容
+        +disputeHtml
+        // レポートID
+        +'<div style="font-size:9px;color:var(--tx3);font-family:monospace;margin-bottom:10px;">'
+          +'<span style="color:var(--gold);font-weight:700;">ID</span> '+k.kifuId
+        +'</div>'
+        // ボタン
+        +'<div style="display:flex;gap:8px;">'
+          +'<button onclick="continueInputKifu(\''+k.kifuId+'\')" '
+            +'style="flex:2;padding:9px;border-radius:8px;border:none;background:var(--b);color:#e6f1fb;'
+            +'font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;">✍️ 続きを入力</button>'
+          +'<button onclick="replayMergedKifu(\''+k.kifuId+'\')" '
+            +'style="flex:1;padding:9px;border-radius:8px;border:1px solid var(--b);background:transparent;'
+            +'color:var(--b);font-size:12px;cursor:pointer;font-family:inherit;">▶ 再生</button>'
+        +'</div>'
+        +'</div>';
+    }).join('');
+  });
+}
+
+// 未完成牌譜の続きを入力するために paifu-input に遷移
+function continueInputKifu(kifuId){
+  TsumologLibrary.getMerged(kifuId,function(kifu){
+    if(!kifu){showToast('データが見つかりません');return;}
+    // paifu-input の編集モードと同じ仕組みを使う
+    var payload={
+      kifuId:   kifuId,
+      gameData: kifu.gameData,
+      returnTo: location.href,
+      savedAt:  new Date().toISOString(),
+    };
+    try{localStorage.setItem('tsumolog_edit_payload',JSON.stringify(payload));}catch(e){}
+    location.href='paifu-input.html?edit=1';
+  });
+}
+  var flags=JSON.parse(localStorage.getItem('tsumolog_flags')||'{}');
+  var now=Date.now();
+  var hasSubscription=flags['subscribe_month']&&flags['subscribe_month'].expiresAt>now
+    ||flags['subscribe_year']&&flags['subscribe_year'].expiresAt>now;
+  var hasSingleDL=flags['download']&&flags['download'].expiresAt>now;
+  if(!hasSubscription&&!hasSingleDL){showToast('牌譜DLを購入してください');switchTab('shop');return;}
+  TsumologLibrary.getMerged(kifuId,function(kifu){
+    if(!kifu){showToast('データが見つかりません');return;}
+    var fname='kifu_'+kifuId+'.json';
+    var blob=new Blob([JSON.stringify(kifu,null,2)],{type:'application/json'});
+    var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=fname;a.click();
+    if(!hasSubscription&&hasSingleDL){delete flags['download'];localStorage.setItem('tsumolog_flags',JSON.stringify(flags));}
+    showToast('📥 ダウンロードしました');
+  });
+}
+
+function replayMergedKifu(kifuId){
+  TsumologLibrary.getMerged(kifuId,function(kifu){
+    if(!kifu){showToast('データが見つかりません');return;}
+    // paifu-play に kifuId を渡して遷移
+    localStorage.setItem('tsumolog_play_merged_id', kifuId);
+    location.href='paifu-play.html';
+  });
 }
 
 function downloadKifu(idx){

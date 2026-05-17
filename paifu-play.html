@@ -285,7 +285,7 @@ body.kbd-open #ph-final{padding-bottom:175px;}
 </head>
 <body>
 <div class="wrap">
-<h1><a href="index.html" style="font-size:13px;color:var(--tx2);text-decoration:none;opacity:.6;margin-right:6px;">← 戻る</a>🀄︎ 牌譜再生</h1>
+<h1><a href="index.html" style="font-size:13px;color:var(--tx2);text-decoration:none;opacity:.6;margin-right:6px;">← 戻る</a>🀄️ 牌譜再生</h1>
 <p class="sub">JSONを読み込んで牌譜を再生・編集</p>
 <div id="restore-banner" style="display:none;margin-bottom:12px;"></div>
 
@@ -643,7 +643,10 @@ body.kbd-open #ph-final{padding-bottom:175px;}
 
 <script>
 const TE={
-  "東":"🀀","南":"🀁","西":"🀂","北":"🀃","中":"🀄\uFE0E","発":"🀅","白":"🀆",
+  // 字牌（日本語キー — 入力アプリ互換）
+  "東":"🀀","南":"🀁","西":"🀂","北":"🀃","中":"🀄️","発":"🀅","白":"🀆",
+  // 字牌（数値コードキー — JSON v2.0 形式: 1z=東 2z=南 3z=西 4z=北 5z=白 6z=発 7z=中）
+  "1z":"🀀","2z":"🀁","3z":"🀂","4z":"🀃","5z":"🀆","6z":"🀅","7z":"🀄️",
   "1m":"🀇","2m":"🀈","3m":"🀉","4m":"🀊","5m":"🀋","6m":"🀌","7m":"🀍","8m":"🀎","9m":"🀏","r5m":"🀋",
   "1p":"🀙","2p":"🀚","3p":"🀛","4p":"🀜","5p":"🀝","6p":"🀞","7p":"🀟","8p":"🀠","9p":"🀡","r5p":"🀝",
   "1s":"🀐","2s":"🀑","3s":"🀒","4s":"🀓","5s":"🀔","6s":"🀕","7s":"🀖","8s":"🀗","9s":"🀘","r5s":"🀔","?":"🂠"
@@ -698,11 +701,19 @@ function te(t){
       +'<span style="position:absolute;top:-1px;right:-2px;font-size:.45em;line-height:1;color:#e53935;text-shadow:0 0 2px #fff;">●</span>'
       +'</span>';
   }
+  // 🀄(U+1F004)はSafari等でApple Color Emojiになってしまうため
+  // font-family を明示してテキストフォント（他の牌と同じ細い表示）に強制する
+  if(t==="7z"||t==="中"){
+    return '<span style="font-family:\'Segoe UI Symbol\',\'Apple Symbols\',\'Noto Sans Symbols2\',sans-serif;font-variant-emoji:text;vertical-align:baseline;">🀄</span>';
+  }
   return TE[t]||t;
 }
-// テキスト専用（desc/elog用）: HTMLタグなしで絵文字のみ返す
+// テキスト専用（desc/elog用）: 中だけspanで包んでテキストフォントを強制、他は絵文字のみ
 function teText(t){
   if(!t)return"";
+  if(t==="7z"||t==="中"){
+    return '<span style="font-family:\'Segoe UI Symbol\',\'Apple Symbols\',\'Noto Sans Symbols2\',sans-serif;font-variant-emoji:text;vertical-align:baseline;">🀄</span>';
+  }
   return TE[t]||TE[t.replace(/^r/,"")]||t;
 }
 function th(arr,hlIdx,hlC){
@@ -1172,6 +1183,34 @@ function meldToToken(m){
 
 // ─── ① 初期手牌入力 ───
 (function init(){
+  // ── 編集から戻ってきた場合: paifu-input で編集・送信後の自動読み込み ──
+  try{
+    var editReturn=localStorage.getItem('tsumolog_edit_return');
+    if(editReturn){
+      localStorage.removeItem('tsumolog_edit_return');
+      var er=JSON.parse(editReturn);
+      // IDB の kifu_merged から最新版を読み込む
+      showPhase('ph-none');
+      setTimeout(function(){
+        function applyBest(){
+          // kifuId があれば merged から取得、なければ gameData を直接使用
+          if(er.kifuId){
+            TsumologLibrary.getMerged(er.kifuId, function(kifu){
+              var gd = (kifu && kifu.gameData) ? kifu.gameData
+                     : (er.gameData || null);
+              if(gd) _applyGameData(gd, '✓ 編集内容を反映しました');
+              else showToast('牌譜データが見つかりません','err');
+            });
+          } else if(er.gameData){
+            _applyGameData(er.gameData, '✓ 編集内容を反映しました');
+          }
+        }
+        applyBest();
+      }, 100);
+      return;
+    }
+  }catch(e){}
+
   // URLハッシュにデータがあれば牌譜を直接表示
   try{
     var hash=window.location.hash;
@@ -1194,6 +1233,22 @@ function meldToToken(m){
   }catch(e){}
 
   // top.htmlショップから「再生」で飛んできた場合: localStorageのIDでIDB読み込み
+  try{
+    // ショップの牌譜タブ「▶ 再生」から merged ID で遷移
+    var mergedId=localStorage.getItem('tsumolog_play_merged_id');
+    if(mergedId){
+      localStorage.removeItem('tsumolog_play_merged_id');
+      showPhase('ph-none');
+      setTimeout(function(){
+        TsumologLibrary.getMerged(mergedId,function(kifu){
+          if(!kifu||!kifu.gameData){showToast('牌譜データが見つかりません','err');return;}
+          _applyGameData(kifu.gameData,'✓ 「'+(kifu.match&&kifu.match.title||mergedId)+'」を再生中', mergedId, 'input');
+        });
+      },80);
+      return;
+    }
+  }catch(e){}
+
   try{
     var playId=localStorage.getItem('tsumolog_play_id');
     if(playId){
@@ -3740,7 +3795,7 @@ function buildReportHTML(){
 
     notesPageHtml='<div style="page-break-before:always;background:#fff;color:#1a1a18;padding:10px 14px;font-family:-apple-system,BlinkMacSystemFont,sans-serif;max-width:720px;margin:0 auto;">'
       +'<div style="display:flex;align-items:baseline;gap:8px;margin-bottom:6px;">'
-      +'<h2 style="font-size:13px;margin:0;color:#555;">🀄︎ 解説・ブックマーク</h2>'
+      +'<h2 style="font-size:13px;margin:0;color:#555;">🀄️ 解説・ブックマーク</h2>'
       +'<span style="font-size:11px;font-weight:700;">'+title+'</span>'
       +'<span style="font-size:10px;color:#aaa;">'+(m.date?m.date.replace(/-/g,'/'):"")+'</span>'
       +'</div>'
@@ -3749,22 +3804,83 @@ function buildReportHTML(){
       +'</div>';
   }
 
-  return '<div id="report-inner" style="background:#fff;color:#1a1a18;padding:10px 14px;font-family:-apple-system,BlinkMacSystemFont,sans-serif;max-width:720px;margin:0 auto;">'
-    +'<div style="display:flex;align-items:baseline;gap:8px;margin-bottom:3px;">'
-    +'<h2 style="font-size:13px;margin:0;color:#555;">🀄︎ 麻雀牌譜レポート</h2>'
-    +'<span style="font-size:10px;color:#aaa;">'+(m.date?m.date.replace(/-/g,'/'):(new Date().toLocaleDateString("ja-JP")))+'</span>'
+  // ── レポートID生成 ──
+  // オリジナル: kifuId をそのまま使用（例: tlg_20250601_rmu_shinzin7_e2k_abc123）
+  // バリアント: オリジナルID末尾に -var{N} を付与（Nはバリアント番号）
+  var baseId = window._loadedKifuId || ('tlg_' + (m.date||'').replace(/-/g,'') + '_' + Math.random().toString(36).slice(2,8));
+  var reportId;
+  if(isVariant){
+    // バリアント番号: localStorage でオリジナルIDごとにカウント
+    var varCountKey = 'tsumolog_varcount_' + baseId;
+    var varCount = 1;
+    try{
+      varCount = (parseInt(localStorage.getItem(varCountKey)) || 0) + 1;
+      localStorage.setItem(varCountKey, String(varCount));
+    }catch(e){}
+    reportId = baseId + '-var' + varCount;
+  } else {
+    reportId = baseId;
+  }
+
+  // ── レポートタイプ判定 ──
+  // source が 'variant' の場合、または手動編集（applyEditJSON等）後はVariant扱い
+  var isVariant = (window._loadedSource === 'variant');
+  // 横ラインの色: オリジナル=緑, バリアント=オレンジ
+  var accentColor = isVariant ? '#ea7c1a' : '#2a9a5a';
+  var badgeColor  = isVariant ? '#ea7c1a' : '#2a9a5a';
+  var badgeBg     = isVariant ? '#fff5ec' : '#ecfaf3';
+  var badgeText   = isVariant ? 'Variant' : 'Original';
+  // アイコンSVG（将来の実画像差し替えに備え <img id="tsumolog-icon"> で挿入）
+  // プレースホルダー: 「ツ」の文字をアイコン風に表示
+  var iconColor   = isVariant ? '#ea7c1a' : '#2a9a5a';
+  var iconSvg = '<svg width="22" height="22" viewBox="0 0 22 22" xmlns="http://www.w3.org/2000/svg" style="vertical-align:middle;flex-shrink:0;">'
+    +'<rect width="22" height="22" rx="5" fill="'+iconColor+'"/>'
+    +'<text x="11" y="15.5" text-anchor="middle" font-size="13" font-weight="700" fill="#fff" font-family="serif">ツ</text>'
+    +'</svg>';
+  // 対局日（タイトル横に表示）
+  var dateStr = m.date ? m.date.replace(/-/g,'/') : '';
+
+  return '<div id="report-inner" style="background:#fff;color:#1a1a18;padding:0;font-family:-apple-system,BlinkMacSystemFont,sans-serif;max-width:720px;margin:0 auto;border-radius:6px;overflow:hidden;">'
+
+    // ── ヘッダー帯（横ライン付き） ──
+    +'<div style="border-top:4px solid '+accentColor+';padding:10px 14px 8px;background:#fafaf8;">'
+      +'<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">'
+        +iconSvg
+        +'<span style="font-size:11px;font-weight:700;color:'+accentColor+';letter-spacing:.04em;">ツモログ 牌譜レポート</span>'
+        +'<span style="margin-left:auto;font-size:9px;font-weight:700;padding:2px 7px;border-radius:10px;'
+          +'background:'+badgeBg+';color:'+badgeColor+';border:1px solid '+badgeColor+';letter-spacing:.04em;">'
+          +badgeText+'</span>'
+      +'</div>'
+      // タイトル + 対局日
+      +'<div style="display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;">'
+        +'<h2 style="font-size:17px;font-weight:700;margin:0;color:#1a1a18;line-height:1.3;">'+title+'</h2>'
+        +(dateStr?'<span style="font-size:12px;color:#777;white-space:nowrap;">'+dateStr+'</span>':'')
+      +'</div>'
     +'</div>'
-    +'<div style="font-size:16px;font-weight:700;margin-bottom:5px;">'+title+'</div>'
-    +'<div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:6px;font-size:11px;padding:5px 8px;background:#f5f5f3;border-radius:5px;">'
-    +'<span><span style="color:#555;">場風</span> <b>'+m.bakaze+'</b></span>'
-    +'<span><span style="color:#555;">局</span> <b>'+m.kyoku+'局</b></span>'
-    +'<span><span style="color:#555;">本場</span> <b>'+m.honba+'本場</b></span>'
-    +'<span><span style="color:#555;">ドラ</span> <b>'+doraHtml+'</b></span>'
-    +'<span><span style="color:#555;">結果</span> <b>'+resultText+'</b></span>'
+
+    // ── メタ情報バー ──
+    +'<div style="display:flex;gap:12px;flex-wrap:wrap;font-size:11px;padding:6px 14px;background:#f5f5f3;border-bottom:1px solid #e8e8e4;">'
+      +'<span><span style="color:#555;">場風</span> <b>'+m.bakaze+'</b></span>'
+      +'<span><span style="color:#555;">局</span> <b>'+m.kyoku+'局</b></span>'
+      +'<span><span style="color:#555;">本場</span> <b>'+m.honba+'本場</b></span>'
+      +'<span><span style="color:#555;">ドラ</span> <b>'+doraHtml+'</b></span>'
+      +'<span><span style="color:#555;">結果</span> <b>'+resultText+'</b></span>'
     +'</div>'
+
+    +'<div style="padding:10px 14px;">'
     +memoHtml
     +playersHtml
     +yamaHtml
+    // ── フッター: レポートID ──
+    +'<div style="margin-top:16px;padding-top:10px;border-top:1px solid #e8e8e4;'
+      +'display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px;">'
+      +'<div style="font-size:9px;color:#aaa;letter-spacing:.04em;">'
+        +'<span style="font-weight:600;color:#888;">REPORT ID</span>&nbsp;&nbsp;'
+        +'<span style="font-family:monospace;font-size:10px;color:'+accentColor+';">'+reportId+'</span>'
+      +'</div>'
+      +'<div style="font-size:9px;color:#bbb;">Generated by ツモログ</div>'
+    +'</div>'
+    +'</div>'
     +'</div>'
     +notesPageHtml;
 }
@@ -4599,7 +4715,7 @@ function addFileToLibrary(file,labelOverride,cb){
       TsumologLibrary.add(obj,{source:'replay',label:autoLabel+statusNote,filename:file.name},function(id){
         _applyGameData(gd, id
           ? '✓ ライブラリに保存して再生中: '+autoLabel
-          : '⚠ ライブラリ保存失敗 (再生は可能)');
+          : '⚠ ライブラリ保存失敗 (再生は可能)', id, 'replay');
         cb&&cb(id);
       });
     }catch(err){showToast('読み込みエラー: '+err.message,'err');cb&&cb(null);}
@@ -4611,8 +4727,10 @@ function loadJSONFile(file,cb){
   addFileToLibrary(file,null,function(id){if(cb)cb();});
 }
 
-function _applyGameData(gd, toastMsg){
+function _applyGameData(gd, toastMsg, kifuId, source){
   gameData=gd;
+  window._loadedKifuId  = kifuId || window._loadedKifuId || null;
+  window._loadedSource  = source || window._loadedSource || 'input';  // 'input'|'variant'|'replay'
   steps=buildSteps(gameData);
   var sl=document.getElementById('step-slider');
   if(sl)sl.max=steps.length-1;
@@ -4637,16 +4755,28 @@ function _applyGameData(gd, toastMsg){
 // ╚══════════════════════════════════════════════════════════╝
 function openEditModal(){
   if(!gameData){showToast('牌譜が読み込まれていません','err');return;}
-  var el=document.getElementById('edit-modal');
-  if(!el)return;
-  // 現在のgameDataをJSONに整形して表示
-  document.getElementById('edit-json-ta').value=JSON.stringify({gameData:gameData},null,2);
-  document.getElementById('edit-label-input').value='';
-  document.getElementById('edit-status').textContent='';
-  el.style.display='flex';
+
+  // 現在の gameData を localStorage に保存して paifu-input に遷移
+  var editPayload={
+    kifuId:     (window._loadedKifuId||null),
+    gameData:   gameData,
+    returnTo:   location.href,         // 戻り先URL（このページ）
+    savedAt:    new Date().toISOString(),
+  };
+  try{
+    localStorage.setItem('tsumolog_edit_payload', JSON.stringify(editPayload));
+  }catch(e){
+    showToast('ストレージへの書き込みに失敗しました','err');
+    return;
+  }
+  // paifu-input に遷移（?edit=1 を付けて編集モードを示す）
+  var inputUrl = 'paifu-input.html?edit=1';
+  location.href = inputUrl;
 }
 function closeEditModal(){
-  document.getElementById('edit-modal').style.display='none';
+  // 後方互換（呼び出し箇所がある場合のため残す）
+  var el=document.getElementById('edit-modal');
+  if(el) el.style.display='none';
 }
 function applyEditJSON(){
   var raw=document.getElementById('edit-json-ta').value.trim();
@@ -4796,7 +4926,7 @@ function playFromLib(id){
       var gd=normalizeKifuV2(obj); // v1/v2両対応
       if(!gd){showToast('gameData が見つかりません','err');return;}
       closeLibraryModal();
-      _applyGameData(gd, '✓ 「'+r.label+'」を再生中');
+      _applyGameData(gd, '✓ 「'+r.label+'」を再生中', r.id, r.source);
     }catch(e){showToast('読み込みエラー: '+e.message,'err');}
   });
 }
@@ -4832,21 +4962,8 @@ function saveCurrentToIDB(){
 </script>
 
 <!-- ─── 編集モーダル ─────────────────────────────── -->
-<div id="edit-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:2000;align-items:center;justify-content:center;padding:12px;">
-  <div style="background:var(--sf);border-radius:14px;padding:20px;max-width:680px;width:100%;max-height:90vh;display:flex;flex-direction:column;box-shadow:0 8px 40px rgba(0,0,0,.3);">
-    <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">
-      <div style="font-size:15px;font-weight:600;flex:1;">✏️ 牌譜を編集</div>
-      <button onclick="closeEditModal()" style="font-size:13px;color:var(--tx3);padding:4px 12px;border-radius:6px;">× 閉じる</button>
-    </div>
-    <div style="font-size:12px;color:var(--tx3);margin-bottom:8px;">JSONを直接編集して「適用」を押すと再生に反映され、IndexedDBに保存されます（URLやlocalStorageには保存されません）。</div>
-    <textarea id="edit-json-ta" style="flex:1;min-height:280px;max-height:50vh;font-size:11px;font-family:monospace;padding:8px;border-radius:6px;border:1.5px solid var(--bd2);background:var(--sf2);resize:vertical;overflow:auto;"></textarea>
-    <div style="display:flex;align-items:center;gap:8px;margin-top:10px;flex-wrap:wrap;">
-      <input type="text" id="edit-label-input" placeholder="保存名（例: リーチ変更版）" style="flex:1;min-width:160px;font-size:13px;padding:7px 10px;border-radius:6px;border:1.5px solid var(--bd2);background:var(--sf2);">
-      <button onclick="applyEditJSON()" style="font-size:13px;padding:8px 20px;background:var(--b);border-color:var(--b);color:#e6f1fb;border-radius:6px;white-space:nowrap;">✓ 適用して再生</button>
-    </div>
-    <div id="edit-status" style="font-size:12px;margin-top:6px;min-height:18px;"></div>
-  </div>
-</div>
+<!-- edit-modal: 方式Bではpaifu-inputに遷移するため不使用（後方互換で残す） -->
+<div id="edit-modal" style="display:none;"></div>
 
 <!-- ─── ライブラリモーダル（ライブラリ & バリアント） ─── -->
 <style>

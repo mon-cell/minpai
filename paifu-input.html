@@ -214,6 +214,12 @@ select{background:var(--sf);border:.5px solid var(--bd2);border-radius:var(--ra)
 </style>
 </head>
 <body>
+<!-- 編集モードバナー（paifu-playから遷移した場合に表示） -->
+<div id="edit-mode-banner" style="display:none;position:fixed;top:0;left:0;right:0;z-index:3000;
+  background:linear-gradient(90deg,#1a4a2a,#1a3a4a);color:#e8f8e8;
+  padding:8px 16px;font-size:13px;align-items:center;gap:8px;
+  box-shadow:0 2px 8px rgba(0,0,0,.3);">
+</div>
 
 <!-- ── リアルタイム小窓 ── -->
 <!-- 確認モーダル -->
@@ -436,6 +442,11 @@ function te(t){
   if(!t)return"";
   if(t==="r5m"||t==="r5p"||t==="r5s")
     return'<span class="r5">'+TE[t]+'</span>';
+  // 🀄(U+1F004)はSafari等でApple Color Emojiになってしまうため
+  // font-family を明示してテキストフォント（他の牌と同じ細い表示）に強制する
+  if(t==="7z"||t==="中"){
+    return '<span style="font-family:\'Segoe UI Symbol\',\'Apple Symbols\',\'Noto Sans Symbols2\',sans-serif;font-variant-emoji:text;vertical-align:baseline;">🀄</span>';
+  }
   return TE[t]||t;
 }
 // teHtml = te（HTMLで赤丸付き）
@@ -2548,13 +2559,11 @@ function renderSection(){
     var activeTile = activeArr[ds.idx];
     var activeLabel = (ds.row==='dora'?'ドラ表示牌':'裏ドラ表示牌') + ' ' + (ds.idx+1) + '枚目';
 
-    // ── 入力ボックス（コンパクト） ──
+    // ── 入力ボックス（テキスト入力 + 牌キーボード） ──
     var inputBox =
       '<div style="margin-bottom:16px;padding:10px 12px;background:var(--sf2);border-radius:var(--ra);border:.5px solid var(--bd2)">'
       + '<div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">'
-      // ラベル
       + '<div id="dora-slot-label" style="font-size:12px;font-weight:600;color:var(--b);flex:1">' + activeLabel + '</div>'
-      // 入力例（右寄せ）
       + '<div style="font-size:10px;color:var(--tx3)">入力例: <code style="background:var(--sf);padding:1px 3px;border-radius:3px">3m</code> <code style="background:var(--sf);padding:1px 3px;border-radius:3px">7z</code> <code style="background:var(--sf);padding:1px 3px;border-radius:3px">r5p</code></div>'
       + '</div>'
       + '<div style="display:flex;align-items:center;gap:10px">'
@@ -2918,17 +2927,22 @@ function renderSection(){
               +'</div>'
             :'')
         :'';
+      var scoreColor=ag.score&&!isNaN(parseInt(ag.score))?'var(--g)':'var(--tx)';
       scoreSection='<div style="margin-top:12px;padding-top:12px;border-top:.5px solid var(--bd)">'
-        +'<div style="font-size:11px;color:var(--tx3);margin-bottom:5px">④ 点数 / 役</div>'
-        +presetBtns
-        +'<input type="text" value="'+(ag.score||'')+'" oninput="state.agari.score=this.value;renderNav()" placeholder="+3900"'
-        +' style="width:100%;font-size:18px;font-weight:700;color:'+scoreColor
+        +'<div style="font-size:11px;color:var(--tx3);margin-bottom:5px">④ 点数</div>'
+        +(presets.length===0
+          ? '<div style="font-size:12px;color:var(--tx3);padding:4px 0 8px">先に「誰が」「どうやって」を選択してください</div>'
+          : presetBtns
+        )
+        // 自由入力（プリセットにない点数や微調整用）
+        +'<input type="text" value="'+(ag.score||'')+'" oninput="state.agari.score=this.value;renderNav()" placeholder="例: 3900 / 1300-2600"'
+        +' style="width:100%;font-size:17px;font-weight:700;color:'+scoreColor
         +';background:var(--sf);border:.5px solid var(--bd2);border-radius:var(--ra);'
         +'padding:7px 10px;font-family:inherit;outline:none;box-sizing:border-box;margin-bottom:8px">'
+        +'<div style="margin-top:4px;padding-top:10px;border-top:.5px solid var(--bd)">'
+        +'<div style="font-size:11px;color:var(--tx3);margin-bottom:5px">役</div>'
         +yakuSelected+yakuBtns
-        +'<input type="text" value="'+(ag.yaku||'')+'" oninput="state.agari.yaku=this.value" placeholder="リーチ・平和 など"'
-        +' style="width:100%;font-size:13px;background:var(--sf);border:.5px solid var(--bd2);'
-        +'border-radius:var(--ra);padding:7px 10px;font-family:inherit;outline:none;box-sizing:border-box">'
+        +'</div>'
         +'</div>';
     }
 
@@ -3310,6 +3324,11 @@ function _renderGameFlowInner(){
         +' style="background:var(--sf);border:.5px solid var(--bd2);border-radius:var(--ra);padding:10px 12px;font-size:16px;color:var(--tx);width:100%;outline:none;font-family:inherit;margin-bottom:10px"'
         +' oninput="state.gameFlow.date=this.value">'
       +'<button class="pri" style="width:100%;padding:11px;margin-bottom:10px" onclick="gfNext()">次へ：団体を選ぶ →</button>'
+      +'<button onclick="location.href=\'paifu-shop.html?tab=incomplete\'" '
+        +'style="width:100%;padding:11px;border-radius:var(--ra);border:1.5px solid var(--bd2);'
+        +'background:transparent;color:var(--tx2);font-size:14px;font-weight:600;'
+        +'font-family:inherit;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;">'
+        +'⏳ 未完成の牌譜の続きを入力する</button>'
       +'</div>';
     // 今日の日付をデフォルト
     if(!gf.date) state.gameFlow.date=today;
@@ -4970,12 +4989,124 @@ function mergeContribs(existingKifu, newContrib){
   Object.keys(agariVotes).forEach(function(rt){
     if(agariVotes[rt]>topCnt){topRt=rt;topCnt=agariVotes[rt];}
   });
+  // ══════════════════════════════════════
+  // 審議（dispute）検出 — 全フィールド比較
+  // 同じ席に複数ユーザーが「異なる」データを送信した場合を検出
+  // ══════════════════════════════════════
+  var disputes=[];
+
+  // ── ヘルパー ──
+  function tileKey(arr){ return (arr||[]).slice().join(','); }
+  function meldsKey(melds){
+    return (melds||[]).map(function(m){
+      return [m.type,tileKey(m.tiles),(m.nakiTile||''),(m.discTile||'')].join(':');
+    }).sort().join('|');
+  }
+  function checkSeatField(w, fieldName, extractor, note){
+    var candidates=base.contributions.filter(function(c){return c.seat===w;});
+    if(candidates.length<2) return;
+    var vals=candidates.map(extractor).filter(function(v){return v!==null&&v!==undefined&&v!=='';});
+    if(vals.length<2) return;
+    var unique=[...new Set(vals)];
+    if(unique.length>1){
+      disputes.push({seat:w, field:fieldName,
+        count:candidates.length,
+        note:WJ[WE.indexOf(w)]+'家の'+note+'が'+candidates.length+'人の入力で一致しません',
+        values:unique.slice(0,3),
+      });
+    }
+  }
+  function checkMetaField(fieldName, extractor, note){
+    var vals=base.contributions.map(extractor).filter(function(v){return v!==null&&v!==undefined&&v!=='';});
+    if(vals.length<2) return;
+    var unique=[...new Set(vals)];
+    if(unique.length>1){
+      disputes.push({seat:'meta', field:fieldName,
+        count:vals.length,
+        note:note+'が一致しません（'+unique.slice(0,3).join('・')+'）',
+        values:unique.slice(0,3),
+      });
+    }
+  }
+
+  WE.forEach(function(w){
+    // 1. 配牌（ソート後比較）
+    checkSeatField(w,'haipai',function(c){
+      return tileKey((c.data&&c.data.haipai||[]).slice().sort());
+    },'配牌（13枚）');
+    // 2. ツモ列（順序込み）
+    checkSeatField(w,'tsumo',function(c){
+      return tileKey(c.data&&c.data.tsumo||[]);
+    },'ツモ列');
+    // 3. 捨て牌列（順序込み）
+    checkSeatField(w,'discards',function(c){
+      return tileKey((c.data&&c.data.discards||[]).filter(Boolean));
+    },'捨て牌列');
+    // 4. 最終手牌
+    checkSeatField(w,'finalHand',function(c){
+      return tileKey((c.data&&c.data.finalHand||[]).slice().sort());
+    },'最終手牌');
+    // 5. 副露（種類・牌・切り牌）
+    checkSeatField(w,'melds',function(c){
+      return meldsKey(c.data&&c.data.melds||[]);
+    },'副露情報');
+    // 6. リーチ宣言位置
+    checkSeatField(w,'riichiIdx',function(c){
+      var idx=c.data&&c.data.riichiDiscIdx;
+      return (idx!=null&&idx>=0)?String(idx):null;
+    },'リーチ宣言牌の位置');
+    // 7. 待ち牌
+    checkSeatField(w,'wait',function(c){
+      return tileKey((c.data&&c.data.wait||[]).slice().sort());
+    },'待ち牌');
+  });
+
+  // 8. ドラ表示牌
+  checkMetaField('dora',function(c){
+    return tileKey(c.data&&c.data.meta&&c.data.meta.dora_indicators||[]);
+  },'ドラ表示牌');
+  // 9. 裏ドラ
+  checkMetaField('uraDora',function(c){
+    return tileKey(c.data&&c.data.meta&&c.data.meta.ura_dora_indicators||[]);
+  },'裏ドラ表示牌');
+  // 10. アガリ者
+  checkMetaField('agari_who',function(c){return c.data&&c.data.agari&&c.data.agari.who||'';},'アガリ者');
+  // 11. アガリ方法
+  checkMetaField('agari_type',function(c){return c.data&&c.data.agari&&c.data.agari.type||'';},'アガリ方法');
+  // 12. 放銃者
+  checkMetaField('agari_from',function(c){
+    if((c.data&&c.data.agari&&c.data.agari.type)!=='ロン') return null;
+    return c.data.agari.from||'';
+  },'放銃者');
+  // 13. 点数
+  checkMetaField('score',function(c){return c.data&&c.data.agari&&c.data.agari.score||'';},'アガリ点数');
+  // 14. 役（ソート後比較）
+  checkMetaField('yaku',function(c){
+    var y=c.data&&c.data.agari&&c.data.agari.yaku||'';
+    return y.split(/[・,，、]/).map(function(s){return s.trim();}).filter(Boolean).sort().join(',');
+  },'役');
+  // 15. 局情報
+  checkMetaField('bakaze',function(c){return c.data&&c.data.meta&&c.data.meta.bakaze||'';},'場風');
+  checkMetaField('kyoku',function(c){
+    var k=c.data&&c.data.meta&&c.data.meta.kyoku; return k!=null?String(k):null;
+  },'局数');
+
+  // 重複除去（seat+field で1件に）
+  base.disputes=disputes.filter(function(d,i){
+    return disputes.findIndex(function(e){return e.seat===d.seat&&e.field===d.field;})===i;
+  });
+
   if(topRt) base.gameData.meta.result_type=topRt;
   var latestContrib=base.contributions.reduce(function(a,b){
     return(a.submittedAt||'')>(b.submittedAt||'')?a:b;
   });
   base.completeness=calcCompleteness(seatContribs,seat,latestContrib);
-  base.status=base.completeness.total>=100?'complete':'partial';
+  // 審議ありは complete にしない（手動解決が必要）
+  if(disputes.length>0){
+    base.status='disputed';
+  } else {
+    base.status=base.completeness.total>=100?'complete':'partial';
+  }
   base.updatedAt=new Date().toISOString();
   return base;
 }
@@ -5304,6 +5435,32 @@ function submitAll(){
     clearDraft();
     document.body.classList.remove('is-input');
     document.getElementById('done-modal').classList.add('open');
+
+    // ── 編集モードの場合: 送信後に paifu-play へ戻る準備 ──
+    var returnTo=state.gameFlow.editReturnTo||null;
+    var editKifuId=state.gameFlow.editKifuId||null;
+    if(returnTo){
+      // paifu-play が起動時に読み込む「編集戻りペイロード」を書く
+      try{
+        localStorage.setItem('tsumolog_edit_return', JSON.stringify({
+          kifuId:  editKifuId,
+          gameData:(function(){
+            try{ return buildKifuJSON().gameData; }catch(e){ return null; }
+          })(),
+          returnedAt: new Date().toISOString(),
+        }));
+      }catch(e){}
+      // done-modal に「再生アプリへ戻る」ボタンを追加
+      setTimeout(function(){
+        var sb=document.getElementById('done-seat-btns');
+        if(sb){
+          var retBtn='<a href="'+returnTo+'" style="display:block;width:100%;padding:12px 14px;border-radius:var(--ra);'
+            +'background:var(--g);border:none;color:#fff;font-size:14px;font-weight:700;'
+            +'text-align:center;text-decoration:none;box-sizing:border-box;">▶ 再生アプリで確認する</a>';
+          sb.insertAdjacentHTML('afterbegin', retBtn);
+        }
+      }, 100);
+    }
   });
 }
 
@@ -5611,15 +5768,163 @@ renderRtPanel=function(){_origRtPanel();updateRtCount();};
 
 function initApp(){
   try {
+    // ── 編集モード検出（paifu-play からの遷移） ──
+    var urlParams=new URLSearchParams(location.search);
+    if(urlParams.get('edit')==='1'){
+      _initEditMode();
+      return;
+    }
+
     renderNav();
     setSection("game");
     renderRanking();
     renderAccount();
     startRtDemo();
-    TsumologPoints.refreshDisplay();  // 保有ポイントを表示
+    TsumologPoints.refreshDisplay();
   } catch(e) {
     document.body.innerHTML += '<div style="position:fixed;top:0;left:0;right:0;background:red;color:#fff;padding:10px;z-index:9999;font-size:12px;word-break:break-all">エラー: '+e.message+'<br>'+e.stack+'</div>';
     console.error(e);
+  }
+}
+
+// 編集モード初期化: paifu-play から渡された gameData を state に展開
+function _initEditMode(){
+  var raw=null;
+  try{ raw=localStorage.getItem('tsumolog_edit_payload'); }catch(e){}
+  if(!raw){
+    // ペイロードがない → 通常起動にフォールバック
+    renderNav(); setSection("game"); renderRanking(); renderAccount(); startRtDemo(); TsumologPoints.refreshDisplay();
+    return;
+  }
+  var payload=null;
+  try{ payload=JSON.parse(raw); }catch(e){}
+  // ペイロードは読んだら消す
+  try{ localStorage.removeItem('tsumolog_edit_payload'); }catch(e){}
+
+  if(!payload||!payload.gameData){
+    renderNav(); setSection("game"); renderRanking(); renderAccount(); startRtDemo(); TsumologPoints.refreshDisplay();
+    return;
+  }
+
+  var gd=payload.gameData;
+  var meta=gd.meta||{};
+
+  // ── gameData → state に展開 ──
+  // gameFlow（対局情報）を復元
+  state.gameFlow.matched=true;
+  state.gameFlow.date=meta.date||'';
+  state.gameFlow.selectedKyoku={
+    ba:   meta.bakaze||'東',
+    kyoku:meta.kyoku||1,
+    honba:meta.honba||0,
+  };
+  // playerScores から seatMap を復元
+  var ps=gd.playerScores||{};
+  // プレイヤー名からIDを逆引き（なければ名前をそのまま使う）
+  var allP=Object.values(PLAYERS_MASTER).flat();
+  WE.forEach(function(w){
+    var pname=(ps[w]&&ps[w].name)||'';
+    var found=allP.find(function(x){return x.name===pname;});
+    state.seatMap[w]=found?found.id:null;
+  });
+
+  // 初期手牌・ツモ・捨て・副露・最終手牌・アガリを展開
+  var initH=gd.initHands||{};
+  var players=gd.players||{};
+  var discards=gd.discards||{};
+
+  // 入力対象の席を東家に設定（後でプレイヤー別タブで切り替え可能）
+  state.seat='east';
+
+  // 全4席分を submittedSeats に展開（既に「送信済み」扱いにする）
+  state.submittedSeats={};
+  WE.forEach(function(w){
+    var pw=players[w]||{};
+    if((initH[w]&&initH[w].length)||
+       (discards[w]&&discards[w].length)||
+       (pw.tsumo&&pw.tsumo.length)){
+      state.submittedSeats[w]={
+        seat:     w,
+        haipai:   (initH[w]||[]).slice(),
+        draws:    (pw.tsumo||[]).slice(),
+        discards: (discards[w]||[]).slice(),
+        finalHand:(pw.hand||[]).slice(),
+        waitTiles:(pw.wait||[]).slice(),
+        melds:    JSON.parse(JSON.stringify(pw.melds||[])),
+        agari:    {},
+        submittedAt: new Date().toISOString(),
+      };
+    }
+  });
+
+  // 東家の牌譜データを現在の state に展開（最初に東家を編集対象とする）
+  var ew=players.east||{};
+  state.haipai   = (initH.east||[]).slice();
+  state.draws    = (ew.tsumo   ||new Array(18).fill(null)).concat(new Array(18).fill(null)).slice(0,18);
+  state.discards = (discards.east||new Array(18).fill(null)).concat(new Array(18).fill(null)).slice(0,18);
+  state.finalHand= (ew.hand||[]).slice();
+  state.waitTiles= (ew.wait||[]).slice();
+  state.melds    = JSON.parse(JSON.stringify(ew.melds||[]));
+  state.riichiIdx= ew.riichiIdx||null;
+
+  // ドラ
+  if(meta.dora_indicators&&meta.dora_indicators.length){
+    state.dora=meta.dora_indicators.slice();
+  }
+  if(meta.ura_dora_indicators&&meta.ura_dora_indicators.length){
+    state.uraDora=meta.ura_dora_indicators.slice();
+  }
+
+  // アガリ
+  var winner=meta.winner;
+  var WJseatsMap={east:'東家',south:'南家',west:'西家',north:'北家'};
+  if(winner){
+    state.agari={
+      type:  meta.result_type==='tsumo'?'ツモ':meta.result_type==='ron'?'ロン':'',
+      who:   WJseatsMap[winner]||'',
+      from:  meta.loser?WJseatsMap[meta.loser]||'':'',
+      yaku:  (meta.yaku||[]).join('・'),
+      score: meta.score?String(meta.score):'',
+    };
+  }
+
+  // 点数・供託
+  WE.forEach(function(w){
+    var s=ps[w]&&ps[w].start!=null?ps[w].start:null;
+    state.kyokuStartPts[w]=s;
+  });
+
+  // returnTo を保持（送信後に戻るため）
+  state.gameFlow.editReturnTo=payload.returnTo||null;
+  state.gameFlow.editKifuId  =payload.kifuId  ||null;
+  state.gameFlow.matchKey    =state.gameFlow.matchKey||'';
+
+  // URLのクエリパラメータをきれいにする
+  history.replaceState(null,'',location.pathname);
+
+  // 通知バナー
+  showEditModeBanner(payload.returnTo);
+
+  // 入力画面へ
+  document.body.classList.add('is-input');
+  state.bigTab='player';
+  state.section='haipai';
+  renderNav();
+  renderSection();
+  renderRanking();
+  renderAccount();
+  TsumologPoints.refreshDisplay();
+}
+
+// 編集モード中のバナーを表示
+function showEditModeBanner(returnTo){
+  var banner=document.getElementById('edit-mode-banner');
+  if(!banner) return;
+  banner.style.display='flex';
+  if(returnTo){
+    banner.innerHTML='<span>✏️ <strong>編集モード</strong> — 修正して送信すると再生アプリに反映されます</span>'
+      +'<button onclick="location.href=\''+returnTo+'\'" style="margin-left:auto;font-size:11px;padding:3px 10px;border-radius:5px;'
+      +'background:none;border:1px solid rgba(255,255,255,.4);color:#fff;cursor:pointer;white-space:nowrap;">← 再生に戻る</button>';
   }
 }
 
@@ -5827,6 +6132,7 @@ var TsumologLibrary = (function(){
             kifuId:   finalKifuId,
             matchKey: matchKey,
             status:   merged.status||'partial',
+            disputeCount: (merged.disputes||[]).length,
             updatedAt:new Date().toISOString(),
             json:     JSON.stringify(merged),
           };
@@ -5894,11 +6200,27 @@ var TsumologLibrary = (function(){
     });
   }
 
+  // 未完成（partial + disputed）の牌譜一覧
+  function getIncompleteMerged(cb){
+    _open(function(db){
+      if(!db){cb([]);return;}
+      var req=db.transaction(STORE_MRG,'readonly').objectStore(STORE_MRG).getAll();
+      req.onsuccess=function(){
+        var all=(req.result||[]).map(function(r){try{return JSON.parse(r.json);}catch(e){return null;}}).filter(Boolean);
+        var incomplete=all.filter(function(k){return k.status==='partial'||k.status==='disputed';});
+        incomplete.sort(function(a,b){return(b.updatedAt||'').localeCompare(a.updatedAt||'');});
+        cb(incomplete);
+      };
+      req.onerror=function(){cb([]);};
+    });
+  }
+
   return{
     add:add, getAll:getAll, get:get, getPublic:getPublic,
     grantPermission:grantPermission, remove:remove, onUpdate:onUpdate, userId:_userId,
     submitContrib:submitContrib, getMerged:getMerged, getMergedByKey:getMergedByKey,
     getPublicMerged:getPublicMerged, getAllMerged:getAllMerged,
+    getIncompleteMerged:getIncompleteMerged,
   };
 })();
 
