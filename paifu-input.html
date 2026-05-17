@@ -1241,7 +1241,47 @@ function setBigTab(tab){
 
 // プレイヤー別タブの座席選択
 function setSeat(w){
+  // 現在の編集内容を submittedSeats に保存（切り替え前に保持）
+  if(state.seat && state.gameFlow && state.gameFlow.matched){
+    state.submittedSeats[state.seat]=Object.assign(
+      state.submittedSeats[state.seat]||{},
+      {
+        seat:      state.seat,
+        haipai:    state.haipai.slice(),
+        draws:     state.draws.slice(),
+        discards:  state.discards.slice(),
+        finalHand: state.finalHand.slice(),
+        waitTiles: state.waitTiles.slice(),
+        melds:     JSON.parse(JSON.stringify(state.melds)),
+        agari:     Object.assign({},state.agari),
+        submittedAt: new Date().toISOString(),
+      }
+    );
+  }
+
   state.seat=w;
+
+  // 選択した席のデータを state に展開（編集モード・submittedSeats がある場合）
+  var saved=state.submittedSeats&&state.submittedSeats[w];
+  if(saved){
+    state.haipai    = (saved.haipai   ||[]).slice();
+    state.draws     = (saved.draws    ||new Array(18).fill(null)).concat(new Array(18).fill(null)).slice(0,18);
+    state.discards  = (saved.discards ||new Array(18).fill(null)).concat(new Array(18).fill(null)).slice(0,18);
+    state.finalHand = (saved.finalHand||[]).slice();
+    state.waitTiles = (saved.waitTiles||[]).slice();
+    state.melds     = JSON.parse(JSON.stringify(saved.melds||[]));
+    state.riichiDiscIdx = saved.riichiDiscIdx!=null ? saved.riichiDiscIdx : null;
+  } else {
+    // 未入力の席に切り替えた場合はクリア
+    state.haipai    = [];
+    state.draws     = new Array(18).fill(null);
+    state.discards  = new Array(18).fill(null);
+    state.finalHand = [];
+    state.waitTiles = [];
+    state.melds     = [];
+    state.riichiDiscIdx = null;
+  }
+
   renderNav();
   renderSection();
   autoSaveDraft();
@@ -5428,19 +5468,10 @@ function submitAll(){
       });
     }
 
-    // ── 6. 別席入力ボタンを生成 ──
-    _renderDoneSeatBtns();
-
-    TsumologPoints.refreshDisplay();
-    clearDraft();
-    document.body.classList.remove('is-input');
-    document.getElementById('done-modal').classList.add('open');
-
     // ── 編集モードの場合: 送信後に paifu-play へ戻る準備 ──
     var returnTo=state.gameFlow.editReturnTo||null;
     var editKifuId=state.gameFlow.editKifuId||null;
     if(returnTo){
-      // paifu-play が起動時に読み込む「編集戻りペイロード」を書く
       try{
         localStorage.setItem('tsumolog_edit_return', JSON.stringify({
           kifuId:  editKifuId,
@@ -5450,17 +5481,28 @@ function submitAll(){
           returnedAt: new Date().toISOString(),
         }));
       }catch(e){}
-      // done-modal に「再生アプリへ戻る」ボタンを追加
+    }
+
+    // ── 6. 別席入力ボタンを生成 ──
+    _renderDoneSeatBtns();
+
+    // 編集モードの「再生アプリへ戻る」ボタンを先頭に追加
+    if(returnTo){
       setTimeout(function(){
         var sb=document.getElementById('done-seat-btns');
         if(sb){
           var retBtn='<a href="'+returnTo+'" style="display:block;width:100%;padding:12px 14px;border-radius:var(--ra);'
             +'background:var(--g);border:none;color:#fff;font-size:14px;font-weight:700;'
-            +'text-align:center;text-decoration:none;box-sizing:border-box;">▶ 再生アプリで確認する</a>';
+            +'text-align:center;text-decoration:none;box-sizing:border-box;margin-bottom:8px;">▶ 再生アプリで確認する</a>';
           sb.insertAdjacentHTML('afterbegin', retBtn);
         }
-      }, 100);
+      }, 50);
     }
+
+    TsumologPoints.refreshDisplay();
+    clearDraft();
+    document.body.classList.remove('is-input');
+    document.getElementById('done-modal').classList.add('open');
   });
 }
 
@@ -5921,11 +5963,13 @@ function showEditModeBanner(returnTo){
   var banner=document.getElementById('edit-mode-banner');
   if(!banner) return;
   banner.style.display='flex';
-  if(returnTo){
-    banner.innerHTML='<span>✏️ <strong>編集モード</strong> — 修正して送信すると再生アプリに反映されます</span>'
-      +'<button onclick="location.href=\''+returnTo+'\'" style="margin-left:auto;font-size:11px;padding:3px 10px;border-radius:5px;'
-      +'background:none;border:1px solid rgba(255,255,255,.4);color:#fff;cursor:pointer;white-space:nowrap;">← 再生に戻る</button>';
-  }
+  // returnTo がなければ history.back() でブラウザの戻るを使う
+  var backAction=returnTo
+    ? 'location.href=\''+returnTo+'\''
+    : 'history.back()';
+  banner.innerHTML='<span>✏️ <strong>編集モード</strong> — 修正して送信すると再生アプリに反映されます</span>'
+    +'<button onclick="'+backAction+'" style="margin-left:auto;font-size:11px;padding:3px 10px;border-radius:5px;'
+    +'background:none;border:1px solid rgba(255,255,255,.4);color:#fff;cursor:pointer;white-space:nowrap;flex-shrink:0;">← 再生に戻る</button>';
 }
 
 // CSVを読み込んでから起動
