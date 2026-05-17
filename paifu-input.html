@@ -5963,13 +5963,29 @@ function showEditModeBanner(returnTo){
   var banner=document.getElementById('edit-mode-banner');
   if(!banner) return;
   banner.style.display='flex';
-  // returnTo がなければ history.back() でブラウザの戻るを使う
-  var backAction=returnTo
-    ? 'location.href=\''+returnTo+'\''
-    : 'history.back()';
+  // 「← 再生に戻る」: 現在の編集データを localStorage に書いてから遷移
   banner.innerHTML='<span>✏️ <strong>編集モード</strong> — 修正して送信すると再生アプリに反映されます</span>'
-    +'<button onclick="'+backAction+'" style="margin-left:auto;font-size:11px;padding:3px 10px;border-radius:5px;'
+    +'<button onclick="_backToPlay()" style="margin-left:auto;font-size:11px;padding:3px 10px;border-radius:5px;'
     +'background:none;border:1px solid rgba(255,255,255,.4);color:#fff;cursor:pointer;white-space:nowrap;flex-shrink:0;">← 再生に戻る</button>';
+  // returnTo を関数から参照できるようグローバルに保持
+  window._editReturnTo = returnTo || null;
+}
+
+function _backToPlay(){
+  // 現在の編集データを tsumolog_edit_return に書いてから戻る
+  try{
+    var gd = null;
+    try{ gd = buildKifuJSON().gameData; }catch(e){}
+    localStorage.setItem('tsumolog_edit_return', JSON.stringify({
+      kifuId:      state.gameFlow.editKifuId || null,
+      gameData:    gd,
+      returnedAt:  new Date().toISOString(),
+    }));
+  }catch(e){}
+  // 戻り先へ遷移
+  var dest = window._editReturnTo;
+  if(dest) location.href = dest;
+  else     history.back();
 }
 
 // CSVを読み込んでから起動
