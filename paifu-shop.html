@@ -506,12 +506,12 @@ function switchTab(tab){
     var el=document.getElementById('tab-'+t);
     if(el) el.style.display=(t===tab)?'':'none';
   });
-  // タブボタンの active 状態
+  // タブボタンの on クラス: onclick 属性の中のタブ名で判定
   document.querySelectorAll('.tab').forEach(function(btn){
-    btn.classList.remove('on');
-    // data-tab 属性かテキストで判定
-    var btnTab=btn.getAttribute('data-tab')||btn.getAttribute('onclick')||'';
-    if(btnTab.indexOf("'"+tab+"'")>=0) btn.classList.add('on');
+    var oc=btn.getAttribute('onclick')||'';
+    // "switchTab('settings')" → 'settings' を抽出して比較
+    var m=oc.match(/switchTab\(['"]([^'"]+)['"]\)/);
+    btn.classList.toggle('on', !!(m&&m[1]===tab));
   });
   if(tab==='log')        renderLog();
   if(tab==='kifu')       renderKifuHistory();
