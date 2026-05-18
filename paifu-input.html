@@ -827,7 +827,12 @@ function applyPlayersCSV(rows){
 
 // ── CSVファイル読み込み（fetch）──
 function loadCSV(filename){
+  // WordPress環境では tsumologConfig.csvBase を使用
+  // GitHub Pages / ローカル環境では HTMLと同じフォルダを参照
   var base=(function(){
+    if(window.tsumologConfig&&window.tsumologConfig.csvBase){
+      return window.tsumologConfig.csvBase;
+    }
     try{
       var sc=document.querySelector('script[src]');
       if(sc)return sc.src.replace(/[^/]*$/,"");
@@ -3118,10 +3123,45 @@ function confirmSection(key){
   if(rtTabMap[key]) state.rtViewTab=rtTabMap[key];
   // 入力状況パネルを更新
   renderRtPanel();
-  // 次のタブへ自動移動（大タブ内を順に進む）
+
+  // ── 次のタブへ自動移動 ──
   var order=["scores","dora","agari","haipai","turns","final"];
   var ni=order.indexOf(key)+1;
-  if(ni<order.length) setSection(order[ni]);
+
+  if(ni<order.length){
+    // 同じ席内で次のセクションへ
+    setSection(order[ni]);
+  } else if(key==='final'){
+    // final（最終・副露・待ち）確定 → 次の席の haipai へ
+    var seatOrder=['east','south','west','north'];
+    var curIdx=seatOrder.indexOf(state.seat||'east');
+    var nextIdx=(curIdx+1) % seatOrder.length;  // 北家の次は東家（ループ）
+    var nextSeat=seatOrder[nextIdx];
+      var WJseats=['東家','南家','西家','北家'];
+      // 次の席に切り替えて配牌から入力
+      setSeat(nextSeat);          // state保存 + 次席データ展開
+      setSection('haipai');       // 配牌タブへ
+      // 切り替え通知を一瞬表示
+      var banner=document.getElementById('seat-advance-banner');
+      if(!banner){
+        banner=document.createElement('div');
+        banner.id='seat-advance-banner';
+        banner.style.cssText='position:fixed;top:60px;left:50%;transform:translateX(-50%);'
+          +'background:var(--b);color:#fff;padding:8px 18px;border-radius:20px;'
+          +'font-size:13px;font-weight:700;z-index:4000;pointer-events:none;'
+          +'box-shadow:0 3px 12px rgba(0,0,0,.3);white-space:nowrap;';
+        document.body.appendChild(banner);
+      }
+      banner.textContent=WJseats[nextIdx]+'の配牌を入力してください';
+      banner.style.opacity='1';
+      clearTimeout(banner._t);
+      banner._t=setTimeout(function(){
+        banner.style.transition='opacity .5s';
+        banner.style.opacity='0';
+      }, 2000);
+    // 最後の席（北家）の final 後は何もしない → 送信ボタンから
+  }
+
   // agari (最後) は confirmSummary を出さない → ナビの「送信」ボタンから
   renderNav();
 }
@@ -3364,11 +3404,6 @@ function _renderGameFlowInner(){
         +' style="background:var(--sf);border:.5px solid var(--bd2);border-radius:var(--ra);padding:10px 12px;font-size:16px;color:var(--tx);width:100%;outline:none;font-family:inherit;margin-bottom:10px"'
         +' oninput="state.gameFlow.date=this.value">'
       +'<button class="pri" style="width:100%;padding:11px;margin-bottom:10px" onclick="gfNext()">次へ：団体を選ぶ →</button>'
-      +'<button onclick="location.href=\'paifu-shop.html?tab=incomplete\'" '
-        +'style="width:100%;padding:11px;border-radius:var(--ra);border:1.5px solid var(--bd2);'
-        +'background:transparent;color:var(--tx2);font-size:14px;font-weight:600;'
-        +'font-family:inherit;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;">'
-        +'⏳ 未完成の牌譜の続きを入力する</button>'
       +'</div>';
     // 今日の日付をデフォルト
     if(!gf.date) state.gameFlow.date=today;
@@ -3569,7 +3604,7 @@ function _renderGameFlowInner(){
   var _dc2=0;
   try{if(localStorage.getItem('tsumolog_draft'))_dc2++;}catch(e){}
   try{_dc2+=JSON.parse(localStorage.getItem('tsumolog_kifu_history')||'[]').length;}catch(e){}
-  var draftListBtn='<button onclick="showDraftListModal()" '
+  var draftListBtn='<button onclick="location.href=\'paifu-shop.html?tab=kifu\'" '
     +'style="width:100%;padding:11px 14px;margin-bottom:10px;border-radius:var(--ra);'
     +'background:linear-gradient(135deg,var(--b-bg),rgba(74,143,212,.12));'
     +'border:1.5px solid var(--b);color:var(--b);'
