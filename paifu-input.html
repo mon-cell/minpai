@@ -6009,8 +6009,42 @@ function showEditModeBanner(returnTo){
 function _backToPlay(){
   // 現在の編集データを tsumolog_edit_return に書いてから戻る
   try{
+    // まず現在の席データを submittedSeats に保存
+    if(state.seat){
+      state.submittedSeats[state.seat]={
+        seat:      state.seat,
+        haipai:    state.haipai.slice(),
+        draws:     state.draws.slice(),
+        discards:  state.discards.slice(),
+        finalHand: state.finalHand.slice(),
+        waitTiles: state.waitTiles.slice(),
+        melds:     JSON.parse(JSON.stringify(state.melds)),
+        agari:     Object.assign({},state.agari),
+        submittedAt: new Date().toISOString(),
+      };
+    }
+
+    // 全4席のデータを統合した gameData を組み立てる
     var gd = null;
-    try{ gd = buildKifuJSON().gameData; }catch(e){}
+    try{
+      var base = buildKifuJSON(); // 現在席のデータが入ったベース
+      // submittedSeats の全席データで上書き
+      WE.forEach(function(w){
+        var saved = state.submittedSeats[w];
+        if(!saved) return;
+        base.gameData.initHands[w]  = (saved.haipai   ||[]).slice();
+        base.gameData.discards[w]   = (saved.discards ||[]).filter(Boolean);
+        base.gameData.players[w]    = base.gameData.players[w]||{};
+        base.gameData.players[w].tsumo    = (saved.draws    ||[]).filter(Boolean);
+        base.gameData.players[w].hand     = (saved.finalHand||[]).slice();
+        base.gameData.players[w].wait     = (saved.waitTiles||[]).slice();
+        base.gameData.players[w].melds    = JSON.parse(JSON.stringify(saved.melds||[]));
+        if(saved.riichiDiscIdx!=null && saved.riichiDiscIdx>=0)
+          base.gameData.players[w].riichiIdx = saved.riichiDiscIdx;
+      });
+      gd = base.gameData;
+    }catch(e){ console.warn('_backToPlay buildKifuJSON error',e); }
+
     localStorage.setItem('tsumolog_edit_return', JSON.stringify({
       kifuId:      state.gameFlow.editKifuId || null,
       gameData:    gd,
